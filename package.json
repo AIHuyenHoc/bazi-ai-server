@@ -1,7 +1,7 @@
 {
   "name": "bazi-ai-server",
   "version": "1.0.0",
-  "description": "API server for Bát Tự AI luận mệnh",
+  "description": "Backend API for Bát Tự AI analysis using OpenAI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,5 +11,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"
-  }
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [],
+  "license": "MIT"
 }
