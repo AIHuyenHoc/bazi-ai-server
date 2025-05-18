@@ -11,28 +11,41 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "Thiếu hoặc sai định dạng messages" });
-  }
+  const endingPrompt = `
+Hãy giải mã vận mệnh của mình.
 
-  const gptMessages = messages.map((m) => ({
+Đánh giá tổng thể ngày sinh:
+Phân tích chi tiết theo giai đoạn cuộc đời:
+- Thời thơ ấu và thiếu niên:
+- Trung niên (tuổi trưởng thành và sự nghiệp)
+- Tuổi già (những năm sau này)
+
+Những năm may mắn cụ thể: nhập năm và đại vận của bạn
+
+Dựa trên Bát Tự của bạn, tôi đề xuất những điều sau:
+Tăng cường dụng thần của bạn
+
+Lời nhắc quan trọng:
+Hãy nhớ rằng, Bát Tự của bạn không phải là định mệnh cố định, mà chỉ là vận trình có lúc thăng lúc trầm khi kết hợp cùng nỗ lực cá nhân và môi trường bạn sinh sống. Để nhận được những lời tư vấn chính xác hơn, bạn có thể liên hệ thầy Hiệp +84 969 200 785.
+`;
+
+  const formattedMessages = messages.map((m) => ({
     role: m.role === "user" ? "user" : "assistant",
     content: m.content,
   }));
 
-  // Prompt hệ thống ngắn gọn (có thể điều chỉnh thêm nếu cần)
-  gptMessages.unshift({
-    role: "system",
-    content:
-      "Bạn là thầy luận mệnh Bát Tự AI, chuyên phân tích vận mệnh theo ngày giờ sinh, sử dụng tri thức Bát Tự truyền thống Trung Hoa.",
-  });
+  // 👉 Thêm phần kết prompt vào tin nhắn user cuối cùng
+  const lastMsgIndex = formattedMessages.findLastIndex((m) => m.role === "user");
+  if (lastMsgIndex !== -1) {
+    formattedMessages[lastMsgIndex].content += endingPrompt;
+  }
 
   try {
     const gptRes = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: "gpt-3.5-turbo",
-        messages: gptMessages,
+        messages: formattedMessages,
         temperature: 0.7,
       },
       {
@@ -49,10 +62,4 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     console.error("GPT API error:", err.response?.data || err.message);
     res.status(500).json({ error: "Lỗi gọi GPT" });
   }
-});
-
-// PORT binding bắt buộc với Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Server chạy tại http://localhost:${PORT}`);
 });
