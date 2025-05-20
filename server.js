@@ -4,19 +4,16 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
   const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content : "";
 
-  const autoPrompt = `
-Hãy phân tích lá số Bát Tự dưới đây **theo đúng phương pháp truyền thống**, tuyệt đối **không phân tích riêng lẻ từng trụ (năm, tháng, ngày, giờ)**.
+  cconst autoPrompt = `
+Trước đó là thông tin Bát Tự của tôi, bạn là một bậc thầy Bát Tự nên hãy thực hiện hai việc sau:
 
-Yêu cầu bắt buộc:
-1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược.
-2. Phân tích ngũ hành toàn cục: Kim – Mộc – Thủy – Hỏa – Thổ vượng suy ra sao?
-3. Chỉ rõ Dụng Thần, Hỷ Thần và Kỵ Thần theo toàn cục lá số.
-4. Phân tích đặc điểm nổi bật về tính cách, khí chất, khả năng và điểm mạnh yếu.
-5. Dự đoán sơ lược vận trình theo từng giai đoạn: thơ ấu, trung niên, hậu vận.
-6. Gợi ý ngành nghề phù hợp, màu sắc – phương hướng nên dùng để tăng cường Dụng Thần.
-7. Viết theo văn phong của một thầy mệnh lý Đông phương, súc tích, chính xác, rõ ràng từng mục.
+1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngắn gọn ngũ hành toàn cục để biết hành nào thịnh, hành nào suy. Từ đó xác định Dụng Thần là gì (ví dụ: Thủy, Mộc…).
 
-Chỉ phân tích đúng trọng tâm mệnh lý, **không được giải thích kiểu “Tân Tỵ là linh hoạt”, “Kỷ Dậu là chăm chỉ”**. Hãy đi thẳng vào cốt lõi của Bát Tự: nhật chủ – vượng suy – dụng thần – vận trình.
+2. Dựa trên Dụng Thần và ngũ hành, đưa ra gợi ý sơ bộ về tính cách nổi bật, ngành nghề phù hợp, màu sắc nên dùng. Viết ngắn gọn, đúng trọng tâm.
+
+Không được phân tích riêng từng trụ, cũng không cần viết văn phong khái quát hay cổ vũ sáo rỗng.
+
+Chỉ tập trung vào mệnh lý: nhật chủ, vượng nhược, Dụng Thần, gợi ý ứng dụng thực tế.
 `;
 
   const fullPrompt = `${userInput}\n\n${autoPrompt}`;
