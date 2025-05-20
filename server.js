@@ -12,51 +12,24 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
 const fullPrompt = `
-Dưới đây là một ví dụ mẫu phân tích Bát Tự:
+Hãy phân tích lá số Bát Tự dưới đây **theo đúng phương pháp truyền thống**, tuyệt đối **không phân tích riêng lẻ từng trụ (năm, tháng, ngày, giờ)**.
 
-—————
+Yêu cầu bắt buộc:
+1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược.
+2. Phân tích ngũ hành toàn cục: Kim – Mộc – Thủy – Hỏa – Thổ vượng suy ra sao?
+3. Chỉ rõ Dụng Thần, Hỷ Thần và Kỵ Thần theo toàn cục lá số.
+4. Phân tích đặc điểm nổi bật về tính cách, khí chất, khả năng và điểm mạnh yếu.
+5. Dự đoán sơ lược vận trình theo từng giai đoạn: thơ ấu, trung niên, hậu vận.
+6. Gợi ý ngành nghề phù hợp, màu sắc – phương hướng nên dùng để tăng cường Dụng Thần.
+7. Viết theo văn phong của một thầy mệnh lý Đông phương, súc tích, chính xác, rõ ràng từng mục.
 
-I. ĐÁNH GIÁ TỔNG THỂ
-- Nhật Chủ là Tân Kim, sinh tháng Kỷ Dậu (thu kim vượng), nên nhật chủ mạnh.
-- Ngũ hành thiên về Kim và Thổ, thiếu Mộc và Thủy.
-- Cục cách là Chính Quan cách, có đủ Quan – Ấn tương sinh.
-- Dụng Thần là Thủy hoặc Mộc để tiết Kim sinh Tài; Kỵ Thần là Thổ vì quá nhiều.
-- Người này thông minh, lý trí, có xu hướng cầu toàn, kiệm lời nhưng cứng rắn.
-
-II. PHÂN TÍCH CUỘC ĐỜI
-1. Thơ ấu: ổn định, ít bệnh tật, dễ học nhưng nội tâm kín đáo.
-2. Trung niên: phát triển chậm đầu, về sau có quý nhân nâng đỡ.
-3. Về già: cần giữ sức khỏe tỳ vị, nếu dụng thần không đổi thì giàu có an nhàn.
-
-III. VẬN TRÌNH
-- Đại vận từ 12–22: Hành Thổ, không lợi (Kỵ Thần).
-- 23–32: Hành Kim, gia tăng quyền lực.
-- 33–42: Hành Thủy (Dụng Thần): làm ăn khởi sắc.
-- Năm tốt: 2026, 2028 (Tý, Thìn).
-
-IV. ĐIỀU CHỈNH & HÓA GIẢI
-- Nên chọn nghề liên quan đến Kim/Thủy: công nghệ, tài chính, kỹ thuật.
-- Dùng màu xanh, đen, trang trí cây cối trong nhà.
-- Tránh đất hướng Tây Nam (nhiều Thổ).
-
-V. NHẮC NHỞ
-Dù có mệnh đẹp, vẫn phải nỗ lực. Vận may là tiềm năng, không phải đảm bảo. Biết dụng thần là hiểu mình, sống thuận thiên thì an yên.
-
-—————
-
-Bây giờ, hãy phân tích Bát Tự sau: giờ Canh Tý, ngày Tân Tỵ, tháng Kỷ Dậu, năm Đinh Sửu.
-
-Lưu ý: hãy viết theo đúng format như ví dụ mẫu trên, dùng tiếng Việt, không bỏ sót mục nào.
+Chỉ phân tích đúng trọng tâm mệnh lý, **không được giải thích kiểu “Tân Tỵ là linh hoạt”, “Kỷ Dậu là chăm chỉ”**. Hãy đi thẳng vào cốt lõi của Bát Tự: nhật chủ – vượng suy – dụng thần – vận trình.
 `;
-
-const formattedMessages = messages.map((m) => ({
-  role: m.role === "user" ? "user" : "assistant",
-  content: m.content,
-}));
 
 const lastMsgIndex = formattedMessages.findLastIndex((m) => m.role === "user");
 if (lastMsgIndex !== -1) {
-  formattedMessages[lastMsgIndex].content = fullPrompt;
+  const originalUserContent = formattedMessages[lastMsgIndex].content;
+  formattedMessages[lastMsgIndex].content = `${originalUserContent}\n\n${fullPrompt}`;
 }
 
   try {
