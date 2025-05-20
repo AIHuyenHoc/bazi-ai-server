@@ -10,50 +10,63 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
-  // Lấy input user cuối cùng
+  // Lấy nội dung user input cuối cùng
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
   const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content.trim() : "";
 
-  // System prompt kèm ví dụ mẫu giúp GPT hiểu rõ format cần làm
+  // Prompt hệ thống có ví dụ mẫu phân tích mạnh yếu Nhật Chủ
   const systemPrompt = `
-Bạn là thầy luận mệnh Bát Tự giàu kinh nghiệm.
+Bạn là một thầy luận mệnh Bát Tự có nhiều năm kinh nghiệm, am hiểu sâu sắc các nguyên tắc luận mạnh yếu nhật chủ.
 
-Dưới đây là ví dụ phân tích Bát Tự theo đúng chuẩn:
+Khi phân tích mạnh yếu Nhật Chủ trong Bát Tự, bạn cần dựa trên các yếu tố sau:
 
-Ví dụ:
+1. Tháng sinh âm lịch (ảnh hưởng lớn đến vượng suy của Nhật Chủ).
+2. Thiên Can của ngày sinh (đặc biệt là can Nhật Chủ) và các Thiên Can khác trong tứ trụ, xem tương sinh tương khắc.
+3. Địa Chi trong tứ trụ, bao gồm hợp xung, tam hợp, lục hợp, hại, phá, ảnh hưởng đến Nhật Chủ.
+4. Tương quan ngũ hành giữa Nhật Chủ và các yếu tố Can Chi trong tứ trụ.
+5. Các nguyên lý truyền thống như Phù – Ức nhật nguyên, Điều Hậu, ảnh hưởng đến cục cách và dụng thần.
+
+---
+
+Ví dụ phân tích:
+
 Ngày giờ sinh:
-- Giờ: Giáp Tý
+- Giờ: Canh Tý
 - Ngày: Nhâm Ngọ
 - Tháng: Canh Thân
 - Năm: Mậu Thân
 
 Phân tích:
 
-I. Nhật Chủ và Ngũ Hành toàn cục:
-- Nhật Chủ là Nhâm Thủy, sinh tháng Thân Kim nên mạnh.
-- Kim và Thủy vượng, Hỏa Mộc suy.
-- Dụng Thần là Mộc để tiết Kim và sinh Thủy.
+I. Xác định Nhật Chủ và phân tích mạnh yếu:
 
-II. Tính cách và vận trình:
-- Người thông minh, trực giác mạnh.
-- Vận tốt tuổi 30-50, nên làm nghề liên quan cây cối, giáo dục.
-- Tránh môi trường nhiều Thổ.
+- Nhật Chủ là Nhâm Thủy (can ngày sinh).
+- Nhật Chủ sinh tháng Canh Thân (Thân Kim), Kim sinh Thủy, trợ sinh mạnh cho Nhật Chủ.
+- Thiên Can Canh Kim (tháng) tương sinh Nhâm Thủy (nhật chủ), củng cố khí chất Nhật Chủ vượng.
+- Địa Chi Tý Thủy (giờ) tương hợp với Nhật Chủ.
+- Ngọ Hỏa (ngày) khắc Thủy, tạo áp lực cho Nhật Chủ.
+- Tổng hợp, Nhật Chủ vượng, được trợ sinh nhiều từ Kim, nhưng cần chế tiết Hỏa để tránh tổn hao khí.
 
-III. Gợi ý:
-- Màu sắc nên dùng: xanh lá.
-- Hướng phù hợp: Đông, Đông Nam.
-- Lời nhắc: Thuận thiên, thuận thời, vận sẽ tự đến.
+II. Dụng Thần:
+
+- Dụng Thần là Hỏa để tiết Kim, cân bằng Thủy Kim.
+- Hỷ Thần là Thổ để sinh Hỏa.
+- Kỵ Thần là Kim quá vượng làm Nhật Chủ bóp nghẹt.
+
+III. Nhận định:
+
+- Nhật Chủ vượng, trí tuệ sắc bén.
+- Cần kiểm soát cảm xúc, sức khỏe liên quan Thủy – Hỏa.
+- Vận trình thuận lợi khi hành Hỏa – Thổ thịnh, tránh Kim quá mạnh.
 
 ---
 
-Bây giờ, hãy phân tích lá số dưới đây theo đúng cấu trúc trên, đầy đủ từng phần, rõ ràng, không bỏ sót, không lan man.
-
-Thông tin lá số:
+Bây giờ, hãy phân tích lá số Bát Tự dưới đây theo cấu trúc trên, rõ ràng từng phần, đầy đủ chi tiết:
 
 ${userInput}
 `;
 
-  // Tạo messages gửi OpenAI
+  // Tạo mảng messages gửi API
   const formattedMessages = [
     { role: "system", content: systemPrompt },
   ];
@@ -64,7 +77,7 @@ ${userInput}
       {
         model: "gpt-3.5-turbo",
         messages: formattedMessages,
-        temperature: 0.7,
+        temperature: 0.65,
         max_tokens: 1500,
         top_p: 1,
         frequency_penalty: 0,
