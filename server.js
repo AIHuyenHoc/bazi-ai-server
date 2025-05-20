@@ -1,17 +1,10 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-require("dotenv").config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Route cho Bát Tự AI
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
-const fullPrompt = `
+  const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
+  const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content : "";
+
+  const autoPrompt = `
 Hãy phân tích lá số Bát Tự dưới đây **theo đúng phương pháp truyền thống**, tuyệt đối **không phân tích riêng lẻ từng trụ (năm, tháng, ngày, giờ)**.
 
 Yêu cầu bắt buộc:
@@ -26,11 +19,14 @@ Yêu cầu bắt buộc:
 Chỉ phân tích đúng trọng tâm mệnh lý, **không được giải thích kiểu “Tân Tỵ là linh hoạt”, “Kỷ Dậu là chăm chỉ”**. Hãy đi thẳng vào cốt lõi của Bát Tự: nhật chủ – vượng suy – dụng thần – vận trình.
 `;
 
-const lastMsgIndex = formattedMessages.findLastIndex((m) => m.role === "user");
-if (lastMsgIndex !== -1) {
-  const originalUserContent = formattedMessages[lastMsgIndex].content;
-  formattedMessages[lastMsgIndex].content = `${originalUserContent}\n\n${fullPrompt}`;
-}
+  const fullPrompt = `${userInput}\n\n${autoPrompt}`;
+
+  const formattedMessages = [
+    {
+      role: "user",
+      content: fullPrompt,
+    },
+  ];
 
   try {
     const gptRes = await axios.post(
