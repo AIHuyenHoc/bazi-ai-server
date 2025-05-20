@@ -10,63 +10,92 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
-  // Lấy nội dung user input cuối cùng
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
   const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content.trim() : "";
 
-  // Prompt hệ thống có ví dụ mẫu phân tích mạnh yếu Nhật Chủ
   const systemPrompt = `
-Bạn là một thầy luận mệnh Bát Tự có nhiều năm kinh nghiệm, am hiểu sâu sắc các nguyên tắc luận mạnh yếu nhật chủ.
+Bạn là một chuyên gia luận mệnh Bát Tự có kiến thức chuẩn xác về ngũ hành, dụng thần và nguyên tắc luận mạnh yếu của Nhật Chủ.
 
-Khi phân tích mạnh yếu Nhật Chủ trong Bát Tự, bạn cần dựa trên các yếu tố sau:
+Khi phân tích lá số Bát Tự, hãy tuân thủ nghiêm ngặt các nguyên tắc sau:
 
-1. Tháng sinh âm lịch (ảnh hưởng lớn đến vượng suy của Nhật Chủ).
-2. Thiên Can của ngày sinh (đặc biệt là can Nhật Chủ) và các Thiên Can khác trong tứ trụ, xem tương sinh tương khắc.
-3. Địa Chi trong tứ trụ, bao gồm hợp xung, tam hợp, lục hợp, hại, phá, ảnh hưởng đến Nhật Chủ.
-4. Tương quan ngũ hành giữa Nhật Chủ và các yếu tố Can Chi trong tứ trụ.
-5. Các nguyên lý truyền thống như Phù – Ức nhật nguyên, Điều Hậu, ảnh hưởng đến cục cách và dụng thần.
+1. **Ngũ hành các tháng âm lịch**:
+- Tý, Sửu, Hợi thuộc Thủy
+- Dần, Mão thuộc Mộc
+- Thìn, Tỵ, Ngọ, Mùi thuộc Hỏa
+- Thân, Dậu thuộc Kim
+- Tuất, Hợi thuộc Thổ  
+(*Lưu ý: Tỵ là Hỏa, không phải Thổ*)
+
+2. **Nguyên tắc luận Nhật Chủ mạnh hay yếu**:
+- Nhật Chủ là can ngày sinh.
+- Đánh giá Nhật Chủ vượng hay nhược dựa vào môi trường sinh (tháng sinh), các thiên can và địa chi xung quanh (tương sinh, tương khắc).
+- Các nguyên tắc cụ thể:
+  - Nếu can ngày sinh được sinh bởi tháng sinh (ngũ hành tương sinh) thì Nhật Chủ vượng.
+  - Nếu can ngày sinh bị khắc bởi thiên can, địa chi trong tứ trụ thì Nhật Chủ nhược.
+  - Thiên can đồng hành và địa chi tam hợp, lục hợp sẽ tăng cường sức mạnh Nhật Chủ.
+  - Các can chi xung khắc, phá hại làm suy yếu Nhật Chủ.
+  - Đánh giá tổng thể dựa trên các tương quan trên.
+
+3. **Dụng Thần**:
+- Dụng Thần là hành được dùng để cân bằng hoặc hỗ trợ Nhật Chủ.
+- Nếu Nhật Chủ vượng thì dụng thần thường là hành khắc chế Nhật Chủ để tiết chế.
+- Nếu Nhật Chủ nhược thì dụng thần là hành sinh giúp Nhật Chủ phát triển.
+- Hỷ Thần là hành bổ trợ dụng thần, Kỵ Thần là hành gây hại cho Nhật Chủ và dụng thần.
 
 ---
 
-Ví dụ phân tích:
+Bây giờ, hãy phân tích lá số Bát Tự dưới đây theo cấu trúc rõ ràng, bao gồm:
 
-Ngày giờ sinh:
-- Giờ: Canh Tý
-- Ngày: Nhâm Ngọ
-- Tháng: Canh Thân
+I. Nhật Chủ và phân tích mạnh yếu  
+II. Dụng Thần và lý giải  
+III. Tính cách, vận trình  
+IV. Gợi ý nghề nghiệp, màu sắc, hướng nhà  
+V. Lời nhắc mệnh lý sâu sắc
+
+Trình bày rõ ràng từng phần, chi tiết và chính xác.
+
+---
+
+Ví dụ mẫu phân tích:
+
+Ngày giờ sinh:  
+- Giờ: Canh Tý  
+- Ngày: Nhâm Ngọ  
+- Tháng: Canh Thân  
 - Năm: Mậu Thân
 
 Phân tích:
 
-I. Xác định Nhật Chủ và phân tích mạnh yếu:
+I. Nhật Chủ và phân tích mạnh yếu:  
+- Nhật Chủ là Nhâm Thủy, sinh tháng Canh Thân (Thân Kim), Kim sinh Thủy, trợ sinh mạnh cho Nhật Chủ.  
+- Thiên Can Canh Kim (tháng) tương sinh Nhật Chủ, củng cố vượng khí.  
+- Địa Chi Ngọ Hỏa xung khắc gây áp lực.  
+- Tổng thể Nhật Chủ vượng, cần tiết chế Hỏa.
 
-- Nhật Chủ là Nhâm Thủy (can ngày sinh).
-- Nhật Chủ sinh tháng Canh Thân (Thân Kim), Kim sinh Thủy, trợ sinh mạnh cho Nhật Chủ.
-- Thiên Can Canh Kim (tháng) tương sinh Nhâm Thủy (nhật chủ), củng cố khí chất Nhật Chủ vượng.
-- Địa Chi Tý Thủy (giờ) tương hợp với Nhật Chủ.
-- Ngọ Hỏa (ngày) khắc Thủy, tạo áp lực cho Nhật Chủ.
-- Tổng hợp, Nhật Chủ vượng, được trợ sinh nhiều từ Kim, nhưng cần chế tiết Hỏa để tránh tổn hao khí.
+II. Dụng Thần và lý giải:  
+- Dụng Thần là Hỏa để tiết Kim, cân bằng Thủy Kim.  
+- Hỷ Thần là Thổ để sinh Hỏa.  
+- Kỵ Thần là Kim quá vượng.
 
-II. Dụng Thần:
+III. Tính cách, vận trình:  
+- Thông minh, trực giác tốt, vận trình thuận lợi từ 30-50 tuổi.  
+- Cần chú ý sức khỏe, tránh stress.
 
-- Dụng Thần là Hỏa để tiết Kim, cân bằng Thủy Kim.
-- Hỷ Thần là Thổ để sinh Hỏa.
-- Kỵ Thần là Kim quá vượng làm Nhật Chủ bóp nghẹt.
+IV. Gợi ý nghề nghiệp, màu sắc, hướng nhà:  
+- Nghề: giáo dục, nghệ thuật.  
+- Màu sắc: đỏ, cam.  
+- Hướng: Nam, Đông Nam.
 
-III. Nhận định:
-
-- Nhật Chủ vượng, trí tuệ sắc bén.
-- Cần kiểm soát cảm xúc, sức khỏe liên quan Thủy – Hỏa.
-- Vận trình thuận lợi khi hành Hỏa – Thổ thịnh, tránh Kim quá mạnh.
+V. Lời nhắc:  
+- Thuận thiên, thuận thời, vận sẽ tự đến.
 
 ---
 
-Bây giờ, hãy phân tích lá số Bát Tự dưới đây theo cấu trúc trên, rõ ràng từng phần, đầy đủ chi tiết:
+Bây giờ, phân tích lá số sau theo mẫu:
 
 ${userInput}
 `;
 
-  // Tạo mảng messages gửi API
   const formattedMessages = [
     { role: "system", content: systemPrompt },
   ];
@@ -79,9 +108,6 @@ ${userInput}
         messages: formattedMessages,
         temperature: 0.65,
         max_tokens: 1500,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
       },
       {
         headers: {
@@ -101,5 +127,5 @@ ${userInput}
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Server chạy trên cổng ${PORT}`);
+  console.log(\`Server chạy trên cổng \${PORT}\`);
 });
