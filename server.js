@@ -1,29 +1,61 @@
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
+require("dotenv").config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
+  // Lấy input user cuối cùng
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
-  const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content : "";
+  const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content.trim() : "";
 
-  const autoPrompt = `Bạn là một thầy luận mệnh Bát Tự chuyên sâu. 
-Hãy phân tích một lá số Bát Tự theo đúng phương pháp cổ truyền với 2 nhiệm vụ:
+  // System prompt kèm ví dụ mẫu giúp GPT hiểu rõ format cần làm
+  const systemPrompt = `
+Bạn là thầy luận mệnh Bát Tự giàu kinh nghiệm.
 
-1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngũ hành toàn cục, sau đó đưa ra Dụng Thần (và Hỷ/Kỵ Thần nếu có).
+Dưới đây là ví dụ phân tích Bát Tự theo đúng chuẩn:
 
-2. Gợi ý sơ bộ tính cách, ngành nghề, màu sắc, phương hướng phù hợp với Dụng Thần.
+Ví dụ:
+Ngày giờ sinh:
+- Giờ: Giáp Tý
+- Ngày: Nhâm Ngọ
+- Tháng: Canh Thân
+- Năm: Mậu Thân
 
-❌ Không được phân tích riêng từng trụ (như “Canh Tý là thông minh…”).
-❌ Không được kết thúc bằng các câu sáo rỗng như “chúc bạn thành công”.
-✅ Kết thúc bằng một lời nhắc mệnh lý sâu sắc (ví dụ: “Thuận thiên, thuận thời, vận sẽ tự đến.”).`;
+Phân tích:
 
+I. Nhật Chủ và Ngũ Hành toàn cục:
+- Nhật Chủ là Nhâm Thủy, sinh tháng Thân Kim nên mạnh.
+- Kim và Thủy vượng, Hỏa Mộc suy.
+- Dụng Thần là Mộc để tiết Kim và sinh Thủy.
+
+II. Tính cách và vận trình:
+- Người thông minh, trực giác mạnh.
+- Vận tốt tuổi 30-50, nên làm nghề liên quan cây cối, giáo dục.
+- Tránh môi trường nhiều Thổ.
+
+III. Gợi ý:
+- Màu sắc nên dùng: xanh lá.
+- Hướng phù hợp: Đông, Đông Nam.
+- Lời nhắc: Thuận thiên, thuận thời, vận sẽ tự đến.
+
+---
+
+Bây giờ, hãy phân tích lá số dưới đây theo đúng cấu trúc trên, đầy đủ từng phần, rõ ràng, không bỏ sót, không lan man.
+
+Thông tin lá số:
+
+${userInput}
+`;
+
+  // Tạo messages gửi OpenAI
   const formattedMessages = [
-    {
-      role: "system",
-      content: autoPrompt,
-    },
-    {
-      role: "user",
-      content: userInput,
-    },
+    { role: "system", content: systemPrompt },
   ];
 
   try {
@@ -33,6 +65,10 @@ Hãy phân tích một lá số Bát Tự theo đúng phương pháp cổ truy�
         model: "gpt-3.5-turbo",
         messages: formattedMessages,
         temperature: 0.7,
+        max_tokens: 1500,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
       },
       {
         headers: {
@@ -48,4 +84,9 @@ Hãy phân tích một lá số Bát Tự theo đúng phương pháp cổ truy�
     console.error("GPT API error:", err.response?.data || err.message);
     res.status(500).json({ error: "Lỗi gọi GPT" });
   }
+});
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Server chạy trên cổng ${PORT}`);
 });
