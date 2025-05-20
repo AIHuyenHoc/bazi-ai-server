@@ -4,16 +4,25 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
   const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content : "";
 
-  cconst autoPrompt = `Đầu tiên là xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngắn gọn ngũ hành toàn cục để biết hành nào thịnh, hành nào suy. Từ đó xác định Dụng Thần là gì (ví dụ: Thủy, Mộc…).
-Sau đó đưa ra gợi ý sơ bộ về tính cách nổi bật, ngành nghề phù hợp, màu sắc nên dùng. Viết ngắn gọn, đúng trọng tâm.
-Không được kết thúc bằng các câu chung chung như “chúc bạn thành công”, “chúc bạn may mắn”… Hãy kết thúc bằng một lời nhắc mệnh lý súc tích (ví dụ: “Thuận thiên, thuận thời, vận sẽ tự đến.”)`;
+  const autoPrompt = `Bạn là một thầy luận mệnh Bát Tự chuyên sâu. 
+Hãy phân tích một lá số Bát Tự theo đúng phương pháp cổ truyền với 2 nhiệm vụ:
 
-  const fullPrompt = `${autoPrompt}\n\n${userInput}`;
+1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngũ hành toàn cục, sau đó đưa ra Dụng Thần (và Hỷ/Kỵ Thần nếu có).
+
+2. Gợi ý sơ bộ tính cách, ngành nghề, màu sắc, phương hướng phù hợp với Dụng Thần.
+
+❌ Không được phân tích riêng từng trụ (như “Canh Tý là thông minh…”).
+❌ Không được kết thúc bằng các câu sáo rỗng như “chúc bạn thành công”.
+✅ Kết thúc bằng một lời nhắc mệnh lý sâu sắc (ví dụ: “Thuận thiên, thuận thời, vận sẽ tự đến.”).`;
 
   const formattedMessages = [
     {
+      role: "system",
+      content: autoPrompt,
+    },
+    {
       role: "user",
-      content: fullPrompt,
+      content: userInput,
     },
   ];
 
