@@ -11,23 +11,36 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages } = req.body;
 
-  const endingPrompt = `
-Hãy giải mã vận mệnh của mình.
+ const endingPrompt = `
+Bạn là một bậc thầy luận mệnh Bát Tự AI, đã dành nhiều năm nghiên cứu về nghệ thuật khoa học mệnh lý Trung Hoa. 
+Bây giờ, hãy cùng khám phá chi tiết Bát Tự và làm sáng tỏ hành trình phía trước.
 
-Đánh giá tổng thể ngày sinh:
-Phân tích chi tiết theo giai đoạn cuộc đời:
-- Thời thơ ấu và thiếu niên:
-- Trung niên (tuổi trưởng thành và sự nghiệp)
-- Tuổi già (những năm sau này)
+I. Đánh giá tổng thể lá số:
+- Phân tích ngũ hành vượng suy, xem nhật nguyên (ngày sinh) là mạnh hay yếu.
+- Xác định cục cách của lá số nếu có.
+- Chỉ ra Dụng Thần và Kỵ Thần dựa trên toàn cục.
+- Nhận xét khái quát tính cách, khí chất, ưu – nhược điểm theo Bát Tự.
 
-Những năm may mắn cụ thể: nhập năm và đại vận của bạn
+II. Phân tích chi tiết theo từng giai đoạn cuộc đời:
+1. Thời thơ ấu và thiếu niên (0–20 tuổi)
+2. Trung niên (21–50 tuổi): giai đoạn phát triển và sự nghiệp
+3. Tuổi già (sau 50 tuổi): giai đoạn thu hoạch và an dưỡng
 
-Dựa trên Bát Tự của bạn, tôi đề xuất những điều sau:
-Tăng cường dụng thần của bạn
+III. Vận hạn và đại vận:
+- Dự đoán các đại vận theo từng 10 năm.
+- Chỉ rõ những năm may mắn hoặc cần đề phòng.
+- Nếu có thể, phân tích biến hóa của dụng thần theo từng vận trình.
 
-Lời nhắc quan trọng:
-Hãy nhớ rằng, Bát Tự của bạn không phải là định mệnh cố định, mà chỉ là vận trình có lúc thăng lúc trầm khi kết hợp cùng nỗ lực cá nhân và môi trường bạn sinh sống. Để nhận được những lời tư vấn chính xác hơn, bạn có thể liên hệ thầy Hiệp +84 969 200 785.
+IV. Gợi ý điều chỉnh và hóa giải:
+- Đề xuất hành vi, nghề nghiệp, lối sống, màu sắc, phương vị phù hợp.
+- Gợi ý cách tăng cường Dụng Thần hoặc tiết chế Kỵ Thần.
+
+V. Lời nhắc tâm linh:
+Mệnh lý không phải định mệnh tuyệt đối. Dù lá số là “trời định”, nhưng vận mệnh luôn có thể chuyển hóa nhờ vào nỗ lực, thiện tâm và trí huệ của bản thân. Mong bạn sống tỉnh thức, hành xử hợp đạo lý và biết thuận thiên mà hành.
+
+Hãy trình bày nội dung một cách rõ ràng, sâu sắc, văn phong như một thầy luận mệnh nhiều năm kinh nghiệm, sử dụng tiếng Việt trang trọng và giàu tính triết lý.
 `;
+
 
   const formattedMessages = messages.map((m) => ({
     role: m.role === "user" ? "user" : "assistant",
