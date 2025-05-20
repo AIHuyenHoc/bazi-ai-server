@@ -4,17 +4,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserIndex = messages.findLastIndex((m) => m.role === "user");
   const userInput = lastUserIndex !== -1 ? messages[lastUserIndex].content : "";
 
-  cconst autoPrompt = `
-Trước đó là thông tin Bát Tự của tôi, bạn là một bậc thầy Bát Tự nên hãy thực hiện hai việc sau:
-
-1. Xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngắn gọn ngũ hành toàn cục để biết hành nào thịnh, hành nào suy. Từ đó xác định Dụng Thần là gì (ví dụ: Thủy, Mộc…).
-
-2. Dựa trên Dụng Thần và ngũ hành, đưa ra gợi ý sơ bộ về tính cách nổi bật, ngành nghề phù hợp, màu sắc nên dùng. Viết ngắn gọn, đúng trọng tâm.
-
-Không được phân tích riêng từng trụ, cũng không cần viết văn phong khái quát hay cổ vũ sáo rỗng.
-
-Chỉ tập trung vào mệnh lý: nhật chủ, vượng nhược, Dụng Thần, gợi ý ứng dụng thực tế.
-`;
+  cconst autoPrompt = `Đầu tiên là xác định Nhật Chủ là gì, sinh tháng nào, vượng hay nhược. Phân tích ngắn gọn ngũ hành toàn cục để biết hành nào thịnh, hành nào suy. Từ đó xác định Dụng Thần là gì (ví dụ: Thủy, Mộc…).
+Sau đó đưa ra gợi ý sơ bộ về tính cách nổi bật, ngành nghề phù hợp, màu sắc nên dùng. Viết ngắn gọn, đúng trọng tâm.`;
 
   const fullPrompt = `${userInput}\n\n${autoPrompt}`;
 
