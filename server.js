@@ -122,9 +122,9 @@ ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
 
-1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn.
+1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn. Nhật chủ chính là - Ngày: ${tuTruParsed.ngay || "chưa rõ hoặc không có"}
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
-3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong thông tin Dụng Thần:
+3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong ${dungThanText}:
 ${goiYUngDung}
 
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
