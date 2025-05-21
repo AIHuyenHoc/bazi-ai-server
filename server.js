@@ -113,7 +113,7 @@ Thủy:
   if (isRequestBazi) {
     fullPrompt = `
 Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
-Không lặp lại thông tin đã cung cấp, không dùng dấu * hoặc #. Trình bày rõ ràng, chuyên nghiệp.
+Không lặp lại thông tin đã cung cấp, không dùng dấu * hay ** hoặc #. Trình bày rõ ràng, chuyên nghiệp.
 Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
 ${tuTruText}
 
@@ -122,7 +122,7 @@ ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
 
-1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn. Nhật chủ chính là - Ngày: ${tuTruParsed.ngay || "chưa rõ hoặc không có"}
+1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn.
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
 3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong ${dungThanText}:
 ${goiYUngDung}
@@ -145,8 +145,7 @@ Ví dụ: Năm 2025 là năm Ất Tỵ, trong đó:
 
 Thông tin ngũ hành của 10 Thiên Can và 12 Địa Chi:
 ${canChiNguhanhInfo}
-
-Không tự suy đoán nếu chưa đủ dữ liệu.
+Nếu như các ngũ hành đó là dụng thần ở trong thông tin ${dungThanText} thì các năm đó may mắn, còn nếu không phải thì tương đối khó khăn, hãy cho lời văn hay hơn
 `;
   } else {
     fullPrompt = `
