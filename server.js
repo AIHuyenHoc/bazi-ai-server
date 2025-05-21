@@ -112,7 +112,7 @@ Thủy:
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu.
 Không lặp lại thông tin đã cung cấp, không dùng dấu * hay ** hoặc #. Trình bày rõ ràng, chuyên nghiệp.
 Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
 ${tuTruText}
