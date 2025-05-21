@@ -11,16 +11,29 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages, tuTruInfo, dungThan } = req.body;
 
-  // Tạo fullPrompt để gửi cho GPT, không cần đánh giá vượng nhược và dụng thần
+  // Lấy câu hỏi của người dùng
+  const userMessage = messages[messages.length - 1].content;
+
+  // Kiểm tra câu hỏi có liên quan đến may mắn hay không
+  const isLuckyQuestion = userMessage.toLowerCase().includes("may mắn") || userMessage.toLowerCase().includes("vận hạn");
+
+  // Tạo fullPrompt cho GPT
   const fullPrompt = `
     Bạn là một chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về ngũ hành, dụng thần và nguyên tắc luận mạnh yếu của Nhật Chủ.
 
     Khi phân tích lá số Bát Tự, hãy nhắc lại các nội dung bát tự và cách dụng dụng thần do tôi gửi đến 
-      **Thông tin Bát Tự**:
+    **Thông tin Bát Tự**:
     ${tuTruInfo} // Thông tin ẩn chứa cách cục và dụng thần
     **Dụng Thần**: ${dungThan ? dungThan : "Chưa xác định"}
-Việc phan tích tiếp theo tuân thủ các nguyên tắc sau:
+
+    Việc phân tích tiếp theo tuân thủ các nguyên tắc sau:
     
+    ${isLuckyQuestion ? `
+    **Dự đoán vận hạn và may mắn trong năm**:
+    Dựa trên năm sinh và các yếu tố Bát Tự, phân tích vận hạn của người này trong năm 2025.
+    Dự đoán sự nghiệp, tài chính, sức khỏe và các mối quan hệ trong năm đó. 
+    Lưu ý, tập trung vào các yếu tố tương sinh, tương khắc của năm 2025 đối với Nhật Chủ và các yếu tố tác động từ năm này đến cuộc sống của người này.
+    ` : `
     III. **Tính Cách và Vận Trình:**
     - Phân tích tính cách nổi bật, điểm mạnh và yếu của người này.
     - Dự đoán vận trình cuộc đời theo ba giai đoạn:
@@ -33,8 +46,7 @@ Việc phan tích tiếp theo tuân thủ các nguyên tắc sau:
     - Gợi ý ngành nghề phù hợp với Dụng Thần và các đặc điểm trong Bát Tự.
     - Gợi ý màu sắc, vật phẩm phong thủy nên dùng để tăng cường vận khí.
     - Phương hướng nhà hoặc làm việc nên ưu tiên để thúc đẩy sự nghiệp và sức khỏe.
-
-  
+    `}
   `;
 
   const formattedMessages = messages.map((m) => ({
