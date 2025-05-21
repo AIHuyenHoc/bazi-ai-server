@@ -51,11 +51,11 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const tuTruText = tuTruParsed
     ? `
 Thông tin Tứ Trụ:
-- Năm: ${tuTruParsed.nam || "chưa rõ"}
-- Tháng: ${tuTruParsed.thang || "chưa rõ"}
-- Ngày: ${tuTruParsed.ngay || "chưa rõ"}
-- Giờ: ${tuTruParsed.gio || "chưa rõ"}
-- Cách Cục: ${tuTruParsed.cachCuc || "chưa rõ"}
+- Năm: ${tuTruParsed.nam || "chưa rõ hoặc không có"}
+- Tháng: ${tuTruParsed.thang || "chưa rõ hoặc không có"}
+- Ngày: ${tuTruParsed.ngay || "chưa rõ hoặc không có"}
+- Giờ: ${tuTruParsed.gio || "chưa rõ hoặc không có"}
+- Cách Cục: ${tuTruParsed.cachCuc || "chưa rõ hoặc không có"}
 - Tỷ lệ Ngũ Hành: ${
         tuTruParsed.dungThan?.tyLeNguHanh
           ? Object.entries(tuTruParsed.dungThan.tyLeNguHanh)
@@ -67,11 +67,11 @@ Thông tin Tứ Trụ:
     : "Không có thông tin Tứ Trụ.";
 
   // Chuyển dungThan sang đoạn mô tả
-  const dungThanText = dungThan
-    ? `Dụng Thần: ${Array.isArray(dungThan.hanh) ? dungThan.hanh.join(", ") : dungThan.hanh || "chưa rõ"}
+  const dungThanText = dungThan && typeof dungThan === 'object'
+    ? `Dụng Thần: ${Array.isArray(dungThan.hanh) ? dungThan.hanh.join(", ") : dungThan.hanh || "chưa rõ hoặc không có"}
 Lý do chọn dụng thần: ${dungThan.lyDo || "không có"}
 Cách Cục: ${dungThan.cachCuc || "không có"}`
-    : "Chưa có thông tin dụng thần.";
+    : "Chưa có thông tin dụng thần hoặc dữ liệu không hợp lệ.";
 
   // Gợi ý ứng dụng chi tiết cho từng hành
   const goiYUngDung = `
@@ -122,10 +122,10 @@ ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
 
-1. Nhắc lại nội dung ${tuTruText} và ${dungThanText}, phân tích cho sâu hơn và hay hơn.
+1. Nhắc lại nội dung trên và phân tích cho sâu sắc, mạch lạc hơn.
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
-3. Gợi ý ứng dụng chi tiết, bao gồm:
-${goiYUngDung}, chính xác ngũ hành trong ${dungThanText}, không lấy nội dung không phải ngũ hành được đề cập 
+3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong thông tin Dụng Thần:
+${goiYUngDung}
 
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
