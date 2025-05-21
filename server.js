@@ -15,7 +15,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Kiểm tra nếu câu hỏi có liên quan đến giờ, ngày, tháng, năm sinh hay không
   const isBirthInfoQuestion = /giờ|ngày|tháng|năm/.test(userMessage.toLowerCase());
-  const isFortuneQuestion = /2025|2026|2027|may mắn|vận hạn/.test(userMessage.toLowerCase());
+  const isFortuneQuestion = /vận hạn|may mắn|tốt|xấu/.test(userMessage.toLowerCase());
 
   // Tạo fullPrompt cho GPT
   const fullPrompt = `
@@ -41,8 +41,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     - Màu sắc và phụ kiện: Gợi ý màu sắc và phụ kiện phong thủy cho người này, ví dụ: Mộc - Màu xanh lá, Thủy - Màu đen hoặc xanh, Kim - Màu trắng và kim loại, Thổ - Màu vàng hoặc nâu.
     - Phương hướng làm việc: Gợi ý phương hướng dựa trên Dụng Thần, ví dụ: Dụng Thần Mộc - Hướng Đông và Đông Nam, Dụng Thần Thủy - Hướng Bắc, Dụng Thần Kim - Hướng Tây và Tây Bắc.
     ` : isFortuneQuestion ? `
-    Phân tích về vận hạn năm 2025 hoặc các năm khác:
-    Dựa trên thông tin về Bát Tự của bạn, phân tích những yếu tố ảnh hưởng đến vận hạn của bạn trong năm bạn yêu cầu. Điều này bao gồm các cơ hội, thách thức, và các bước hành động để tăng cường may mắn.
+    Phân tích về vận hạn của năm yêu cầu:
+    Dựa trên thông tin về Bát Tự của bạn, phân tích những yếu tố ảnh hưởng đến vận hạn của bạn trong năm bạn yêu cầu (ví dụ: năm 2025, 2026, 2027...). Điều này bao gồm các cơ hội, thách thức, và các bước hành động để tăng cường may mắn trong năm đó.
     - Dự đoán những thay đổi chính trong công việc, tài chính, sức khỏe và mối quan hệ trong năm yêu cầu.
     - Cung cấp các gợi ý về cách cải thiện vận khí và tối ưu hóa cơ hội trong năm đó.
     ` : `
