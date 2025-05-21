@@ -8,69 +8,93 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  const { messages, tuTruInfo, dungThan, isAskingBazi } = req.body;
+  const { messages, tuTruInfo, dungThan } = req.body;
 
-  // Prompt chi tiết cho trường hợp người dùng hỏi về Bát Tự
-  const baziPrompt = `
-Bạn là một chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận mạnh yếu của Nhật Chủ.
+  const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
+  const userInput = lastUserMsg ? lastUserMsg.content.trim().toLowerCase() : "";
 
-Thông tin Bát Tự và dụng thần ẩn chứa:
-${tuTruInfo || "Chưa có thông tin bát tự chi tiết."}
+  const isRequestBazi =
+    userInput.includes("xem bát tự") ||
+    userInput.includes("luận bát tự") ||
+    userInput.includes("bát tự cho mình") ||
+    userInput.includes("xem lá số");
 
-Dụng Thần:
-${dungThan || "Chưa xác định"}
+  // Phân loại trường hợp hỏi vận hạn năm hoặc đại vận
+  const isAskingYearOrDaiVan =
+    /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) &&
+    !isRequestBazi;
 
-Hãy luận giải chi tiết theo các mục sau:
+  // Template chứa ngũ hành can chi 10 Thiên Can và 12 Địa Chi
+  const canChiNguhanhInfo = `
+Ngũ hành 10 Thiên Can:
+- Giáp, Ất thuộc Mộc
+- Bính, Đinh thuộc Hỏa
+- Mậu, Kỷ thuộc Thổ
+- Canh, Tân thuộc Kim
+- Nhâm, Quý thuộc Thủy
 
-1. Mạnh yếu Nhật Chủ dựa trên ngũ hành và sự tương sinh tương khắc trong lá số.
-2. Phân tích cách cục và vai trò của dụng thần, mối quan hệ các hành.
-3. Dự đoán tính cách, điểm mạnh, điểm yếu và vận trình theo các giai đoạn:
-   - Thời thơ ấu
-   - Trung niên
-   - Hậu vận
-4. Gợi ý ngành nghề phù hợp từng dụng thần:
-   - Mộc: nông nghiệp, giáo dục, may mặc, thợ mộc, đồ gỗ,...
-   - Hỏa: kinh doanh, biểu diễn, ẩm thực, điện tử,...
-   - Thổ: bất động sản, tài chính, chăm sóc sức khỏe,...
-   - Kim: công nghệ, y tế, luật pháp, kim hoàn,...
-   - Thủy: truyền thông, nghệ thuật, tư vấn, du lịch,...
-5. Gợi ý màu sắc trang phục và phụ kiện phù hợp từng hành:
-   - Mộc: xanh lá, nâu đất, vòng gỗ như trầm hương.
-   - Hỏa: đỏ, cam, hồng, đá quý màu đỏ.
-   - Thổ: vàng đất, nâu, thạch anh vàng, đá mắt hổ.
-   - Kim: trắng, bạc, xám, trang sức kim loại.
-   - Thủy: đen, xanh dương, pha lê thủy tinh, mắt kính.
-6. Phương hướng nhà hoặc nơi làm việc nên ưu tiên theo dụng thần:
-   - Mộc: Đông, Đông Nam
-   - Hỏa: Nam
-   - Thổ: Đông Bắc, Tây Nam, Trung cung
-   - Kim: Tây, Tây Bắc
-   - Thủy: Bắc
-7. Kết luận rõ ràng, tránh lặp lại thừa thãi, không dùng câu chung chung như "Chúc bạn may mắn".
-
-Nếu người dùng không hỏi về Bát Tự, hãy trả lời tự nhiên, linh hoạt, không lặp lại phần luận dụng thần hoặc cách cục mà chỉ giải đáp câu hỏi theo cách đơn giản, thân thiện. Nếu cần, yêu cầu người dùng cung cấp thông tin ngày giờ sinh hoặc can chi để phân tích chính xác hơn.
+Ngũ hành 12 Địa Chi:
+- Tý, Hợi thuộc Thủy
+- Sửu, Thìn, Mùi, Tuất thuộc Thổ
+- Dần, Mão thuộc Mộc
+- Tỵ, Ngọ thuộc Hỏa
+- Thân, Dậu thuộc Kim
 `;
 
-  // Prompt cho trường hợp không phải hỏi Bát Tự
-  const generalPrompt = `
-Bạn là trợ lý thân thiện, linh hoạt, trả lời phù hợp với câu hỏi của người dùng.
-Nếu câu hỏi không liên quan đến Bát Tự, hãy trả lời tự do, rõ ràng, không nhắc đến dụng thần hay cách cục.
-Nếu câu hỏi không đủ thông tin để trả lời chính xác, hãy lịch sự yêu cầu cung cấp thêm thông tin.
+  let fullPrompt = "";
+
+  if (isRequestBazi) {
+    fullPrompt = `
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
+Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
+${tuTruInfo}
+
+Dụng Thần được xác định là: ${dungThan}
+
+---
+
+1. Phân tích mạnh yếu Nhật Chủ, cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
+2. Phân tích tính cách nổi bật, điểm mạnh và điểm yếu.
+3. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
+4. Gợi ý ứng dụng chi tiết:
+  - Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân.
+  - Màu sắc trang phục và phụ kiện chi tiết theo từng hành.
+  - Vật phẩm phong thủy tăng cường vận khí.
+  - Phương hướng nhà/nơi làm việc ưu tiên theo dụng thần.
+
+---
+
+Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
+- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+
+---
+
+Không lặp lại thông tin đã cung cấp, không nhắc lại toàn bộ nội dung tương sinh và tương khắc, không dùng ký hiệu đặc biệt, không dùng các dấu * hoặc #.
+
+Bắt đầu phân tích chi tiết:
 `;
+  } else if (isAskingYearOrDaiVan) {
+    fullPrompt = `
+Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận nhưng chưa có đủ thông tin Thiên Can và Địa Chi của năm hoặc đại vận đó.
 
-  // Chuẩn bị messages gửi cho OpenAI
-  const formattedMessages = messages.map((m) => ({
-    role: m.role === "user" ? "user" : "assistant",
-    content: m.content,
-  }));
+Ví dụ: Năm 2026 là năm Bính Ngọ, trong đó:
+- Thiên Can: Bính (Hỏa)
+- Địa Chi: Ngọ (Hỏa)
+Để phân tích vận hạn chính xác, vui lòng cung cấp thông tin can chi năm hoặc đại vận tôi hỏi đến. Phân tích nó có phải là ngũ hành dụng thần của tôi không, có tốt cho tôi không?
+`;
+  } else {
+    fullPrompt = `
+Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
+`;
+  }
 
-  // Xác định prompt sử dụng dựa trên isAskingBazi
-  const promptToUse = isAskingBazi ? baziPrompt : generalPrompt;
-
-  // Chèn prompt vào message cuối cùng của user
-  const lastUserIndex = formattedMessages.findLastIndex((m) => m.role === "user");
-  if (lastUserIndex !== -1) {
-    formattedMessages[lastUserIndex].content = `${formattedMessages[lastUserIndex].content}\n\n${promptToUse}`;
+  // Thay thế nội dung user cuối cùng bằng fullPrompt
+  const formattedMessages = messages.map(m => ({ role: m.role, content: m.content }));
+  if (formattedMessages.length > 0 && formattedMessages[formattedMessages.length - 1].role === "user") {
+    formattedMessages[formattedMessages.length - 1].content = fullPrompt.trim();
+  } else {
+    formattedMessages.push({ role: "user", content: fullPrompt.trim() });
   }
 
   try {
@@ -81,6 +105,9 @@ Nếu câu hỏi không đủ thông tin để trả lời chính xác, hãy l�
         messages: formattedMessages,
         temperature: 0.7,
         max_tokens: 1500,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
       },
       {
         headers: {
@@ -98,8 +125,7 @@ Nếu câu hỏi không đủ thông tin để trả lời chính xác, hãy l�
   }
 });
 
-// Server lắng nghe cổng
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
