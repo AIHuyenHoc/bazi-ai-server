@@ -15,7 +15,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Kiểm tra nếu câu hỏi có liên quan đến giờ, ngày, tháng, năm sinh hay không
   const isBirthInfoQuestion = /giờ|ngày|tháng|năm/.test(userMessage.toLowerCase());
-  const isFortuneQuestion = /vận hạn|may mắn|tốt|xấu/.test(userMessage.toLowerCase());
+  const isFortuneQuestion = /2025|2026|2027|may mắn|vận hạn|có tốt không|việc này có tốt không/.test(userMessage.toLowerCase());
 
   // Tạo fullPrompt cho GPT
   const fullPrompt = `
@@ -46,19 +46,14 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     - Dự đoán những thay đổi chính trong công việc, tài chính, sức khỏe và mối quan hệ trong năm yêu cầu.
     - Cung cấp các gợi ý về cách cải thiện vận khí và tối ưu hóa cơ hội trong năm đó.
     ` : `
-    Tính Cách và Vận Trình:
-    - Phân tích tính cách nổi bật, điểm mạnh và yếu của người này.
-    - Dự đoán vận trình cuộc đời theo ba giai đoạn:
-        - Thời thơ ấu: Đánh giá các yếu tố ảnh hưởng đến sự phát triển trong giai đoạn đầu đời.
-        - Trung niên: Dự đoán các cơ hội và thách thức trong sự nghiệp, tài chính, và các mối quan hệ.
-        - Hậu vận: Dự đoán vận trình khi về già, bao gồm sức khỏe, hạnh phúc và an nhàn.
-    - Nêu thách thức và cơ hội chính trong từng giai đoạn.
+    Câu hỏi không liên quan đến giờ, ngày, tháng, năm sinh:
+    Đối với những câu hỏi không yêu cầu thông tin về giờ, ngày, tháng, năm sinh, GPT sẽ trả lời tự do và không áp dụng những phần về **mạnh yếu**, **cách cục**, **dụng thần**.
 
-    Gợi Ý Ứng Dụng:
-    - Ngành nghề phù hợp với Dụng Thần: Gợi ý ngành nghề phù hợp với Dụng Thần và các yếu tố trong Bát Tự.
-    - Màu sắc và phụ kiện: Gợi ý màu sắc và các phụ kiện phong thủy để gia tăng vận khí của người này.
-    - Phương hướng làm việc: Gợi ý phương hướng ưu tiên cho công việc và sinh hoạt.
-    `}
+    Bạn có thể hỏi về các vấn đề khác như:
+    - Công việc, sự nghiệp, tài chính
+    - Tình yêu, hôn nhân, gia đình
+    - Sức khỏe, vận may
+    `;
   `;
 
   const formattedMessages = messages.map((m) => ({
