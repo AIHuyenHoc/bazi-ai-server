@@ -1,24 +1,5 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-require("dotenv").config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Hàm kiểm tra câu hỏi có liên quan vận hạn năm hoặc đại vận
-function checkIsFortuneQuestion(text) {
-  return /năm|đại vận|vận hạn|tử vi|xem vận|xem năm/i.test(text);
-}
-
-// Hàm kiểm tra câu hỏi có đầy đủ thông tin ngày giờ sinh (Bát Tự)
-function checkIsBirthInfoQuestion(text) {
-  return /giờ|ngày|tháng|năm/i.test(text);
-}
-
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  const { messages, tuTruInfo, dungThan } = req.body;
+  const { messages, tuTruInfo, dungThan, isFortuneQuestion } = req.body;
 
   const lastUserMsg = messages
     .slice()
@@ -26,19 +7,16 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     .find((m) => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.trim() : "";
 
-  const isFortuneQuestion = checkIsFortuneQuestion(userInput);
-  const isBirthInfoQuestion = checkIsBirthInfoQuestion(userInput);
-
   let fullPrompt = "";
 
   if (isFortuneQuestion) {
-    // Kiểm tra user đã cung cấp can chi năm hỏi chưa
+    // Kiểm tra nếu người dùng chỉ hỏi về năm hoặc đại vận mà không có đầy đủ thông tin
     const hasYearCanChi = /(giáp|ất|bính|đinh|mậu|kỷ|canh|tân|nhâm|quý)\s*(tý|sửu|dần|mão|thìn|tỵ|ngọ|mùi|thân|dậu|tuất|hợi)/i.test(userInput);
-
+    
     if (!hasYearCanChi) {
       fullPrompt = `
 Bạn hỏi về vận hạn năm hoặc đại vận nhưng chưa cung cấp đủ thông tin can chi (Thiên Can + Địa Chi) của năm đó.
-Ví dụ: năm 2025 là năm Ất Tỵ.
+Ví dụ: Năm 2025 là năm Ất Tỵ.
 Vui lòng cung cấp đầy đủ can chi năm hoặc đại vận bạn muốn hỏi để tôi phân tích chính xác dựa trên:
 
 Bảng Ngũ Hành 10 Thiên Can:
@@ -55,28 +33,27 @@ Bảng Ngũ Hành 12 Địa Chi:
 - Tỵ, Ngọ thuộc Hỏa
 - Thân, Dậu thuộc Kim
 
-Khi bạn cung cấp đủ thông tin, tôi sẽ phân tích vận hạn năm đó chi tiết và đưa lời khuyên cụ thể.
+Khi bạn cung cấp đủ thông tin, tôi sẽ phân tích vận hạn, cơ hội và thách thức trong năm đó chi tiết và đưa ra lời khuyên cụ thể.
 `;
     } else {
       fullPrompt = `
-Dựa trên Bát Tự của bạn:
-${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."}
+Dựa trên Bát Tự của bạn: 
+${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."} 
 Dụng Thần: ${dungThan || "Chưa xác định"}
 
-Phân tích vận hạn năm hoặc đại vận bạn hỏi:
-1. Đánh giá sự tương sinh tương khắc giữa ngũ hành năm đó và dụng thần.
-2. Nhận định vận khí, cơ hội và thách thức chính trong năm.
-3. Đưa ra lời khuyên chi tiết để tăng cường vận khí và hóa giải khó khăn.
+Phân tích vận hạn năm bạn hỏi:
+1. Đánh giá sự tương sinh tương khắc giữa ngũ hành năm và dụng thần.
+2. Nhận định vận khí, cơ hội và thách thức chính trong năm đó.
+3. Đưa ra lời khuyên cụ thể về ngành nghề, màu sắc và phương hướng phù hợp với Dụng Thần.
 
-Viết câu trả lời chi tiết, rõ ràng, không dùng ký tự đặc biệt.
+Giải thích chi tiết vì sao các yếu tố này sẽ giúp tăng cường vận khí và hóa giải khó khăn.
 `;
     }
   } else if (isBirthInfoQuestion) {
     fullPrompt = `
 Bạn là chuyên gia luận mệnh Bát Tự với kiến thức chính xác về Ngũ Hành, Cách Cục và Dụng Thần.
 
-Thông tin Bát Tự:
-${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."}
+Thông tin Bát Tự: ${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."}
 Dụng Thần: ${dungThan || "Chưa xác định"}
 
 Hãy phân tích lá số Bát Tự theo các mục:
@@ -115,8 +92,6 @@ Hãy phân tích lá số Bát Tự theo các mục:
   + Thổ: Đông Bắc, Tây Nam, trung cung.
 
 Giải thích vì sao các gợi ý trên sẽ giúp tăng cường sức khỏe, vận khí và sự nghiệp.
-
-Viết câu trả lời dài, chi tiết, rõ ràng, không dùng ký tự đặc biệt.
 `;
   } else {
     fullPrompt = `
@@ -163,9 +138,4 @@ Nếu câu hỏi không liên quan đến Bát Tự, ngày giờ sinh hoặc v�
     console.error("GPT API error:", err.response?.data || err.message);
     res.status(500).json({ error: "Lỗi gọi GPT" });
   }
-});
-
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
