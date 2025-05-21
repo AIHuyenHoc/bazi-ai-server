@@ -45,53 +45,53 @@ Ngũ hành 12 Địa Chi:
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự có 20 năm kinh nghiệm, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ và cách cục.
-Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
-${tuTruInfo}
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
 
-Dụng Thần được xác định là: ${dungThan}
-Vui lòng không dùng các dấu ** hoặc ### trong các nội dung liệt kê
+Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
+${tuTruInfo || "Chưa có thông tin cụ thể"}
+
+Dụng Thần được xác định là: ${dungThan || "Chưa xác định"}
+
 ---
-1. Phân tích cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
-2. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
-3. Gợi ý ứng dụng chi tiết:
-  - Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân:
-     + Mộc: nông nghiệp, giáo dục, may mặc, đồ gỗ...
-     + Hỏa: kinh doanh, biểu diễn, ẩm thực, điện tử...
-     + Thổ: bất động sản, tài chính, chăm sóc sức khỏe...
-     + Kim: công nghệ, y tế, luật pháp, kim hoàn...
-     + Thủy: truyền thông, nghệ thuật, tư vấn, du lịch...
-  - Màu sắc trang phục và phụ kiện phong thủy chi tiết theo từng hành:
-     + Mộc: xanh lá, nâu đất, phụ kiện gỗ như vòng trầm hương.
-     + Hỏa: đỏ, cam, hồng, trang sức đá quý màu đỏ.
-     + Thổ: vàng đất, nâu, đá quý thạch anh vàng, vòng đá mắt hổ.
-     + Kim: trắng, bạc, xám, trang sức kim loại như bạc, vàng.
-     + Thủy: đen, xanh dương, pha lê thủy tinh, trang sức mắt kính...
+
+1. Phân tích mạnh yếu Nhật Chủ, cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
+2. Phân tích tính cách nổi bật, điểm mạnh và điểm yếu.
+3. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
+4. Gợi ý ứng dụng chi tiết:
+  - Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân.
+  - Màu sắc trang phục và phụ kiện chi tiết theo từng hành.
+  - Vật phẩm phong thủy tăng cường vận khí.
   - Phương hướng nhà/nơi làm việc ưu tiên theo dụng thần.
-     + Mộc: Đông, Đông Nam.
-     + Hỏa: Nam.
-     + Thổ: Đông Bắc, Tây Nam, Trung cung.
-     + Kim: Tây, Tây Bắc.
-     + Thủy: Bắc.
+
+---
+
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
 - Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
-Không lặp lại thông tin đã cung cấp, không nhắc lại toàn bộ nội dung tương sinh và tương khắc, không dùng ký hiệu đặc biệt.
+
+---
+
+Không lặp lại thông tin đã cung cấp, không dùng ký hiệu đặc biệt, không dùng các dấu * hoặc #.
 
 Bắt đầu phân tích chi tiết:
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự có 20 năm kinh nghiệm, bạn nhận được câu hỏi về vận hạn năm hoặc đại vận nhưng chưa có đủ thông tin Thiên Can và Địa Chi của năm hoặc đại vận đó.
+Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận nhưng chưa có đủ thông tin Thiên Can và Địa Chi của năm hoặc đại vận đó.
 
-Ví dụ: Năm 2026 là năm Bính Ngọ, trong đó:
-- Thiên Can: Bính (Hỏa)
-- Địa Chi: Ngọ (Hỏa)
-Để phân tích vận hạn chính xác, vui lòng cung cấp thông tin can chi năm hoặc đại vận tôi hỏi đến. Phân tích nó có phải là ngũ hành dụng thần của tôi không, có tốt cho tôi không?
+Ví dụ: Năm 2025 là năm Ất Tỵ, trong đó:
+- Thiên Can: Ất (Mộc)
+- Địa Chi: Tỵ (Hỏa)
+
+Để phân tích vận hạn chính xác, vui lòng cung cấp thông tin can chi năm hoặc đại vận bạn quan tâm.
+
+${canChiNguhanhInfo}
+
+Không tự suy đoán nếu chưa đủ dữ liệu.
 `;
   } else {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự có 20 năm kinh nghiệm, Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
+Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
 `;
   }
 
