@@ -45,7 +45,7 @@ Ngũ hành 12 Địa Chi:
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ và cách cục.
 Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
 ${tuTruInfo}
 
@@ -53,14 +53,27 @@ Dụng Thần được xác định là: ${dungThan}
 
 ---
 
-1. Phân tích mạnh yếu Nhật Chủ, cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
-2. Phân tích tính cách nổi bật, điểm mạnh và điểm yếu.
-3. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
-4. Gợi ý ứng dụng chi tiết:
-  - Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân.
-  - Màu sắc trang phục và phụ kiện chi tiết theo từng hành.
-  - Vật phẩm phong thủy tăng cường vận khí.
+1. Phân tích Nhật Chủ, cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
+2. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
+3. Gợi ý ứng dụng chi tiết:
+  - Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân:
+     + Mộc: nông nghiệp, giáo dục, may mặc, đồ gỗ...
+     + Hỏa: kinh doanh, biểu diễn, ẩm thực, điện tử...
+     + Thổ: bất động sản, tài chính, chăm sóc sức khỏe...
+     + Kim: công nghệ, y tế, luật pháp, kim hoàn...
+     + Thủy: truyền thông, nghệ thuật, tư vấn, du lịch...
+  - Màu sắc trang phục và phụ kiện phong thủy chi tiết theo từng hành:
+     + Mộc: xanh lá, nâu đất, phụ kiện gỗ như vòng trầm hương.
+     + Hỏa: đỏ, cam, hồng, trang sức đá quý màu đỏ.
+     + Thổ: vàng đất, nâu, đá quý thạch anh vàng, vòng đá mắt hổ.
+     + Kim: trắng, bạc, xám, trang sức kim loại như bạc, vàng.
+     + Thủy: đen, xanh dương, pha lê thủy tinh, trang sức mắt kính...
   - Phương hướng nhà/nơi làm việc ưu tiên theo dụng thần.
+     + Mộc: Đông, Đông Nam.
+     + Hỏa: Nam.
+     + Thổ: Đông Bắc, Tây Nam, Trung cung.
+     + Kim: Tây, Tây Bắc.
+     + Thủy: Bắc.
 
 ---
 
