@@ -13,24 +13,42 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   const userMessage = messages[messages.length - 1].content;
 
-  // Kiểm tra nếu người dùng đã yêu cầu về may mắn hoặc vận hạn
-  const isLuckyQuestion = userMessage.toLowerCase().includes("may mắn") || userMessage.toLowerCase().includes("vận hạn");
+  // Kiểm tra câu hỏi có liên quan đến giờ, ngày, tháng, năm sinh hay không
+  const isBirthInfoQuestion = /giờ|ngày|tháng|năm/.test(userMessage.toLowerCase());
 
-  // Tạo fullPrompt cho GPT mà không nhắc lại Bát Tự và Dụng Thần
+  // Tạo fullPrompt cho GPT
   const fullPrompt = `
     Bạn là một chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về ngũ hành, dụng thần và nguyên tắc luận mạnh yếu của Nhật Chủ.
 
-    Khi phân tích lá số Bát Tự, chỉ cần dựa vào các yếu tố có sẵn mà tôi đã cung cấp, bao gồm:
-    **Thông tin Bát Tự**: ${tuTruInfo}
+    ${isBirthInfoQuestion ? `
+    **Thông tin Bát Tự**:
+    ${tuTruInfo} // Thông tin ẩn chứa cách cục và dụng thần
     **Dụng Thần**: ${dungThan ? dungThan : "Chưa xác định"}
 
-    Các phân tích tiếp theo tuân thủ các nguyên tắc sau:
+    Khi phân tích lá số Bát Tự, hãy nhắc lại các nội dung về **mạnh yếu**, **cách cục**, và **dụng thần**. Đảm bảo rằng bạn giải thích các tương sinh, tương khắc giữa các yếu tố trong Bát Tự.
+    
+    III. **Tính Cách và Vận Trình:**
+    - Phân tích tính cách nổi bật, điểm mạnh và yếu của người này.
+    - Dự đoán vận trình cuộc đời theo ba giai đoạn:
+        1. **Thời thơ ấu**: Đánh giá các yếu tố ảnh hưởng đến sự phát triển trong giai đoạn đầu đời.
+        2. **Trung niên**: Dự đoán các cơ hội và thách thức trong sự nghiệp, tài chính, và các mối quan hệ.
+        3. **Hậu vận**: Dự đoán vận trình khi về già, bao gồm sức khỏe, hạnh phúc và an nhàn.
+    - Nêu thách thức và cơ hội chính trong từng giai đoạn.
 
-    ${isLuckyQuestion ? `
-    **Dự đoán vận hạn và may mắn trong năm**:
-    Dựa trên năm sinh và các yếu tố Bát Tự, phân tích vận hạn của người này trong năm 2025.
-    Dự đoán sự nghiệp, tài chính, sức khỏe và các mối quan hệ trong năm đó.
-    Tập trung vào các yếu tố tương sinh, tương khắc của năm 2025 đối với Nhật Chủ và các yếu tố tác động từ năm này đến cuộc sống của người này.
+    IV. **Gợi Ý Ứng Dụng**:
+    - **Ngành nghề phù hợp với Dụng Thần**: Nếu Dụng Thần là Mộc, ngành nghề nên liên quan đến trồng trọt, chăn nuôi, giáo dục, may mặc, thời trang, thợ mộc, đồ gỗ.
+    - **Màu sắc phù hợp với Dụng Thần**: 
+      - Dụng Thần Kim: Mặc đồ màu trắng, trang sức kim loại.
+      - Dụng Thần Thủy: Mặc đồ màu đen hoặc xanh, trang sức pha lê, thủy tinh.
+      - Dụng Thần Mộc: Mặc đồ màu xanh lá, phụ kiện gỗ như vòng gỗ đàn hương hoặc trầm hương.
+      - Dụng Thần Hỏa: Mặc đồ màu đỏ, hồng, tím.
+      - Dụng Thần Thổ: Mặc đồ màu vàng hoặc nâu, trang sức đá quý.
+    - **Phương hướng làm việc**: 
+      - Dụng Thần Kim: Phương hướng Tây và Tây Bắc.
+      - Dụng Thần Thủy: Phương hướng Bắc.
+      - Dụng Thần Mộc: Phương hướng Đông và Đông Nam.
+      - Dụng Thần Hỏa: Phương hướng Nam.
+      - Dụng Thần Thổ: Phương hướng Đông Bắc, Tây Nam và Trung Cung.
     ` : `
     III. **Tính Cách và Vận Trình:**
     - Phân tích tính cách nổi bật, điểm mạnh và yếu của người này.
@@ -40,10 +58,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
         3. **Hậu vận**: Dự đoán vận trình khi về già, bao gồm sức khỏe, hạnh phúc và an nhàn.
     - Nêu thách thức và cơ hội chính trong từng giai đoạn.
 
-    IV. **Gợi Ý Ứng Dụng:**
-    - Gợi ý ngành nghề phù hợp với Dụng Thần và các đặc điểm trong Bát Tự.
-    - Gợi ý màu sắc, vật phẩm phong thủy nên dùng để tăng cường vận khí.
-    - Phương hướng nhà hoặc làm việc nên ưu tiên để thúc đẩy sự nghiệp và sức khỏe.
+    IV. **Gợi Ý Ứng Dụng**:
+    - **Ngành nghề phù hợp với Dụng Thần**: Gợi ý ngành nghề phù hợp dựa trên các đặc điểm trong Bát Tự và Dụng Thần.
+    - **Màu sắc và phụ kiện**: Gợi ý màu sắc và các phụ kiện phong thủy có thể giúp gia tăng vận khí của người này.
+    - **Phương hướng làm việc**: Gợi ý phương hướng ưu tiên cho công việc và sinh hoạt.
     `}
   `;
 
