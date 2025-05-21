@@ -13,17 +13,15 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.trim().toLowerCase() : "";
 
-  // Kiểm tra có đủ thông tin giờ ngày tháng năm
   const hasFullBirthInfo = /giờ\s*\w+/.test(userInput) && /ngày\s*\w+/.test(userInput) && /tháng\s*\w+/.test(userInput) && /năm\s*\w+/.test(userInput);
 
-  // Kiểm tra có hỏi vận hạn năm hoặc đại vận (nhưng không có đủ info Bát Tự)
   const isAskingAboutYearOrDaiVan = /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) && !hasFullBirthInfo;
 
   let fullPrompt = "";
 
   if (hasFullBirthInfo) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, cách cục, dụng thần và nguyên tắc luận Nhật Chủ mạnh yếu.
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
 
 Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:  
 ${tuTruInfo || "Chưa có thông tin cụ thể"}
@@ -32,47 +30,44 @@ Dụng Thần được xác định là: ${dungThan || "Chưa xác định"}
 
 ---
 
-1. Phân tích tính cách nổi bật, điểm mạnh và điểm yếu của người này dựa trên Bát Tự.
+I. Phân tích tính cách nổi bật, điểm mạnh và điểm yếu.
 
-2. Dự đoán vận trình cuộc đời theo 3 giai đoạn:  
-   - Thời thơ ấu: những ảnh hưởng chủ yếu đến sự phát triển ban đầu.  
-   - Trung niên: cơ hội và thách thức trong sự nghiệp, tài chính và mối quan hệ.  
-   - Hậu vận: sức khỏe, an nhàn, hạnh phúc khi về già.
+II. Dự đoán vận trình cuộc đời theo 3 giai đoạn:
+1. Thời thơ ấu: các yếu tố ảnh hưởng chính.
+2. Trung niên: cơ hội và thách thức sự nghiệp, tài chính, mối quan hệ.
+3. Hậu vận: sức khỏe, hạnh phúc, an nhàn khi về già.
 
-3. Gợi ý ứng dụng chi tiết:  
-   - Ngành nghề phù hợp dựa trên dụng thần và đặc điểm ngũ hành của Bát Tự (nêu rõ các ngành nghề điển hình tương ứng với từng hành).  
-   - Màu sắc trang phục và phụ kiện: phân tích chi tiết từng hành và gợi ý màu sắc, trang sức cụ thể (ví dụ: dụng thần Kim – trắng, bạc, trang sức kim loại...).  
-   - Vật phẩm phong thủy nên dùng để tăng cường vận khí.  
-   - Phương hướng nhà hoặc nơi làm việc ưu tiên theo hành dụng thần (nêu rõ từng hướng ứng với từng hành).
-
-Lưu ý: Tránh sử dụng dấu * hoặc # trong câu trả lời, trình bày rõ ràng, dễ hiểu, không lặp lại các thông tin đã cho.  
-Không được thêm thắt hay sáng tạo từ ngữ không có căn cứ trong lý luận Bát Tự truyền thống.
+III. Gợi ý ứng dụng chi tiết:
+- Ngành nghề phù hợp ứng dụng theo dụng thần và ngũ hành cá nhân (ví dụ: Mộc làm nghề giáo dục, trồng trọt, thời trang; Kim làm nghề công nghệ, y tế...).
+- Màu sắc trang phục và phụ kiện chi tiết theo từng hành (Kim: trắng, bạc, kim loại; Thủy: đen, xanh dương, pha lê...).
+- Vật phẩm phong thủy nên dùng để tăng cường vận khí.
+- Phương hướng nhà hoặc nơi làm việc ưu tiên theo dụng thần (Kim: Tây, Tây Bắc; Thủy: Bắc; Mộc: Đông, Đông Nam...).
 
 ---
 
-Quy tắc ngũ hành chuẩn xác dùng trong phân tích:
+Nguyên lý ngũ hành tương sinh tương khắc chuẩn:
 
-- Thiên Can 10: Giáp, Ất (Mộc); Bính, Đinh (Hỏa); Mậu, Kỷ (Thổ); Canh, Tân (Kim); Nhâm, Quý (Thủy)  
-- Địa Chi 12: Tý, Hợi (Thủy); Sửu, Thìn, Mùi, Tuất (Thổ); Dần, Mão (Mộc); Tỵ, Ngọ (Hỏa); Thân, Dậu (Kim)  
-
-Mọi phân tích về năm sinh, vận hạn cần căn cứ chính xác theo nguyên tắc trên.
+- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 ---
 
-Hãy bắt đầu phân tích.
+Tránh lặp lại thông tin đã cung cấp và không dùng ký hiệu đặc biệt trong câu trả lời.
+
+Bắt đầu phân tích:
     `;
   }
   else if (isAskingAboutYearOrDaiVan) {
     fullPrompt = `
-Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận, nhưng người hỏi chưa cung cấp đủ thông tin Thiên Can và Địa Chi năm hoặc đại vận đó.
+Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận, nhưng chưa có đủ thông tin Thiên Can và Địa Chi năm hoặc đại vận đó.
 
-Ví dụ: Năm 2025 là năm Ất Tỵ, trong đó Thiên Can Ất thuộc Mộc, Địa Chi Tỵ thuộc Hỏa.
+Ví dụ: Năm 2025 là năm Ất Tỵ, Thiên Can Ất thuộc Mộc, Địa Chi Tỵ thuộc Hỏa.
 
-Để phân tích vận hạn, cơ hội, thách thức và lời khuyên chi tiết, vui lòng yêu cầu người dùng cung cấp đầy đủ can chi năm hoặc đại vận cần hỏi.
+Để phân tích vận hạn năm chính xác, cần người dùng cung cấp đầy đủ can chi năm hoặc đại vận.
 
-Không được tự đoán hay sáng tạo thông tin khi chưa có dữ liệu đầy đủ.
+Không tự động suy đoán nếu chưa có đủ dữ liệu.
 
-Hãy yêu cầu cung cấp thông tin can chi năm hoặc đại vận và không trả lời phân tích nếu chưa đủ dữ liệu.
+Hãy yêu cầu người dùng cung cấp thông tin can chi năm hoặc đại vận và không phân tích nếu chưa đủ thông tin.
     `;
   }
   else {
