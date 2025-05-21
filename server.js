@@ -113,7 +113,11 @@ Thủy:
   if (isRequestBazi) {
     fullPrompt = `
 Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
-
+Lưu ý quan trọng:
+- Nhật Chủ là Thiên Can của ngày sinh.
+- Cục (cách cục) liên quan tới Can Chi của tháng sinh. Đừng nhắc tới
+- Giờ sinh không phải Nhật Chủ.
+- Khi phân tích, tuyệt đối không nhầm lẫn các trụ này. Tốt nhất là không nên phân tích
 Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
 ${tuTruText}
 
