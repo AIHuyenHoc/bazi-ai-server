@@ -113,11 +113,7 @@ Thủy:
   if (isRequestBazi) {
     fullPrompt = `
 Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
-Lưu ý quan trọng:
-- Nhật Chủ là Thiên Can của ngày sinh.
-- Cục (cách cục) liên quan tới Can Chi của tháng sinh. Đừng nhắc tới
-- Giờ sinh không phải Nhật Chủ.
-- Khi phân tích, tuyệt đối không nhầm lẫn các trụ này. Tốt nhất là không nên phân tích
+Không lặp lại thông tin đã cung cấp, không dùng dấu * hoặc #. Trình bày rõ ràng, chuyên nghiệp.
 Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
 ${tuTruText}
 
@@ -126,7 +122,7 @@ ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
 
-1. Nhắc lại nội dung trên và phân tích cho sâu sắc, mạch lạc hơn.
+1. Nhắc lại nội dung trên mạch lạc hơn, lời văn hay hơn.
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
 3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong thông tin Dụng Thần:
 ${goiYUngDung}
@@ -134,8 +130,6 @@ ${goiYUngDung}
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
 - Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
-
-Không lặp lại thông tin đã cung cấp, không dùng dấu * hoặc #. Trình bày rõ ràng, chuyên nghiệp.
 
 Bắt đầu phân tích chi tiết:
 `;
