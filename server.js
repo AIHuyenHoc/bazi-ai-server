@@ -7,24 +7,39 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Route cho Bát Tự AI
+// Hàm kiểm tra câu hỏi có liên quan vận hạn năm hoặc đại vận
+function checkIsFortuneQuestion(text) {
+  return /năm|đại vận|vận hạn|tử vi|xem vận|xem năm/i.test(text);
+}
+
+// Hàm kiểm tra câu hỏi có đầy đủ thông tin ngày giờ sinh (Bát Tự)
+function checkIsBirthInfoQuestion(text) {
+  return /giờ|ngày|tháng|năm/i.test(text);
+}
+
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages, tuTruInfo, dungThan } = req.body;
 
-  const userMessage = messages[messages.length - 1].content;
+  const lastUserMsg = messages
+    .slice()
+    .reverse()
+    .find((m) => m.role === "user");
+  const userInput = lastUserMsg ? lastUserMsg.content.trim() : "";
 
-  // Kiểm tra nếu câu hỏi có liên quan đến giờ, ngày, tháng, năm sinh hay không
-  const isBirthInfoQuestion = /giờ|ngày|tháng|năm/.test(userMessage.toLowerCase());
-  const isFortuneQuestion = /2025|2026|2027|may mắn|vận hạn|có tốt không|việc này có tốt không/.test(userMessage.toLowerCase());
+  const isFortuneQuestion = checkIsFortuneQuestion(userInput);
+  const isBirthInfoQuestion = checkIsBirthInfoQuestion(userInput);
 
-  // Tạo fullPrompt cho GPT
-  const fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về Ngũ Hành, Cách Cục và Dụng Thần.
+  let fullPrompt = "";
 
-${isFortuneQuestion ? `
-Bạn vừa hỏi về vận hạn năm hoặc đại vận (ví dụ: năm 2025, 2026, 2027), nhưng chưa cung cấp đầy đủ thông tin về can chi của năm đó (ví dụ: năm 2025 là năm Ất Tỵ). 
+  if (isFortuneQuestion) {
+    // Kiểm tra user đã cung cấp can chi năm hỏi chưa
+    const hasYearCanChi = /(giáp|ất|bính|đinh|mậu|kỷ|canh|tân|nhâm|quý)\s*(tý|sửu|dần|mão|thìn|tỵ|ngọ|mùi|thân|dậu|tuất|hợi)/i.test(userInput);
 
-Vui lòng cung cấp đầy đủ can chi của năm hoặc đại vận bạn muốn hỏi để tôi có thể phân tích ngũ hành, vận khí chính xác dựa trên:
+    if (!hasYearCanChi) {
+      fullPrompt = `
+Bạn hỏi về vận hạn năm hoặc đại vận nhưng chưa cung cấp đủ thông tin can chi (Thiên Can + Địa Chi) của năm đó.
+Ví dụ: năm 2025 là năm Ất Tỵ.
+Vui lòng cung cấp đầy đủ can chi năm hoặc đại vận bạn muốn hỏi để tôi phân tích chính xác dựa trên:
 
 Bảng Ngũ Hành 10 Thiên Can:
 - Giáp, Ất thuộc Mộc
@@ -40,66 +55,86 @@ Bảng Ngũ Hành 12 Địa Chi:
 - Tỵ, Ngọ thuộc Hỏa
 - Thân, Dậu thuộc Kim
 
-Sau khi nhận được can chi đầy đủ, tôi sẽ phân tích vận hạn, vận khí, cơ hội và thách thức trong năm hoặc đại vận đó, đưa ra lời khuyên cụ thể để tăng cường vận khí và giảm thiểu khó khăn.
+Khi bạn cung cấp đủ thông tin, tôi sẽ phân tích vận hạn năm đó chi tiết và đưa lời khuyên cụ thể.
+`;
+    } else {
+      fullPrompt = `
+Dựa trên Bát Tự của bạn:
+${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."}
+Dụng Thần: ${dungThan || "Chưa xác định"}
 
-Nếu bạn đã cung cấp đủ thông tin, hãy hỏi lại hoặc cung cấp thêm chi tiết để tôi giúp bạn phân tích kỹ hơn.
+Phân tích vận hạn năm hoặc đại vận bạn hỏi:
+1. Đánh giá sự tương sinh tương khắc giữa ngũ hành năm đó và dụng thần.
+2. Nhận định vận khí, cơ hội và thách thức chính trong năm.
+3. Đưa ra lời khuyên chi tiết để tăng cường vận khí và hóa giải khó khăn.
 
-` : isBirthInfoQuestion ? `
+Viết câu trả lời chi tiết, rõ ràng, không dùng ký tự đặc biệt.
+`;
+    }
+  } else if (isBirthInfoQuestion) {
+    fullPrompt = `
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức chính xác về Ngũ Hành, Cách Cục và Dụng Thần.
+
 Thông tin Bát Tự:
-${tuTruInfo}
-Dụng Thần: ${dungThan ? dungThan : "Chưa xác định"}
+${tuTruInfo || "Chưa có thông tin Bát Tự cụ thể."}
+Dụng Thần: ${dungThan || "Chưa xác định"}
 
-Khi phân tích lá số Bát Tự, hãy thực hiện các bước sau:
+Hãy phân tích lá số Bát Tự theo các mục:
 
-1. Nhắc lại cách cục và dụng thần một cách chính xác và đầy đủ.
+1. Nhắc lại cách cục và dụng thần một cách chính xác và rõ ràng.
 
 2. Phân tích ngũ hành toàn cục:
-- Đánh giá sự vượng suy của Kim, Mộc, Thủy, Hỏa, Thổ trong lá số dựa trên cách cục và các thiên can, địa chi liên quan.
-- Giải thích nguyên lý tương sinh tương khắc tác động thế nào đến sức mạnh Nhật Chủ.
+- Đánh giá sự vượng suy của Kim, Mộc, Thủy, Hỏa, Thổ.
+- Giải thích nguyên lý tương sinh tương khắc ảnh hưởng thế nào đến Nhật Chủ.
 
 3. Phân tích tính cách và vận trình:
 - Phân tích điểm mạnh, điểm yếu và tính cách nổi bật.
-- Dự đoán vận trình theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
-- Nêu thách thức và cơ hội chính trong từng giai đoạn.
+- Dự đoán vận trình cuộc đời theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
+- Nêu rõ thách thức và cơ hội chính trong từng giai đoạn.
 
-4. Gợi ý ứng dụng chi tiết:
-- Ngành nghề phù hợp theo từng hành dụng thần:
-  + Kim: kim loại, trang sức, công nghệ, y tế, luật pháp.
-  + Mộc: nông nghiệp, giáo dục, thời trang, nghề mộc, nghệ thuật.
-  + Thủy: vận tải, thủy sản, truyền thông, nghệ thuật, tư vấn.
-  + Hỏa: kinh doanh, quảng cáo, điện tử, nghệ thuật biểu diễn, ẩm thực.
-  + Thổ: xây dựng, bất động sản, tài chính, bảo hiểm, chăm sóc sức khỏe.
-- Màu sắc trang phục và phụ kiện:
-  + Kim: trắng, bạc, xám, trang sức kim loại.
-  + Mộc: xanh lá, nâu đất, vàng gỗ, vòng gỗ trầm hương, đàn hương.
-  + Thủy: đen, xanh dương, pha lê, đá mắt mèo.
-  + Hỏa: đỏ, cam, hồng, tím, đá ruby, thạch anh hồng.
-  + Thổ: vàng đất, nâu, cam đất, đá thạch anh vàng, hổ phách.
-- Phương hướng nhà hoặc nơi làm việc nên ưu tiên theo dụng thần:
+4. Gợi ý ứng dụng chi tiết theo dụng thần:
+- Ngành nghề phù hợp từng hành:
+  + Kim: công nghệ, y tế, luật pháp, trang sức, công nghiệp kim loại.
+  + Mộc: nông nghiệp, giáo dục, thời trang, nghề mộc, nghệ thuật, y dược thảo dược.
+  + Thủy: vận tải thủy, thủy sản, truyền thông, tư vấn, nghệ thuật, tâm linh.
+  + Hỏa: kinh doanh, quảng cáo, điện tử, nghệ thuật biểu diễn, ẩm thực, thể thao.
+  + Thổ: xây dựng, bất động sản, tài chính, bảo hiểm, chăm sóc sức khỏe, giáo dục.
+
+- Màu sắc trang phục và phụ kiện phong thủy:
+  + Kim: trắng, bạc, xám; trang sức kim loại như vàng, bạc.
+  + Mộc: xanh lá, nâu đất, vàng gỗ; vòng tay gỗ đàn hương, trầm hương.
+  + Thủy: đen, xanh dương; pha lê, đá mắt mèo, kính mắt.
+  + Hỏa: đỏ, cam, hồng, tím; đá ruby, thạch anh hồng.
+  + Thổ: vàng đất, nâu, cam đất; đá thạch anh vàng, hổ phách.
+
+- Phương hướng nhà hoặc nơi làm việc nên ưu tiên:
   + Kim: Tây, Tây Bắc.
   + Mộc: Đông, Đông Nam.
   + Thủy: Bắc.
   + Hỏa: Nam.
   + Thổ: Đông Bắc, Tây Nam, trung cung.
-- Giải thích cụ thể tại sao các màu sắc, trang sức và hướng này sẽ giúp tăng cường sức khỏe, vận khí, sự nghiệp.
 
-Hãy trình bày dài, rõ ràng, dễ hiểu, không dùng ký tự đặc biệt như dấu * hay #.
+Giải thích vì sao các gợi ý trên sẽ giúp tăng cường sức khỏe, vận khí và sự nghiệp.
 
-` : `
-Đây là câu trả lời tự do, linh hoạt cho các câu hỏi không liên quan đến Bát Tự hay ngày sinh.
-Hãy trả lời dễ hiểu, thân thiện, không nhắc lại thông tin mạnh yếu, dụng thần hay cách cục.
-`}
-
+Viết câu trả lời dài, chi tiết, rõ ràng, không dùng ký tự đặc biệt.
 `;
+  } else {
+    fullPrompt = `
+Đây là câu trả lời tự do, linh hoạt cho câu hỏi của bạn.
+Nếu câu hỏi không liên quan đến Bát Tự, ngày giờ sinh hoặc vận hạn năm, hãy trả lời dễ hiểu, thân thiện và không nhắc lại các thông tin mệnh lý chuyên sâu.
+`;
+  }
 
+  // Thay thế nội dung tin nhắn user cuối cùng bằng fullPrompt
   const formattedMessages = messages.map((m) => ({
-    role: m.role === "user" ? "user" : "assistant",
+    role: m.role,
     content: m.content,
   }));
 
-  const lastMsgIndex = formattedMessages.findLastIndex((m) => m.role === "user");
-  if (lastMsgIndex !== -1) {
-    formattedMessages[lastMsgIndex].content = fullPrompt;
+  if (formattedMessages.length > 0 && formattedMessages[formattedMessages.length - 1].role === "user") {
+    formattedMessages[formattedMessages.length - 1].content = fullPrompt.trim();
+  } else {
+    formattedMessages.push({ role: "user", content: fullPrompt.trim() });
   }
 
   try {
@@ -109,6 +144,10 @@ Hãy trả lời dễ hiểu, thân thiện, không nhắc lại thông tin mạ
         model: "gpt-3.5-turbo",
         messages: formattedMessages,
         temperature: 0.7,
+        max_tokens: 1500,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
       },
       {
         headers: {
@@ -126,7 +165,6 @@ Hãy trả lời dễ hiểu, thân thiện, không nhắc lại thông tin mạ
   }
 });
 
-// Khởi động server
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
