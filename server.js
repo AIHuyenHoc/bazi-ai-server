@@ -13,7 +13,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.trim() : "";
 
-  const containsBaziRequest = userInput.includes("hãy xem bát tự cho mình");
+  const containsBaziRequest = /\bh(ãy)? xem b(á|a)t tự( cho mình)?\b/.test(userInput);
 
   // Thông tin ngũ hành của 10 can và 12 chi
   const canChiNguhanhInfo = `
