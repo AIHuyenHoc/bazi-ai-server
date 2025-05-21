@@ -11,28 +11,26 @@ app.use(express.json());
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages, tuTruInfo, dungThan } = req.body;
 
-  // Lấy câu hỏi của người dùng
   const userMessage = messages[messages.length - 1].content;
 
-  // Kiểm tra câu hỏi có liên quan đến may mắn hay không
+  // Kiểm tra nếu người dùng đã yêu cầu về may mắn hoặc vận hạn
   const isLuckyQuestion = userMessage.toLowerCase().includes("may mắn") || userMessage.toLowerCase().includes("vận hạn");
 
-  // Tạo fullPrompt cho GPT
+  // Tạo fullPrompt cho GPT mà không nhắc lại Bát Tự và Dụng Thần
   const fullPrompt = `
     Bạn là một chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về ngũ hành, dụng thần và nguyên tắc luận mạnh yếu của Nhật Chủ.
 
-    Khi phân tích lá số Bát Tự, hãy nhắc lại các nội dung bát tự và cách dụng dụng thần do tôi gửi đến 
-    **Thông tin Bát Tự**:
-    ${tuTruInfo} // Thông tin ẩn chứa cách cục và dụng thần
+    Khi phân tích lá số Bát Tự, chỉ cần dựa vào các yếu tố có sẵn mà tôi đã cung cấp, bao gồm:
+    **Thông tin Bát Tự**: ${tuTruInfo}
     **Dụng Thần**: ${dungThan ? dungThan : "Chưa xác định"}
 
-    Việc phân tích tiếp theo tuân thủ các nguyên tắc sau:
-    
+    Các phân tích tiếp theo tuân thủ các nguyên tắc sau:
+
     ${isLuckyQuestion ? `
     **Dự đoán vận hạn và may mắn trong năm**:
     Dựa trên năm sinh và các yếu tố Bát Tự, phân tích vận hạn của người này trong năm 2025.
-    Dự đoán sự nghiệp, tài chính, sức khỏe và các mối quan hệ trong năm đó. 
-    Lưu ý, tập trung vào các yếu tố tương sinh, tương khắc của năm 2025 đối với Nhật Chủ và các yếu tố tác động từ năm này đến cuộc sống của người này.
+    Dự đoán sự nghiệp, tài chính, sức khỏe và các mối quan hệ trong năm đó.
+    Tập trung vào các yếu tố tương sinh, tương khắc của năm 2025 đối với Nhật Chủ và các yếu tố tác động từ năm này đến cuộc sống của người này.
     ` : `
     III. **Tính Cách và Vận Trình:**
     - Phân tích tính cách nổi bật, điểm mạnh và yếu của người này.
