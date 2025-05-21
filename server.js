@@ -7,16 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post("/api/luan-giai-bazi", async (req, res) => {
-  const { messages, tuTruInfo, dungThan } = req.body;
-
-  const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
-  const userInput = lastUserMsg ? lastUserMsg.content.trim() : "";
-
-  const containsBaziRequest = /\bh(ãy)? xem b(á|a)t tự( cho mình)?\b/.test(userInput);
-
-  // Thông tin ngũ hành của 10 can và 12 chi
-  const canChiNguhanhInfo = `
+// Template chứa ngũ hành 10 Thiên Can và 12 Địa Chi
+const canChiNguhanhInfo = `
 Ngũ hành 10 Thiên Can:
 - Giáp, Ất thuộc Mộc
 - Bính, Đinh thuộc Hỏa
@@ -32,48 +24,98 @@ Ngũ hành 12 Địa Chi:
 - Thân, Dậu thuộc Kim
 `;
 
+app.post("/api/luan-giai-bazi", async (req, res) => {
+  const { messages, tuTruInfo, dungThan } = req.body;
+
+  // Lấy tin nhắn user cuối cùng
+  const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
+  const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
+
+  // Kiểm tra có phải yêu cầu xem bát tự hay không
+  const isRequestBazi =
+    userInput.includes("xem bát tự") ||
+    userInput.includes("luận bát tự") ||
+    userInput.includes("bát tự cho mình") ||
+    userInput.includes("xem lá số");
+
+  // Kiểm tra có phải hỏi về vận hạn năm hoặc đại vận không
+  const isAskingYearOrDaiVan =
+    /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) &&
+    !isRequestBazi;
+
   let fullPrompt = "";
 
-  if (containsBaziRequest) {
+  if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức chuẩn xác về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức sâu sắc về ngũ hành, dụng thần và cách cục.
 
 Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
 ${tuTruInfo || "Chưa có thông tin cụ thể"}
 
 Dụng Thần được xác định là: ${dungThan || "Chưa xác định"}
 
-Phân tích chi tiết theo các nội dung sau:
+Phân tích theo các nội dung sau:
 
-1. Tính cách nổi bật, điểm mạnh và điểm yếu dựa trên Bát Tự và cách cục.
-2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận, nêu rõ cơ hội và thách thức từng giai đoạn.
-3. Gợi ý ứng dụng chi tiết theo từng hành trong ngũ hành dựa trên dụng thần và cách cục, bao gồm:
-  - Ngành nghề phù hợp ứng dụng theo từng hành.
-  - Màu sắc trang phục và phụ kiện chi tiết theo từng hành.
-  - Vật phẩm phong thủy tăng cường vận khí.
-  - Phương hướng nhà hoặc nơi làm việc ưu tiên theo dụng thần.
+1. Tính cách nổi bật, điểm mạnh và điểm yếu.
+
+2. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
+
+3. Gợi ý ứng dụng chi tiết:
+
+- Ngành nghề phù hợp ứng dụng theo từng hành dụng thần như sau:
+  + Mộc: giáo dục, nông nghiệp, chăn nuôi, thời trang, may mặc, thợ mộc, sản xuất đồ gỗ.
+  + Hỏa: kinh doanh, nghệ thuật biểu diễn, ẩm thực, kỹ thuật điện, sản xuất vật liệu nóng.
+  + Thổ: bất động sản, tài chính, chăm sóc sức khỏe, xây dựng, địa chất.
+  + Kim: công nghệ, y tế, luật pháp, kim hoàn, sản xuất máy móc, trang sức.
+  + Thủy: truyền thông, tư vấn, nghệ thuật, vận tải, hàng hải, dịch vụ tài chính.
+
+- Màu sắc trang phục và phụ kiện nên dùng:
+  + Mộc: xanh lá, nâu đất, vàng gỗ; vòng gỗ đàn hương, trầm hương.
+  + Hỏa: đỏ, cam, hồng, tím; đá quý màu đỏ, vòng tay đá thạch anh hồng.
+  + Thổ: vàng đất, nâu, be; vòng tay đá thạch anh vàng, đá mắt hổ.
+  + Kim: trắng, bạc, xám; trang sức bạc, vàng trắng, đồng hồ kim loại.
+  + Thủy: đen, xanh dương, xanh lam; mắt kính, pha lê thủy tinh, trang sức đá thủy tinh.
+
+- Vật phẩm phong thủy hỗ trợ tăng cường vận khí:
+  + Mộc: cây xanh, bàn gỗ, tranh phong cảnh thiên nhiên.
+  + Hỏa: nến, đèn đỏ, tranh vẽ lửa, đồ kim loại màu đỏ.
+  + Thổ: đá phong thủy, tượng Phật đá, đồ gốm sứ.
+  + Kim: vật liệu kim loại, đồng tiền vàng, chuông gió kim loại.
+  + Thủy: hồ cá nhỏ, bể nước, bình thủy tinh, đá thủy tinh.
+
+- Phương hướng nhà hoặc nơi làm việc ưu tiên theo dụng thần:
+  + Mộc: Đông, Đông Nam.
+  + Hỏa: Nam.
+  + Thổ: Đông Bắc, Tây Nam, trung cung.
+  + Kim: Tây, Tây Bắc.
+  + Thủy: Bắc.
 
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
-Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
-Không lặp lại thông tin đã có trong dữ liệu đầu vào.
-Trả lời văn phong chuyên nghiệp, rõ ràng, không dùng ký hiệu đặc biệt như * hay #.
-Phân tích sâu, chi tiết, dễ hiểu và hữu ích.
+Không lặp lại thông tin đã cung cấp, không dùng ký hiệu đặc biệt.
 
-Bắt đầu phân tích chi tiết ngay sau đây:
-`;
-  } else {
+Bắt đầu phân tích chi tiết:
+    `;
+  } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do một cách dễ hiểu, dựa trên kiến thức chuyên sâu về Bát Tự, ngũ hành, phong thủy, nhưng không bắt buộc theo khuôn mẫu Bát Tự nếu người hỏi không yêu cầu.
+Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận nhưng chưa có đủ thông tin Thiên Can và Địa Chi của năm hoặc đại vận đó.
 
-Nếu người dùng hỏi về vận hạn năm hoặc đại vận mà không cung cấp đầy đủ Thiên Can và Địa Chi, bạn hãy nhắc họ cung cấp thông tin này để phân tích chính xác.
+Ví dụ: Năm 2025 là năm Ất Tỵ, trong đó:
+- Thiên Can: Ất (Thổ)
+- Địa Chi: Tỵ (Hỏa)
 
-Thông tin ngũ hành của 10 Thiên Can và 12 Địa Chi:
+Để phân tích vận hạn chính xác, vui lòng cung cấp thông tin can chi năm hoặc đại vận bạn quan tâm.
+
 ${canChiNguhanhInfo}
 
-Trả lời rõ ràng, thân thiện và phù hợp với từng câu hỏi.
-`;
+Không tự suy đoán nếu chưa đủ dữ liệu.
+    `;
+  } else {
+    fullPrompt = `
+Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
+    `;
   }
 
   // Thay thế nội dung user cuối cùng bằng fullPrompt
