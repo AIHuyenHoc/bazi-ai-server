@@ -7,7 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const canChiNguhanhInfo = `
+// Ngũ hành Can Chi chuẩn
+const CAN_CHI_NGU_HANH = `
 Ngũ hành 10 Thiên Can:
 - Giáp, Ất thuộc Mộc
 - Bính, Đinh thuộc Hỏa
@@ -26,115 +27,67 @@ Ngũ hành 12 Địa Chi:
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages, tuTruInfo, dungThan } = req.body;
 
-  const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
+  // Lấy nội dung user cuối cùng để phân tích
+  const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
 
-  const isRequestBazi =
-    userInput.includes("hãy xem bát tự cho mình") ||
-    userInput.includes("xem bát tự") ||
-    userInput.includes("luận bát tự") ||
-    userInput.includes("xem lá số");
+  // Kiểm tra người dùng có muốn xem Bát Tự không (câu có từ khóa này)
+  const isRequestBazi = userInput.includes("xem bát tự") || userInput.includes("luận bát tự") || userInput.includes("bát tự cho mình") || userInput.includes("xem lá số");
 
-  const isAskingYearOrDaiVan =
-    /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) &&
-    !isRequestBazi;
-
-  // Parse tuTruInfo
-  let tuTruParsed = null;
-  try {
-    tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
-  } catch (e) {
-    console.error("Lỗi parse tuTruInfo:", e);
-  }
-
-  // Chuyển tuTruParsed sang đoạn mô tả
-  const tuTruText = tuTruParsed
-    ? `
-Thông tin Tứ Trụ:
-- Năm: ${tuTruParsed.nam || "chưa rõ"}
-- Tháng: ${tuTruParsed.thang || "chưa rõ"}
-- Ngày: ${tuTruParsed.ngay || "chưa rõ"}
-- Giờ: ${tuTruParsed.gio || "chưa rõ"}
-- Cách Cục: ${tuTruParsed.cachCuc || "chưa rõ"}
-- Tỷ lệ Ngũ Hành: ${
-        tuTruParsed.dungThan?.tyLeNguHanh
-          ? Object.entries(tuTruParsed.dungThan.tyLeNguHanh)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(", ")
-          : "không có"
-      }
-`
-    : "Không có thông tin Tứ Trụ.";
-
-  // Chuyển dungThan sang đoạn mô tả
-  const dungThanText = dungThan
-    ? `Dụng Thần: ${Array.isArray(dungThan.hanh) ? dungThan.hanh.join(", ") : dungThan.hanh || "chưa rõ"}
-Lý do chọn dụng thần: ${dungThan.lyDo || "không có"}
-Cách Cục: ${dungThan.cachCuc || "không có"}`
-    : "Chưa có thông tin dụng thần.";
-
-  // Gợi ý ứng dụng chi tiết cho từng hành
-  const goiYUngDung = `
-Gợi ý ứng dụng chi tiết theo ngũ hành:
-
-Mộc:
-- Ngành nghề phù hợp: giáo dục, nông nghiệp, trồng trọt, chăn nuôi, thời trang, thợ mộc, đồ gỗ.
-- Màu sắc trang phục và phụ kiện: xanh lá cây, nâu đất, vòng gỗ như đàn hương, trầm hương.
-- Vật phẩm phong thủy: cây xanh, tranh phong cảnh, vòng tay gỗ.
-- Phương hướng ưu tiên: Đông, Đông Nam.
-
-Hỏa:
-- Ngành nghề phù hợp: kinh doanh, nghệ thuật biểu diễn, ẩm thực, nấu ăn, giải trí.
-- Màu sắc trang phục và phụ kiện: đỏ, cam, hồng, tím.
-- Vật phẩm phong thủy: nến, đèn đỏ, đá quý màu đỏ.
-- Phương hướng ưu tiên: Nam.
-
-Thổ:
-- Ngành nghề phù hợp: bất động sản, tài chính, chăm sóc sức khỏe, xây dựng.
-- Màu sắc trang phục và phụ kiện: vàng đất, nâu, đá phong thủy, vòng đá quý.
-- Vật phẩm phong thủy: tượng Phật đá, đá phong thủy.
-- Phương hướng ưu tiên: Đông Bắc, Tây Nam, trung cung.
-
-Kim:
-- Ngành nghề phù hợp: công nghệ, y tế, luật pháp, kỹ thuật, cơ khí.
-- Màu sắc trang phục và phụ kiện: trắng, bạc, xám, trang sức kim loại.
-- Vật phẩm phong thủy: đồng tiền vàng, vật liệu kim loại.
-- Phương hướng ưu tiên: Tây, Tây Bắc.
-
-Thủy:
-- Ngành nghề phù hợp: truyền thông, tư vấn, vận tải, du lịch, nghệ thuật.
-- Màu sắc trang phục và phụ kiện: đen, xanh dương, phụ kiện pha lê, thủy tinh như mắt kính.
-- Vật phẩm phong thủy: hồ cá nhỏ, bình thủy tinh.
-- Phương hướng ưu tiên: Bắc.
-`;
+  // Kiểm tra hỏi về năm hoặc vận hạn mà không phải xem bát tự
+  const isAskingYearOrDaiVan = /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) && !isRequestBazi;
 
   let fullPrompt = "";
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu và cách cục.
+Bạn là chuyên gia luận mệnh Bát Tự, có kiến thức sâu sắc về Ngũ Hành, Can Chi, Dụng Thần và nguyên lý tương sinh tương khắc.
 
-Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
-${tuTruText}
+Thông tin Bát Tự và cách cục người dùng đã cung cấp:
+${tuTruInfo || "Chưa có thông tin cụ thể"}
 
-Và thông tin về Dụng Thần:
-${dungThanText}
+Dụng Thần và Cách Cục:
+${dungThan || "Chưa xác định"}
 
-Phân tích chi tiết các nội dung sau:
+1. Phân tích chi tiết từng trụ Can Chi trong Bát Tự dựa trên dữ liệu tuTruInfo, làm rõ vai trò của Nhật Chủ và tương quan với các trụ khác.
 
-1. Tính cách nổi bật, điểm mạnh và điểm yếu dựa trên dữ liệu đã cho.
-2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
-3. Gợi ý ứng dụng chi tiết, bao gồm:
-${goiYUngDung}
+2. Phân tích vận trình theo 3 giai đoạn: Thời thơ ấu, Trung niên, Hậu vận, dựa trên dụng thần và mối quan hệ tương sinh tương khắc trong ngũ hành.
 
-Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
-- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+3. Gợi ý ứng dụng chi tiết theo từng hành trong dụng thần:
 
-Không lặp lại thông tin đã cung cấp, không dùng dấu * hoặc #. Trình bày rõ ràng, chuyên nghiệp.
+Ngành nghề:
+- Mộc: giáo dục, nông nghiệp, thời trang, nghệ thuật.
+- Hỏa: kinh doanh, nghệ thuật biểu diễn, ẩm thực.
+- Thổ: bất động sản, tài chính, chăm sóc sức khỏe.
+- Kim: công nghệ, y tế, luật pháp, kỹ thuật.
+- Thủy: truyền thông, tư vấn, vận tải, nghệ thuật.
+
+Màu sắc trang phục và phụ kiện:
+- Mộc: xanh lá, nâu đất, vòng gỗ đàn hương, vòng trầm hương.
+- Hỏa: đỏ, cam, hồng, trang sức đá quý.
+- Thổ: vàng đất, nâu, đá phong thủy, tượng đá.
+- Kim: trắng, bạc, xám, trang sức kim loại.
+- Thủy: đen, xanh dương, pha lê, phụ kiện thủy tinh.
+
+Vật phẩm phong thủy:
+- Mộc: cây xanh, tranh phong cảnh.
+- Hỏa: nến, đèn đỏ, tượng phượng hoàng.
+- Thổ: đá thạch anh vàng, tượng Phật đá.
+- Kim: đồng tiền vàng, vật liệu kim loại.
+- Thủy: hồ cá nhỏ, bình thủy tinh.
+
+Phương hướng nhà hoặc nơi làm việc ưu tiên:
+- Mộc: Đông, Đông Nam.
+- Hỏa: Nam.
+- Thổ: Đông Bắc, Tây Nam, trung cung.
+- Kim: Tây, Tây Bắc.
+- Thủy: Bắc.
+
+4. Không lặp lại thông tin đã có trong tuTruInfo và dungThan.
+5. Trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hoặc #.
 
 Bắt đầu phân tích chi tiết:
-`;
+    `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
 Bạn nhận được câu hỏi về vận hạn năm hoặc đại vận nhưng chưa có đủ thông tin Thiên Can và Địa Chi của năm hoặc đại vận đó.
@@ -143,28 +96,21 @@ Ví dụ: Năm 2025 là năm Ất Tỵ, trong đó:
 - Thiên Can: Ất (Mộc)
 - Địa Chi: Tỵ (Hỏa)
 
-Để phân tích vận hạn chính xác, vui lòng cung cấp đầy đủ thông tin can chi của năm hoặc đại vận bạn quan tâm.
+Để phân tích vận hạn chính xác, vui lòng cung cấp thông tin can chi năm hoặc đại vận bạn quan tâm.
 
-Thông tin ngũ hành của 10 Thiên Can và 12 Địa Chi:
-${canChiNguhanhInfo}
+${CAN_CHI_NGU_HANH}
 
 Không tự suy đoán nếu chưa đủ dữ liệu.
-`;
+    `;
   } else {
     fullPrompt = `
 Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
-`;
+    `;
   }
 
-  const formattedMessages = messages.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
-
-  if (
-    formattedMessages.length > 0 &&
-    formattedMessages[formattedMessages.length - 1].role === "user"
-  ) {
+  // Thay thế nội dung user cuối cùng bằng fullPrompt
+  const formattedMessages = messages.map(m => ({ role: m.role, content: m.content }));
+  if (formattedMessages.length > 0 && formattedMessages[formattedMessages.length - 1].role === "user") {
     formattedMessages[formattedMessages.length - 1].content = fullPrompt.trim();
   } else {
     formattedMessages.push({ role: "user", content: fullPrompt.trim() });
@@ -177,7 +123,7 @@ Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hi�
         model: "gpt-3.5-turbo",
         messages: formattedMessages,
         temperature: 0.7,
-        max_tokens: 1600,
+        max_tokens: 1500,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
@@ -200,5 +146,5 @@ Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do, dễ hi�
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
