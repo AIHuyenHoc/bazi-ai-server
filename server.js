@@ -50,7 +50,7 @@ Thông tin ẩn về Bát Tự và cách cục người dùng cung cấp:
 ${tuTruInfo}
 
 Dụng Thần được xác định là: ${dungThan}
-
+Vui lòng không dùng các dấu ** hoặc ### trong các nội dung liệt kê
 ---
 1. Phân tích cách cục, dụng thần theo ngũ hành và tương sinh tương khắc.
 2. Dự đoán vận trình chi tiết theo 3 giai đoạn: thời thơ ấu, trung niên, hậu vận.
@@ -76,7 +76,7 @@ Dụng Thần được xác định là: ${dungThan}
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
 - Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
-Không lặp lại thông tin đã cung cấp, không nhắc lại toàn bộ nội dung tương sinh và tương khắc, không dùng ký hiệu đặc biệt, không dùng các dấu ** hoặc ### trong các nội dung liệt kê.
+Không lặp lại thông tin đã cung cấp, không nhắc lại toàn bộ nội dung tương sinh và tương khắc, không dùng ký hiệu đặc biệt.
 
 Bắt đầu phân tích chi tiết:
 `;
