@@ -58,21 +58,21 @@ const analyzeNguHanh = (tuTru) => {
   };
 
   try {
-    if (tuTru.nam) {
-      nguHanhCount[canNguHanh[tuTru.nam.split(" ")[0]]] += 1;
-      nguHanhCount[chiNguHanh[tuTru.nam.split(" ")[1]]] += 1;
+    const elements = [
+      tuTru.nam ? tuTru.nam.split(" ") : [],
+      tuTru.thang ? tuTru.thang.split(" ") : [],
+      tuTru.ngay ? tuTru.ngay.split(" ") : [],
+      tuTru.gio ? tuTru.gio.split(" ") : []
+    ].flat().filter(Boolean);
+
+    for (const elem of elements) {
+      if (canNguHanh[elem]) nguHanhCount[canNguHanh[elem]] += 1;
+      if (chiNguHanh[elem]) nguHanhCount[chiNguHanh[elem]] += 1;
     }
-    if (tuTru.thang) {
-      nguHanhCount[canNguHanh[tuTru.thang.split(" ")[0]]] += 1;
-      nguHanhCount[chiNguHanh[tuTru.thang.split(" ")[1]]] += 1;
-    }
-    if (tuTru.ngay) {
-      nguHanhCount[canNguHanh[tuTru.ngay.split(" ")[0]]] += 1;
-      nguHanhCount[chiNguHanh[tuTru.ngay.split(" ")[1]]] += 1;
-    }
-    if (tuTru.gio) {
-      nguHanhCount[canNguHanh[tuTru.gio.split(" ")[0]]] += 1;
-      nguHanhCount[chiNguHanh[tuTru.gio.split(" ")[1]]] += 1;
+
+    const total = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
+    if (total !== 8) {
+      throw new Error("Tổng số hành không đúng (phải bằng 8)");
     }
   } catch (e) {
     console.error("Lỗi phân tích ngũ hành:", e.message);
@@ -112,7 +112,7 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   if (
     thangHanh === nhatChuNguHanh ||
     tuongSinh[thangHanh] === nhatChuNguHanh ||
-    nguHanhCount[nhatChuNguHanh] >= 3
+    (nguHanhCount[nhatChuNguHanh] >= 3 && !tuongKhac[thangHanh] === nhatChuNguHanh)
   ) {
     thanVuong = true;
   }
@@ -122,7 +122,10 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   let cachCuc = thanVuong ? "Thân Vượng" : "Thân Nhược";
 
   if (thanVuong) {
-    dungThan = [tuongKhac[nhatChuNguHanh], tuongKhac[tuongSinh[nhatChuNguHanh]]];
+    dungThan = [tuongKhac[nhatChuNguHanh]];
+    if (tuongKhac[tuongSinh[nhatChuNguHanh]] !== tuongKhac[nhatChuNguHanh]) {
+      dungThan.push(tuongKhac[tuongSinh[nhatChuNguHanh]]);
+    }
     lyDo = `Vì Thân Vượng, cần tiết khí bằng hành khắc Nhật Chủ (${tuongKhac[nhatChuNguHanh]}) và hành tiết khí (${tuongKhac[tuongSinh[nhatChuNguHanh]]}).`;
   } else {
     dungThan = [nhatChuNguHanh, tuongSinh[tuongKhac[nhatChuNguHanh]]];
@@ -233,7 +236,7 @@ Lý do cách cục: ${dungThanTinhToan.lyDoCachCuc}
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp để phù hợp với người mới sử dụng. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không dựa vào dữ liệu từ các yêu cầu trước. Kiểm tra kỹ Nhật Chủ (thiên can ngày: ${nhatChu}) và tháng sinh (Địa Chi tháng: ${thangChi}) từ Tứ Trụ để đảm bảo chính xác (ví dụ: ngày Quý Sửu có Nhật Chủ Quý Thủy, tháng Đinh Tỵ là Tỵ - Hỏa). Nếu người dùng hỏi câu hỏi khác (ví dụ: đại vận, nghề nghiệp, năm cụ thể, màu sắc), trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp để phù hợp với người mới sử dụng. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không dựa vào dữ liệu từ các yêu cầu trước. Kiểm tra kỹ Nhật Chủ (thiên can ngày: ${nhatChu}) và tháng sinh (Địa Chi tháng: ${thangChi}) từ Tứ Trụ để đảm bảo chính xác (ví dụ: ngày Quý Sửu có Nhật Chủ Quý Thủy, tháng Đinh Tỵ là Tỵ - Hỏa). Phải sử dụng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText} mà không tự tạo dữ liệu. Nếu người dùng hỏi câu hỏi khác (ví dụ: đại vận, nghề nghiệp, năm cụ thể, màu sắc), trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -243,32 +246,30 @@ ${canChiNguhanhInfo}
 Năm hiện tại: ${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})
 
 Hướng dẫn phân tích Bát Tự:
-1. Phân tích chi tiết Tứ Trụ (giờ: ${tuTruParsed.gio}, ngày: ${tuTruParsed.ngay}, tháng: ${tuTruParsed.thang}, năm: ${tuTruParsed.nam}), diễn đạt bằng lời văn tinh tế, giải thích vai trò của từng ngũ hành:
+1. Phân tích chi tiết Tứ Trụ (giờ: ${tuTruParsed.gio}, ngày: ${tuTruParsed.ngay}, tháng: ${tuTruParsed.thang}, năm: ${tuTruParsed.nam}), diễn đạt bằng lời văn tinh tế, giải thích vai trò của từng ngũ hành dựa trên tỷ lệ chính xác từ ${tuTruText}:
    - Kim (${tyLeNguHanh.Kim}): Thể hiện sự sắc bén, quyết đoán, sinh Thủy hoặc khắc Mộc.
    - Thổ (${tyLeNguHanh.Thổ}): Mang lại sự ổn định, bền vững, sinh Kim hoặc khắc Thủy.
    - Hỏa (${tyLeNguHanh.Hỏa}): Tạo năng lượng, đam mê, khắc Kim hoặc sinh Thổ.
    - Thủy (${tyLeNguHanh.Thủy}): Thúc đẩy giao tiếp, linh hoạt, sinh Mộc hoặc khắc Hỏa.
    - Mộc (${tyLeNguHanh.Mộc}): Biểu thị sáng tạo, phát triển, khắc Thổ hoặc sinh Hỏa.
-   Xác định Nhật Chủ (thiên can ngày: ${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}), tỷ lệ ngũ hành, và tương sinh/tương khắc. Kiểm tra kỹ ngũ hành của tháng sinh (ví dụ: Tỵ là Hỏa, Dậu là Kim).
+   Xác định Nhật Chủ (thiên can ngày: ${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}), tỷ lệ ngũ hành, và tương sinh/tương khắc. Kiểm tra kỹ tương khắc của tháng sinh với Nhật Chủ (ví dụ: Tỵ - Hỏa khắc Thủy làm Thủy yếu).
 2. Dự đoán vận trình qua ba giai đoạn (thời thơ ấu, trung niên, hậu vận), tập trung vào:
-   - Vai trò của Dụng Thần trong việc cân bằng lá số (tiết khí nếu Thân Vượng, hỗ trợ nếu Thân Nhược).
-   - Tác động của các ngũ hành mạnh/yếu (ví dụ: hành vắng mặt làm giảm tính linh hoạt).
+   - Vai trò của Dụng Thần (${dungThanTinhToan.hanh.join(", ")}) trong việc cân bằng lá số (tiết khí nếu Thân Vượng, hỗ trợ nếu Thân Nhược).
+   - Tác động của các ngũ hành mạnh/yếu theo tỷ lệ chính xác từ ${tuTruText}.
    - Ảnh hưởng của tháng sinh và các hành chính trong Tứ Trụ, sử dụng đúng ngũ hành của Địa Chi.
 3. Đưa ra gợi ý ứng dụng theo Dụng Thần (${dungThanTinhToan.hanh.join(", ")}), giải thích tại sao phù hợp với Cách Cục:
    - Ngành nghề: Chỉ đề xuất dựa trên Dụng Thần (Mộc: giáo dục, thiết kế; Thủy: truyền thông, logistics; Hỏa: nghệ thuật, marketing; Thổ: bất động sản, tài chính; Kim: công nghệ, kỹ thuật).
    - Màu sắc: Chỉ đề xuất dựa trên Dụng Thần (Mộc: xanh lá, xanh ngọc; Thủy: xanh dương, đen, xám; Hỏa: đỏ, hồng; Thổ: vàng, nâu; Kim: trắng, bạc).
    - Vật phẩm phong thủy: Chỉ đề xuất dựa trên Dụng Thần (Mộc: cây xanh; Thủy: bể cá; Hỏa: đèn đỏ; Thổ: đá thạch anh vàng; Kim: trang sức bạc).
    - Phương hướng: Chỉ đề xuất dựa trên Dụng Thần (Mộc: Đông, Đông Nam; Thủy: Bắc; Hỏa: Nam; Thổ: Đông Bắc; Kim: Tây, Tây Bắc).
-   - Lưu ý: Sử dụng Dụng Thần tiết chế nếu hành đó yếu hoặc vắng mặt. Không đề xuất các hành ngoài Dụng Thần.
+   - Lưu ý: Không đề xuất các hành ngoài Dụng Thần (ví dụ: nếu Dụng Thần là Kim, Thủy, không đề xuất đỏ - Hỏa hoặc vàng - Thổ).
 4. Phân tích vận trình năm hiện tại (${yearCanChi}, ${yearNguHanh}):
    - Đánh giá tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Xem xét tương sinh/tương khắc (ví dụ: Mộc hút Thủy, Hỏa khắc Thủy).
-   - Dự báo cơ hội/thách thức, đề xuất cách hóa giải chỉ dựa trên Dụng Thần.
+   - Dự báo cơ hội/thách thức, đề xuất cách hóa giải chỉ dựa trên Dụng Thần (ví dụ: dùng vật phẩm Kim, Thủy nếu năm Hỏa khắc Thủy).
 5. Nếu người dùng hỏi câu hỏi khác (ví dụ: đại vận, nghề nghiệp, năm cụ thể, màu sắc):
    - Phân tích câu hỏi, xác định ngũ hành liên quan.
    - So sánh với Tứ Trụ và Dụng Thần, đánh giá tương sinh/tương khắc.
    - Trả lời ngắn gọn, tập trung, chỉ sử dụng gợi ý thuộc Dụng Thần, không lặp lại phân tích Tứ Trụ.
-   - Nếu hỏi về năm cụ thể, xác định can chi và ngũ hành, phân tích tương tác với Nhật Chủ, đề xuất hóa giải dựa trên Dụng Thần.
-   - Nếu hỏi về đại vận, sử dụng logic đại vận (tuổi nhập vận, thuận/nghịch), phân tích can chi đại vận, liên kết với Dụng Thần.
 
 Nguyên lý tương sinh tương khắc ngũ hành:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
@@ -348,7 +349,7 @@ Bắt đầu trả lời:
         model: "gpt-3.5-turbo",
         messages: formattedMessages,
         temperature: 0.5,
-        max_tokens: 1500,
+        max_tokens: 1200,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
