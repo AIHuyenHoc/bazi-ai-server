@@ -23,7 +23,7 @@ Ngũ hành 12 Địa Chi:
 - Thân, Dậu thuộc Kim
 `;
 
-// Danh sách 60 Hoa Giáp (dựa trên thông tin bạn cung cấp ngày 07/05/2025)
+// Danh sách 60 Hoa Giáp
 const hoaGiap = [
   "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
@@ -53,7 +53,6 @@ const analyzeNguHanh = (tuTru) => {
     Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
   };
 
-  // Phân tích Tứ Trụ
   if (tuTru.nam) nguHanhCount[canNguHanh[tuTru.nam.split(" ")[0]]] += 1;
   if (tuTru.nam) nguHanhCount[chiNguHanh[tuTru.nam.split(" ")[1]]] += 1;
   if (tuTru.thang) nguHanhCount[canNguHanh[tuTru.thang.split(" ")[0]]] += 1;
@@ -82,7 +81,6 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) &&
     !isRequestBazi;
 
-  // Parse tuTruInfo
   let tuTruParsed = null;
   try {
     tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
@@ -95,14 +93,12 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" });
   }
 
-  // Tính toán tỷ lệ ngũ hành
   const nguHanhCount = analyzeNguHanh(tuTruParsed);
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
     Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
   );
 
-  // Chuyển tuTruParsed sang đoạn mô tả
   const tuTruText = `
 Thông tin Tứ Trụ:
 - Năm: ${tuTruParsed.nam || "chưa rõ"}
@@ -112,7 +108,6 @@ Thông tin Tứ Trụ:
 - Tỷ lệ Ngũ Hành: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 `;
 
-  // Chuyển dungThan sang đoạn mô tả
   const dungThanText = dungThan && typeof dungThan === 'object'
     ? `Dụng Thần: ${Array.isArray(dungThan.hanh) ? dungThan.hanh.join(", ") : dungThan.hanh || "Thổ, Kim"}
 Lý do chọn dụng thần: ${dungThan.lyDo || "Dựa trên sự thiếu hụt Thổ và Kim trong Tứ Trụ, cần bổ sung để hỗ trợ Nhật Chủ Tân Kim"}
@@ -121,18 +116,11 @@ Cách Cục: ${dungThan.cachCuc || "Thân Nhược"}`
 Lý do chọn dụng thần: Tứ Trụ có sự thiếu hụt Thổ và Kim, cần bổ sung để cân bằng Nhật Chủ Tân Kim
 Cách Cục: Thân Nhược`;
 
-  // Xác định năm được hỏi từ userInput
-  let year = null;
   const yearMatch = userInput.match(/năm\s*(\d{4})/);
-  if (yearMatch) {
-    year = parseInt(yearMatch[1]);
-  } else if (userInput.includes("năm tới") || userInput.includes("năm sau")) {
-    year = new Date().getFullYear() + 1; // Giả sử năm tới
-  }
-
+  let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau")) ? new Date().getFullYear() + 1 : null;
   const yearCanChi = year ? getCanChiForYear(year) : null;
   const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đing: "Hỏa", Mậu: "Thổ",
+    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
   };
   const chiNguHanh = {
@@ -195,7 +183,26 @@ Bắt đầu phân tích:
 `;
   } else {
     fullPrompt = `
-Bạn là trợ lý thân thiện, trả lời các câu hỏi tự do bằng tiếng Việt, dễ hiểu, không bắt buộc theo cấu trúc Bát Tự hay vận hạn nếu không được yêu cầu cụ thể.
+Bạn là chuyên gia mệnh lý và tư vấn nghề nghiệp với kiến thức sâu sắc về ngũ hành và Bát Tự. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi một câu hỏi tự do: "${userInput}". Hãy trả lời một cách chi tiết, tinh tế, và cá nhân hóa, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp nếu câu hỏi liên quan đến nghề nghiệp, quyết định quan trọng, hoặc định hướng cuộc sống.
+
+Thông tin tham khảo:
+${tuTruText}
+${dungThanText}
+${canChiNguhanhInfo}
+
+Nguyên lý tương sinh tương khắc ngũ hành:
+- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+
+Hướng dẫn trả lời:
+1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan (ví dụ: nghề nhà văn liên quan đến Thủy - truyền thông, sáng tạo; khởi nghiệp liên quan đến Kim - quyết đoán, hoặc Thổ - ổn định).
+2. So sánh ngũ hành của câu hỏi với Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu) và Dụng Thần (Thổ, Kim). Đánh giá sự phù hợp và đưa ra gợi ý cụ thể.
+3. Nếu câu hỏi không liên quan trực tiếp đến ngũ hành, trả lời một cách thực tế, thân thiện, nhưng vẫn tham khảo Tứ Trụ/Dụng Thần để cá nhân hóa nếu phù hợp.
+4. Đưa ra lời khuyên cụ thể, giải thích lý do dựa trên ngũ hành hoặc đặc điểm lá số, và đề xuất hành động (ví dụ: màu sắc, vật phẩm phong thủy, phương hướng).
+5. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần.
+
+Ví dụ trả lời: "Nghề nhà văn (liên quan đến Thủy) có thể phù hợp với sự sáng tạo từ Mộc mạnh trong lá số của bạn, nhưng vì Dụng Thần là Thổ và Kim, các ngành như bất động sản hoặc công nghệ sẽ hỗ trợ tốt hơn cho sự ổn định và thành công lâu dài. Nên sử dụng đá thạch anh vàng (Thổ) để tăng cường sự kiên định."
+Bắt đầu trả lời:
 `;
   }
 
