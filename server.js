@@ -49,6 +49,15 @@ const analyzeNguHanh = (tuTru) => {
   return nguHanhCount;
 };
 
+// Hàm xác định can chi của năm
+const getCanChiForYear = (year) => {
+  const can = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"];
+  const chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
+  const canIndex = (year - 4) % 10;
+  const chiIndex = (year - 4) % 12;
+  return `${can[canIndex]} ${chi[canIndex]}`;
+};
+
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const { messages, tuTruInfo, dungThan } = req.body;
 
@@ -104,6 +113,17 @@ Cách Cục: ${dungThan.cachCuc || "Thân Nhược"}`
 Lý do chọn dụng thần: Tứ Trụ có sự thiếu hụt Thổ và Kim, cần bổ sung để cân bằng Nhật Chủ Tân Kim
 Cách Cục: Thân Nhược`;
 
+  // Xác định năm được hỏi từ userInput
+  let year = null;
+  const yearMatch = userInput.match(/năm\s*(\d{4})/);
+  if (yearMatch) {
+    year = parseInt(yearMatch[1]);
+  } else if (userInput.includes("năm tới") || userInput.includes("năm sau")) {
+    year = new Date().getFullYear() + 1; // Giả sử năm tới
+  }
+
+  const yearCanChi = year ? getCanChiForYear(year) : null;
+
   let fullPrompt = "";
 
   if (isRequestBazi) {
@@ -133,16 +153,22 @@ Bắt đầu phân tích:
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp. Người dùng hỏi về vận hạn năm hoặc đại vận, cần phân tích dựa trên Tứ Trụ và Dụng Thần.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi của năm được hỏi.
 
 Thông tin tham khảo:
 ${tuTruText}
 ${dungThanText}
 ${canChiNguhanhInfo}
 
-Nếu năm hoặc đại vận được hỏi có ngũ hành thuộc Dụng Thần (Thổ, Kim), dự đoán vận trình thuận lợi và giải thích tại sao. Nếu không, dự đoán khó khăn và gợi ý cách hóa giải (ưu tiên vật phẩm/màu sắc thuộc Thổ, Kim). Nếu thiếu thông tin can chi của năm/đại vận, yêu cầu người dùng cung cấp thêm.
+Năm được hỏi: ${year ? `${year} (${yearCanChi})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2026)"}
 
-Ví dụ: Năm 2025 (Ất Tỵ, Mộc-Hỏa) có thể khó khăn với lá số cần Thổ, Kim, do Mộc khắc Thổ. Nên sử dụng vật phẩm phong thủy thuộc Thổ (đá thạch anh vàng) hoặc Kim (trang sức bạc) để hóa giải.
+Hướng dẫn phân tích:
+1. Xác định ngũ hành của năm được hỏi dựa trên can chi (${yearCanChi ? `ví dụ: ${yearCanChi} là ${getCanChiForYear(year).split(" ")[0]} (hành ${canChiNguhanhInfo.match(new RegExp(`${yearCanChi.split(" ")[0]}.*?(Mộc|Hỏa|Thổ|Kim|Thủy)`))?.[1] || "chưa rõ"}) và ${yearCanChi.split(" ")[1]} (hành ${canChiNguhanhInfo.match(new RegExp(`${yearCanChi.split(" ")[1]}.*?(Mộc|Hỏa|Thổ|Kim|Thủy)`))?.[1] || "chưa rõ"})` : "chưa rõ"}).
+2. Phân tích tương tác giữa ngũ hành của năm và Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu), tập trung vào Nhật Chủ Tân Kim và Dụng Thần (Thổ, Kim). Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Hỏa khắc Kim, Thổ sinh Kim).
+3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Thổ hoặc Kim, dự báo thuận lợi và giải thích tại sao. Nếu không (ví dụ: Hỏa khắc Kim), dự báo khó khăn và đề xuất cách hóa giải bằng vật phẩm/màu sắc thuộc Thổ (đá thạch anh vàng, màu nâu đất) hoặc Kim (trang sức bạc, màu trắng).
+4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần.
+
+Ví dụ phân tích: "Năm 2026 (Bính Ngọ, Hỏa) có thể mang lại thử thách cho lá số với Nhật Chủ Tân Kim, do Hỏa khắc Kim, gây áp lực lên sự ổn định. Tuy nhiên, Thổ từ Mậu Tý hỗ trợ sinh Kim, giúp giảm bớt khó khăn. Nên sử dụng đá thạch anh vàng (Thổ) hoặc trang sức bạc (Kim) để cân bằng năng lượng."
 Bắt đầu phân tích:
 `;
   } else {
