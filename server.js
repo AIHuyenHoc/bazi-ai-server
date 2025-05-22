@@ -34,7 +34,8 @@ const hoaGiap = [
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Thân", "Đinh Dậu", "Mậu Tuất", "Kỷ Hợi", "Canh Tý", "Tân Sửu", "Nhâm Dần", "Quý Mão",
   "Giáp Thìn", "Ất Tỵ", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý H {:?}"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+];
 
 const getCanChiForYear = (year) => {
   const baseYear = 1984; // Mốc Giáp Tý
@@ -56,14 +57,27 @@ const analyzeNguHanh = (tuTru) => {
     Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
   };
 
-  if (tuTru.nam) nguHanhCount[canNguHanh[tuTru.nam.split(" ")[0]]] += 1;
-  if (tuTru.nam) nguHanhCount[chiNguHanh[tuTru.nam.split(" ")[1]]] += 1;
-  if (tuTru.thang) nguHanhCount[canNguHanh[tuTru.thang.split(" ")[0]]] += 1;
-  if (tuTru.thang) nguHanhCount[chiNguHanh[tuTru.thang.split(" ")[1]]] += 1;
-  if (tuTru.ngay) nguHanhCount[canNguHanh[tuTru.ngay.split(" ")[0]]] += 1;
-  if (tuTru.ngay) nguHanhCount[chiNguHanh[tuTru.ngay.split(" ")[1]]] += 1;
-  if (tuTru.gio) nguHanhCount[canNguHanh[tuTru.gio.split(" ")[0]]] += 1;
-  if (tuTru.gio) nguHanhCount[chiNguHanh[tuTru.gio.split(" ")[1]]] += 1;
+  try {
+    if (tuTru.nam) {
+      nguHanhCount[canNguHanh[tuTru.nam.split(" ")[0]]] += 1;
+      nguHanhCount[chiNguHanh[tuTru.nam.split(" ")[1]]] += 1;
+    }
+    if (tuTru.thang) {
+      nguHanhCount[canNguHanh[tuTru.thang.split(" ")[0]]] += 1;
+      nguHanhCount[chiNguHanh[tuTru.thang.split(" ")[1]]] += 1;
+    }
+    if (tuTru.ngay) {
+      nguHanhCount[canNguHanh[tuTru.ngay.split(" ")[0]]] += 1;
+      nguHanhCount[chiNguHanh[tuTru.ngay.split(" ")[1]]] += 1;
+    }
+    if (tuTru.gio) {
+      nguHanhCount[canNguHanh[tuTru.gio.split(" ")[0]]] += 1;
+      nguHanhCount[chiNguHanh[tuTru.gio.split(" ")[1]]] += 1;
+    }
+  } catch (e) {
+    console.error("Lỗi phân tích ngũ hành:", e.message);
+    throw new Error("Không thể phân tích ngũ hành do dữ liệu Tứ Trụ không hợp lệ");
+  }
 
   return nguHanhCount;
 };
@@ -87,7 +101,11 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
     Mộc: "Thổ", Thổ: "Thủy", Thủy: "Hỏa", Hỏa: "Kim", Kim: "Mộc"
   };
 
-  const thangHanh = chiNguHanh[thangChi] || "Thổ";
+  if (!nhatChu || !thangChi || !nhatChuHanh[nhatChu] || !chiNguHanh[thangChi]) {
+    throw new Error("Nhật Chủ hoặc tháng sinh không hợp lệ");
+  }
+
+  const thangHanh = chiNguHanh[thangChi];
   const nhatChuNguHanh = nhatChuHanh[nhatChu];
   
   let thanVuong = false;
@@ -144,7 +162,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   try {
     tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
   } catch (e) {
-    console.error("Lỗi parse tuTruInfo:", e);
+    console.error("Lỗi parse tuTruInfo:", e.message);
     return res.status(400).json({ error: "Dữ liệu Tứ Trụ không hợp lệ" });
   }
 
@@ -152,7 +170,14 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" });
   }
 
-  const nguHanhCount = analyzeNguHanh(tuTruParsed);
+  let nguHanhCount;
+  try {
+    nguHanhCount = analyzeNguHanh(tuTruParsed);
+  } catch (e) {
+    console.error("Lỗi trong analyzeNguHanh:", e.message);
+    return res.status(400).json({ error: e.message });
+  }
+
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
     Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
@@ -161,7 +186,13 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const nhatChu = tuTruParsed.ngay.split(" ")[0];
   const thangChi = tuTruParsed.thang.split(" ")[1];
 
-  const dungThanTinhToan = dungThan ? dungThan : tinhDungThan(nhatChu, thangChi, nguHanhCount);
+  let dungThanTinhToan;
+  try {
+    dungThanTinhToan = dungThan ? dungThan : tinhDungThan(nhatChu, thangChi, nguHanhCount);
+  } catch (e) {
+    console.error("Lỗi trong tinhDungThan:", e.message);
+    return res.status(400).json({ error: "Không thể tính Dụng Thần do dữ liệu không hợp lệ" });
+  }
 
   const tuTruText = `
 Thông tin Tứ Trụ:
@@ -202,7 +233,7 @@ Lý do cách cục: ${dungThanTinhToan.lyDoCachCuc}
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp để phù hợp với người mới sử dụng. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không dựa vào dữ liệu từ các yêu cầu trước. Kiểm tra kỹ Nhật Chủ (thiên can ngày) và tháng sinh (Địa Chi tháng) từ Tứ Trụ để đảm bảo chính xác (ví dụ: ngày Quý Sửu có Nhật Chủ Quý Thủy, tháng Đinh Tỵ là Tỵ - Hỏa). Nếu người dùng hỏi câu hỏi khác (ví dụ: đại vận, nghề nghiệp, năm cụ thể, màu sắc), trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp để phù hợp với người mới sử dụng. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không dựa vào dữ liệu từ các yêu cầu trước. Kiểm tra kỹ Nhật Chủ (thiên can ngày: ${nhatChu}) và tháng sinh (Địa Chi tháng: ${thangChi}) từ Tứ Trụ để đảm bảo chính xác (ví dụ: ngày Quý Sửu có Nhật Chủ Quý Thủy, tháng Đinh Tỵ là Tỵ - Hỏa). Nếu người dùng hỏi câu hỏi khác (ví dụ: đại vận, nghề nghiệp, năm cụ thể, màu sắc), trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -251,7 +282,7 @@ Bắt đầu phân tích Bát Tự và sẵn sàng trả lời câu hỏi khác:
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi chính xác của năm. Diễn đạt dễ hiểu, tránh thuật ngữ phức tạp để phù hợp với người mới sử dụng. Chỉ sử dụng Dụng Thần từ thôngtin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi chính xác của năm. Diễn đạt dễ hiểu, tránh thuật ngữ phức tạp để phù hợp với người mới sử dụng. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
