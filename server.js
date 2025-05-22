@@ -73,59 +73,54 @@ Lý do chọn dụng thần: ${dungThan.lyDo || "không có"}
 Cách Cục: ${dungThan.cachCuc || "không có"}`
     : "Chưa có thông tin dụng thần hoặc dữ liệu không hợp lệ.";
 
-  // Gợi ý ứng dụng chi tiết cho từng hành
-  const goiYUngDung = `
-Gợi ý ứng dụng chi tiết theo ngũ hành:
-
-Mộc:
-- Ngành nghề phù hợp: giáo dục, nông nghiệp, trồng trọt, chăn nuôi, thời trang, thợ mộc, đồ gỗ.
-- Màu sắc trang phục và phụ kiện: xanh lá cây, nâu đất, vòng gỗ như đàn hương, trầm hương.
-- Vật phẩm phong thủy: cây xanh, tranh phong cảnh, vòng tay gỗ.
-- Phương hướng ưu tiên: Đông, Đông Nam.
-
-Hỏa:
-- Ngành nghề phù hợp: kinh doanh, nghệ thuật biểu diễn, ẩm thực, nấu ăn, giải trí.
-- Màu sắc trang phục và phụ kiện: đỏ, cam, hồng, tím.
-- Vật phẩm phong thủy: nến, đèn đỏ, đá quý màu đỏ.
-- Phương hướng ưu tiên: Nam.
-
-Thổ:
-- Ngành nghề phù hợp: bất động sản, tài chính, chăm sóc sức khỏe, xây dựng.
-- Màu sắc trang phục và phụ kiện: vàng đất, nâu, đá phong thủy, vòng đá quý.
-- Vật phẩm phong thủy: tượng Phật đá, đá phong thủy.
-- Phương hướng ưu tiên: Đông Bắc, Tây Nam, trung cung.
-
-Kim:
-- Ngành nghề phù hợp: công nghệ, y tế, luật pháp, kỹ thuật, cơ khí.
-- Màu sắc trang phục và phụ kiện: trắng, bạc, xám, trang sức kim loại.
-- Vật phẩm phong thủy: đồng tiền vàng, vật liệu kim loại.
-- Phương hướng ưu tiên: Tây, Tây Bắc.
-
-Thủy:
-- Ngành nghề phù hợp: truyền thông, tư vấn, vận tải, du lịch, nghệ thuật.
-- Màu sắc trang phục và phụ kiện: đen, xanh dương, phụ kiện pha lê, thủy tinh như mắt kính.
-- Vật phẩm phong thủy: hồ cá nhỏ, bình thủy tinh.
-- Phương hướng ưu tiên: Bắc.
-`;
+  
 
   let fullPrompt = "";
 
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, dụng thần, nguyên tắc luận Nhật Chủ mạnh yếu.
-Không lặp lại thông tin đã cung cấp, không dùng dấu * hay ** hoặc #. Trình bày rõ ràng, chuyên nghiệp.
-Dựa trên thông tin Bát Tự và cách cục được cung cấp dưới đây:
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành.
+Không lặp lại thông tin đã cung cấp và sẽ cung cấp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Trình bày rõ ràng, chuyên nghiệp.
+Tham khảo thông tin Bát Tự và cách cục được cung cấp dưới đây:
 ${tuTruText}
-
 Và thông tin về Dụng Thần:
 ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
-
-1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn. Không phân tích Nhật Chủ. Lấy nội dung cách cục từ ${dungThan.cachCuc}
+1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} mạch lạc hơn, lời văn hay hơn. Không phân tích Nhật Chủ. Không phân tích lại giờ sinh, ngày sinh, tháng sinh, năm sinh và cách cục. Lấy nội dung cách cục từ ${dungThan.cachCuc}
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
 3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong ${dungThanText}:
-${goiYUngDung}
+Gợi ý ứng dụng chi tiết theo ngũ hành:
+
+1. Mộc:
+- Ngành nghề phù hợp: giáo dục, nông nghiệp, trồng trọt, chăn nuôi, thời trang, thợ mộc, đồ gỗ.
+- Màu sắc trang phục và phụ kiện: xanh lá cây, nâu đất, vòng gỗ như đàn hương, trầm hương.
+- Vật phẩm phong thủy: cây xanh, tranh phong cảnh, vòng tay gỗ.
+- Phương hướng ưu tiên: Đông, Đông Nam.
+
+2. Hỏa:
+- Ngành nghề phù hợp: kinh doanh, nghệ thuật biểu diễn, ẩm thực, nấu ăn, giải trí.
+- Màu sắc trang phục và phụ kiện: đỏ, cam, hồng, tím.
+- Vật phẩm phong thủy: nến, đèn đỏ, đá quý màu đỏ.
+- Phương hướng ưu tiên: Nam.
+
+3. Thổ:
+- Ngành nghề phù hợp: bất động sản, tài chính, chăm sóc sức khỏe, xây dựng.
+- Màu sắc trang phục và phụ kiện: vàng đất, nâu, đá phong thủy, vòng đá quý.
+- Vật phẩm phong thủy: tượng Phật đá, đá phong thủy.
+- Phương hướng ưu tiên: Đông Bắc, Tây Nam, trung cung.
+
+4. Kim:
+- Ngành nghề phù hợp: công nghệ, y tế, luật pháp, kỹ thuật, cơ khí.
+- Màu sắc trang phục và phụ kiện: trắng, bạc, xám, trang sức kim loại.
+- Vật phẩm phong thủy: đồng tiền vàng, vật liệu kim loại.
+- Phương hướng ưu tiên: Tây, Tây Bắc.
+
+5. Thủy:
+- Ngành nghề phù hợp: truyền thông, tư vấn, vận tải, du lịch, nghệ thuật.
+- Màu sắc trang phục và phụ kiện: đen, xanh dương, phụ kiện pha lê, thủy tinh như mắt kính.
+- Vật phẩm phong thủy: hồ cá nhỏ, bình thủy tinh.
+- Phương hướng ưu tiên: Bắc.
 
 Nguyên lý tương sinh tương khắc ngũ hành chuẩn:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
