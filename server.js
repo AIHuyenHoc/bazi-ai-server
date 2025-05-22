@@ -23,7 +23,6 @@ Ngũ hành 12 Địa Chi:
 - Thân, Dậu thuộc Kim
 `;
 
-// Danh sách 60 Hoa Giáp
 const hoaGiap = [
   "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
@@ -117,7 +116,7 @@ Lý do chọn dụng thần: Tứ Trụ có sự thiếu hụt Thổ và Kim, c�
 Cách Cục: Thân Nhược`;
 
   const yearMatch = userInput.match(/năm\s*(\d{4})/);
-  let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau")) ? new Date().getFullYear() + 1 : null;
+  let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau")) ? new Date().getFullYear() + 1 : new Date().getFullYear();
   const yearCanChi = year ? getCanChiForYear(year) : null;
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -170,38 +169,41 @@ ${tuTruText}
 ${dungThanText}
 ${canChiNguhanhInfo}
 
-Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2024)"}
+Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2025)"}
 
 Hướng dẫn phân tích:
 1. Xác định chính xác can chi và ngũ hành của năm được hỏi (${yearCanChi ? `${yearCanChi} (${yearNguHanh})` : "chưa rõ, yêu cầu người dùng cung cấp"}). Nếu năm không rõ, yêu cầu người dùng cung cấp năm cụ thể.
 2. Phân tích tương tác giữa ngũ hành của năm (${yearNguHanh || "chưa rõ"}) và Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu), tập trung vào Nhật Chủ Tân Kim và Dụng Thần (Thổ, Kim). Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Thổ sinh Kim, Hỏa khắc Kim).
-3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Thổ hoặc Kim, dự báo thuận lợi và giải thích tại sao. Nếu không (ví dụ: Mộc khắc Thổ, Hỏa khắc Kim), dự báo khó khăn và đề xuất cách hóa giải bằng vật phẩm/màu sắc thuộc Thổ (đá thạch anh vàng, màu nâu đất) hoặc Kim (trang sức bạc, màu trắng). Liên kết với đặc điểm Tứ Trụ (Mộc mạnh, Kim yếu) để cá nhân hóa dự đoán.
-4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần. Tránh sử dụng thông tin sai về can chi (ví dụ: 2024 là Giáp Thìn, không phải Giáp Tý).
+3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Thổ hoặc Kim, dự báo thuận lợi và giải thích tại sao. If không (ví dụ: Mộc khắc Thổ, Hỏa khắc Kim), dự báo khó khăn và đề xuất cách hóa giải bằng vật phẩm/màu sắc thuộc Thổ (đá thạch anh vàng, màu nâu đất) hoặc Kim (trang sức bạc, màu trắng). Liên kết với đặc điểm Tứ Trụ (Mộc mạnh, Kim yếu) để cá nhân hóa dự đoán.
+4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần. Tránh sử dụng thông tin sai về can chi (ví dụ: 2025 là Ất Tỵ, không phải khác).
 
-Ví dụ phân tích: "Năm 2024 (Giáp Thìn, Mộc-Thổ) mang lại sự cân bằng cho lá số với Nhật Chủ Tân Kim. Thổ từ Thìn hỗ trợ Dụng Thần Thổ, sinh Kim, tạo điều kiện thuận lợi cho sự ổn định và phát triển. Tuy nhiên, Mộc từ Giáp có thể khắc Thổ, gây một số áp lực. Nên sử dụng đá thạch anh vàng (Thổ) hoặc trang sức bạc (Kim) để tăng cường năng lượng tích cực."
+Ví dụ phân tích: "Năm 2025 (Ất Tỵ, Mộc-Hỏa) mang thử thách cho lá số với Nhật Chủ Tân Kim. Mộc khắc Thổ và Hỏa khắc Kim, gây áp lực lên sự ổn định và quyết đoán. Nên sử dụng đá thạch anh vàng (Thổ) hoặc trang sức bạc (Kim) để cân bằng năng lượng."
 Bắt đầu phân tích:
 `;
   } else {
     fullPrompt = `
-Bạn là chuyên gia mệnh lý và tư vấn nghề nghiệp với kiến thức sâu sắc về ngũ hành và Bát Tự. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi một câu hỏi tự do: "${userInput}". Hãy trả lời một cách chi tiết, tinh tế, và cá nhân hóa, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp nếu câu hỏi liên quan đến nghề nghiệp, quyết định quan trọng, hoặc định hướng cuộc sống.
+Bạn là chuyên gia mệnh lý và tư vấn nghề nghiệp với kiến thức sâu sắc về ngũ hành và Bát Tự. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi một câu hỏi tự do: "${userInput}". Hãy trả lời chi tiết, tinh tế, và cá nhân hóa, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp nếu câu hỏi liên quan đến nghề nghiệp, khởi nghiệp, hoặc quyết định quan trọng.
 
 Thông tin tham khảo:
 ${tuTruText}
 ${dungThanText}
 ${canChiNguhanhInfo}
 
+Năm hiện tại: ${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})
+
 Nguyên lý tương sinh tương khắc ngũ hành:
 - Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
 - Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 Hướng dẫn trả lời:
-1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan (ví dụ: nghề nhà văn liên quan đến Thủy - truyền thông, sáng tạo; khởi nghiệp liên quan đến Kim - quyết đoán, hoặc Thổ - ổn định).
-2. So sánh ngũ hành của câu hỏi với Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu) và Dụng Thần (Thổ, Kim). Đánh giá sự phù hợp và đưa ra gợi ý cụ thể.
-3. Nếu câu hỏi không liên quan trực tiếp đến ngũ hành, trả lời một cách thực tế, thân thiện, nhưng vẫn tham khảo Tứ Trụ/Dụng Thần để cá nhân hóa nếu phù hợp.
-4. Đưa ra lời khuyên cụ thể, giải thích lý do dựa trên ngũ hành hoặc đặc điểm lá số, và đề xuất hành động (ví dụ: màu sắc, vật phẩm phong thủy, phương hướng).
-5. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần.
+1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan (ví dụ: khởi nghiệp liên quan đến Kim - quyết đoán, Thổ - ổn định; nghề nhà văn liên quan đến Thủy - truyền thông, sáng tạo).
+2. So sánh ngũ hành của câu hỏi với Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu) và Dụng Thần (Thổ, Kim). Đánh giá sự phù hợp, đặc biệt xem xét Mộc mạnh có thể khắc Thổ, gây thử thách cho sự ổn định.
+3. Xem xét bối cảnh năm hiện tại (${yearCanChi}, ${yearNguHanh}) để đánh giá tính khả thi của quyết định (ví dụ: năm 2025 - Ất Tỵ, Mộc-Hỏa, có thể gây áp lực lên Thổ và Kim).
+4. Đưa ra lời khuyên cụ thể, giải thích lý do dựa trên ngũ hành và đặc điểm lá số. Đề xuất ngành nghề (nếu liên quan), màu sắc, vật phẩm phong thủy (Thổ: đá thạch anh vàng; Kim: trang sức bạc), và phương hướng (Đông Bắc, Tây Nam, Tây, Tây Bắc) phù hợp với Dụng Thần.
+5. Nếu câu hỏi không liên quan trực tiếp đến ngũ hành, trả lời thực tế, thân thiện, nhưng vẫn tham khảo Tứ Trụ/Dụng Thần để cá nhân hóa nếu phù hợp.
+6. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần.
 
-Ví dụ trả lời: "Nghề nhà văn (liên quan đến Thủy) có thể phù hợp với sự sáng tạo từ Mộc mạnh trong lá số của bạn, nhưng vì Dụng Thần là Thổ và Kim, các ngành như bất động sản hoặc công nghệ sẽ hỗ trợ tốt hơn cho sự ổn định và thành công lâu dài. Nên sử dụng đá thạch anh vàng (Thổ) để tăng cường sự kiên định."
+Ví dụ trả lời: "Khởi nghiệp đòi hỏi sự quyết đoán (Kim) và ổn định (Thổ), phù hợp với Dụng Thần của bạn. Tuy nhiên, Mộc mạnh trong lá số có thể khắc Thổ, gây thử thách trong việc duy trì sự ổn định. Nên tập trung vào các ngành như công nghệ (Kim) hoặc bất động sản (Thổ), sử dụng đá thạch anh vàng và màu vàng đất để tăng cường may mắn, đặc biệt trong năm 2025 (Ất Tỵ) khi Mộc mạnh."
 Bắt đầu trả lời:
 `;
   }
