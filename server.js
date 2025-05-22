@@ -23,6 +23,23 @@ Ngũ hành 12 Địa Chi:
 - Thân, Dậu thuộc Kim
 `;
 
+// Danh sách 60 Hoa Giáp (dựa trên thông tin bạn cung cấp ngày 07/05/2025)
+const hoaGiap = [
+  "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
+  "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
+  "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
+  "Giáp Ngọ", "Ất Mùi", "Bính Thân", "Đinh Dậu", "Mậu Tuất", "Kỷ Hợi", "Canh Tý", "Tân Sửu", "Nhâm Dần", "Quý Mão",
+  "Giáp Thìn", "Ất Tỵ", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+];
+
+const getCanChiForYear = (year) => {
+  const baseYear = 1984; // Mốc Giáp Tý
+  const index = (year - baseYear) % 60;
+  const adjustedIndex = index < 0 ? index + 60 : index;
+  return hoaGiap[adjustedIndex] || "Không xác định";
+};
+
 const analyzeNguHanh = (tuTru) => {
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   
@@ -47,15 +64,6 @@ const analyzeNguHanh = (tuTru) => {
   if (tuTru.gio) nguHanhCount[chiNguHanh[tuTru.gio.split(" ")[1]]] += 1;
 
   return nguHanhCount;
-};
-
-// Hàm xác định can chi của năm
-const getCanChiForYear = (year) => {
-  const can = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"];
-  const chi = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
-  const canIndex = (year - 4) % 10;
-  const chiIndex = (year - 4) % 12;
-  return `${can[canIndex]} ${chi[canIndex]}`;
 };
 
 app.post("/api/luan-giai-bazi", async (req, res) => {
@@ -123,6 +131,20 @@ Cách Cục: Thân Nhược`;
   }
 
   const yearCanChi = year ? getCanChiForYear(year) : null;
+  const canNguHanh = {
+    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đing: "Hỏa", Mậu: "Thổ",
+    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
+  };
+  const chiNguHanh = {
+    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
+  };
+
+  let yearNguHanh = "";
+  if (yearCanChi) {
+    const [can, chi] = yearCanChi.split(" ");
+    yearNguHanh = `${can} (${canNguHanh[can] || "chưa rõ"}), ${chi} (${chiNguHanh[chi] || "chưa rõ"})`;
+  }
 
   let fullPrompt = "";
 
@@ -153,22 +175,22 @@ Bắt đầu phân tích:
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi của năm được hỏi.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi chính xác của năm được hỏi.
 
 Thông tin tham khảo:
 ${tuTruText}
 ${dungThanText}
 ${canChiNguhanhInfo}
 
-Năm được hỏi: ${year ? `${year} (${yearCanChi})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2026)"}
+Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2024)"}
 
 Hướng dẫn phân tích:
-1. Xác định ngũ hành của năm được hỏi dựa trên can chi (${yearCanChi ? `ví dụ: ${yearCanChi} là ${getCanChiForYear(year).split(" ")[0]} (hành ${canChiNguhanhInfo.match(new RegExp(`${yearCanChi.split(" ")[0]}.*?(Mộc|Hỏa|Thổ|Kim|Thủy)`))?.[1] || "chưa rõ"}) và ${yearCanChi.split(" ")[1]} (hành ${canChiNguhanhInfo.match(new RegExp(`${yearCanChi.split(" ")[1]}.*?(Mộc|Hỏa|Thổ|Kim|Thủy)`))?.[1] || "chưa rõ"})` : "chưa rõ"}).
-2. Phân tích tương tác giữa ngũ hành của năm và Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu), tập trung vào Nhật Chủ Tân Kim và Dụng Thần (Thổ, Kim). Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Hỏa khắc Kim, Thổ sinh Kim).
-3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Thổ hoặc Kim, dự báo thuận lợi và giải thích tại sao. Nếu không (ví dụ: Hỏa khắc Kim), dự báo khó khăn và đề xuất cách hóa giải bằng vật phẩm/màu sắc thuộc Thổ (đá thạch anh vàng, màu nâu đất) hoặc Kim (trang sức bạc, màu trắng).
-4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần.
+1. Xác định chính xác can chi và ngũ hành của năm được hỏi (${yearCanChi ? `${yearCanChi} (${yearNguHanh})` : "chưa rõ, yêu cầu người dùng cung cấp"}). Nếu năm không rõ, yêu cầu người dùng cung cấp năm cụ thể.
+2. Phân tích tương tác giữa ngũ hành của năm (${yearNguHanh || "chưa rõ"}) và Tứ Trụ (Mộc mạnh từ Ất Tỵ, Tân Mão; Hỏa từ Tân Tỵ; Thổ từ Mậu Tý; Kim yếu), tập trung vào Nhật Chủ Tân Kim và Dụng Thần (Thổ, Kim). Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Thổ sinh Kim, Hỏa khắc Kim).
+3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Thổ hoặc Kim, dự báo thuận lợi và giải thích tại sao. Nếu không (ví dụ: Mộc khắc Thổ, Hỏa khắc Kim), dự báo khó khăn và đề xuất cách hóa giải bằng vật phẩm/màu sắc thuộc Thổ (đá thạch anh vàng, màu nâu đất) hoặc Kim (trang sức bạc, màu trắng). Liên kết với đặc điểm Tứ Trụ (Mộc mạnh, Kim yếu) để cá nhân hóa dự đoán.
+4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, không lặp lại nguyên văn thông tin Tứ Trụ hoặc Dụng Thần. Tránh sử dụng thông tin sai về can chi (ví dụ: 2024 là Giáp Thìn, không phải Giáp Tý).
 
-Ví dụ phân tích: "Năm 2026 (Bính Ngọ, Hỏa) có thể mang lại thử thách cho lá số với Nhật Chủ Tân Kim, do Hỏa khắc Kim, gây áp lực lên sự ổn định. Tuy nhiên, Thổ từ Mậu Tý hỗ trợ sinh Kim, giúp giảm bớt khó khăn. Nên sử dụng đá thạch anh vàng (Thổ) hoặc trang sức bạc (Kim) để cân bằng năng lượng."
+Ví dụ phân tích: "Năm 2024 (Giáp Thìn, Mộc-Thổ) mang lại sự cân bằng cho lá số với Nhật Chủ Tân Kim. Thổ từ Thìn hỗ trợ Dụng Thần Thổ, sinh Kim, tạo điều kiện thuận lợi cho sự ổn định và phát triển. Tuy nhiên, Mộc từ Giáp có thể khắc Thổ, gây một số áp lực. Nên sử dụng đá thạch anh vàng (Thổ) hoặc trang sức bạc (Kim) để tăng cường năng lượng tích cực."
 Bắt đầu phân tích:
 `;
   } else {
