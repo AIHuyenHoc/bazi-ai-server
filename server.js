@@ -87,9 +87,9 @@ Và thông tin về Dụng Thần:
 ${dungThanText}
 
 Phân tích chi tiết các nội dung sau:
-1. Lấy nội dung cách cục từ ${dungThan.cachCuc}. Nhắc lại nội dung ${tuTruText} và ${dungThanText} với lời văn hay hơn. Không phân tích Nhật Chủ. Không phân tích lại giờ sinh, ngày sinh, tháng sinh, năm sinh và cách cục. 
+1. Nhắc lại nội dung ${tuTruText} và ${dungThanText} với lời văn hay hơn. Lấy nội dung cách cục từ ${dungThan.cachCuc}. Không phân tích Nhật Chủ. Không phân tích lại giờ sinh, ngày sinh, tháng sinh, năm sinh và cách cục. 
 2. Dự đoán vận trình chi tiết theo ba giai đoạn: thời thơ ấu, trung niên, hậu vận.
-3. Ở cuối, liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần dưới đây, chỉ áp dụng đúng ngũ hành trong ${dungThanText}, không được liệt kế các ngũ hành bên ngoài ${dungThanText}, viết lại lời văn hay hơn:
+3. Liệt kê gợi ý ứng dụng chi tiết theo ngũ hành dụng thần, viết lại lời văn hay hơn:
 
 1. Mộc:
 - Ngành nghề phù hợp: giáo dục, nông nghiệp, trồng trọt, chăn nuôi, thời trang, thợ mộc, đồ gỗ.
