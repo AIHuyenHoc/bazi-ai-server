@@ -28,6 +28,28 @@ Ngũ hành 12 Địa Chi:
 - Thân, Dậu thuộc Kim
 `;
 
+// Ánh xạ từ tiếng Anh sang can chi tiếng Việt
+const heavenlyStemsMap = {
+  en: { Yi: "Ất", Ding: "Đinh", Ren: "Nhâm", Gui: "Quý" }, // Thêm các thiên can khác nếu cần
+  vi: { Ất: "Ất", Đinh: "Đinh", Nhâm: "Nhâm", Quý: "Quý" }
+};
+const earthlyBranchesMap = {
+  en: { Snake: "Tỵ", Horse: "Ngọ", Goat: "Mùi", Rabbit: "Mão" }, // Thêm các địa chi khác nếu cần
+  vi: { Tỵ: "Tỵ", Ngọ: "Ngọ", Mùi: "Mùi", Mão: "Mão" }
+};
+
+// Chuyển đổi Tứ Trụ từ tiếng Anh sang can chi
+const parseEnglishTuTru = (input) => {
+  const parts = input.split(/hour|day|month|year/).filter(Boolean).map(part => part.trim().split(" "));
+  if (parts.length !== 4) return null;
+  return {
+    gio: `${heavenlyStemsMap.en[parts[0][0]] || parts[0][0]} ${earthlyBranchesMap.en[parts[0][1]] || parts[0][1]}`,
+    ngay: `${heavenlyStemsMap.en[parts[1][0]] || parts[1][0]} ${earthlyBranchesMap.en[parts[1][1]] || parts[1][1]}`,
+    thang: `${heavenlyStemsMap.en[parts[2][0]] || parts[2][0]} ${earthlyBranchesMap.en[parts[2][1]] || parts[2][1]}`,
+    nam: `${heavenlyStemsMap.en[parts[3][0]] || parts[3][0]} ${earthlyBranchesMap.en[parts[3][1]] || parts[3][1]}`
+  };
+};
+
 const hoaGiap = [
   "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
@@ -108,13 +130,12 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const thangHanh = chiNguHanh[thangChi];
   const nhatChuNguHanh = nhatChuHanh[nhatChu];
   
-  // Trọng số tháng sinh để đánh giá Thân Vượng/Nhược
   const thangTrongSo = {
-    Mộc: ["Dần", "Mão"], // Tháng mạnh cho Mộc
-    Hỏa: ["Tỵ", "Ngọ"], // Tháng mạnh cho Hỏa
-    Thổ: ["Sửu", "Thìn", "Mùi", "Tuất"], // Tháng mạnh cho Thổ
-    Kim: ["Thân", "Dậu"], // Tháng mạnh cho Kim
-    Thủy: ["Tý", "Hợi"] // Tháng mạnh cho Thủy
+    Mộc: ["Dần", "Mão"],
+    Hỏa: ["Tỵ", "Ngọ"],
+    Thổ: ["Sửu", "Thìn", "Mùi", "Tuất"],
+    Kim: ["Thân", "Dậu"],
+    Thủy: ["Tý", "Hợi"]
   };
 
   let thanVuong = false;
@@ -122,9 +143,9 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const khacNhatChuCount = nguHanhCount[tuongKhac[nhatChuNguHanh]];
 
   if (
-    thangTrongSo[nhatChuNguHanh].includes(thangChi) || // Tháng sinh mạnh
-    tuongSinh[thangHanh] === nhatChuNguHanh || // Tháng sinh Nhật Chủ
-    (nhatChuCount >= 3 && khacNhatChuCount <= 1) // Hành Nhật Chủ mạnh, ít bị khắc
+    thangTrongSo[nhatChuNguHanh].includes(thangChi) ||
+    tuongSinh[thangHanh] === nhatChuNguHanh ||
+    (nhatChuCount >= 3 && khacNhatChuCount <= 1)
   ) {
     thanVuong = true;
   }
@@ -171,7 +192,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   if (isEnglish && !isVietnamese) language = "en";
   else if (isVietnamese && !isEnglish) language = "vi";
 
-  const tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
+  let tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
+  if (language === "en" && userInput.includes("my birth date is")) {
+    tuTruParsed = parseEnglishTuTru(userInput) || tuTruParsed;
+  }
 
   if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
     return res.status(400).json({ error: language === "vi" ? "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" : "Please provide complete Tứ Trụ information (year, month, day, hour)" });
@@ -203,10 +227,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   const tuTruText = `
 ${language === "vi" ? "Thông tin Tứ Trụ:" : "Four Pillars Information:"}
-- ${language === "vi" ? "Năm:" : "Year:"} ${tuTruParsed.nam || "chưa rõ" || "not specified"}
-- ${language === "vi" ? "Tháng:" : "Month:"} ${tuTruParsed.thang || "chưa rõ" || "not specified"}
-- ${language === "vi" ? "Ngày:" : "Day:"} ${tuTruParsed.ngay || "chưa rõ" || "not specified"}
-- ${language === "vi" ? "Giờ:" : "Hour:"} ${tuTruParsed.gio || "chưa rõ" || "not specified"}
+- ${language === "vi" ? "Năm:" : "Year:"} ${tuTruParsed.nam}
+- ${language === "vi" ? "Tháng:" : "Month:"} ${tuTruParsed.thang}
+- ${language === "vi" ? "Ngày:" : "Day:"} ${tuTruParsed.ngay}
+- ${language === "vi" ? "Giờ:" : "Hour:"} ${tuTruParsed.gio}
 - ${language === "vi" ? "Nhật Chủ:" : "Day Master:"} ${nhatChu}
 - ${language === "vi" ? "Tỷ lệ Ngũ Hành:" : "Five Elements Ratio:"} ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 `;
@@ -218,7 +242,7 @@ ${language === "vi" ? "Cách Cục:" : "Structure:"} ${dungThanTinhToan.cachCuc}
 ${language === "vi" ? "Lý do cách cục:" : "Reason for Structure:"} ${dungThanTinhToan.lyDoCachCuc}
 `;
 
-  const yearMatch = userInput.match(/năm\s*(\d{4})/);
+  const yearMatch = userInput.match(/năm\s*(\d{4})/) || userInput.match(/year\s*(\d{4})/);
   let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau") || userInput.includes("next year")) ? new Date().getFullYear() + 1 : new Date().getFullYear();
   const yearCanChi = year ? getCanChiForYear(year) : null;
   const canNguHanh = {
@@ -261,7 +285,7 @@ Hướng dẫn phân tích Bát Tự:
    - ${language === "vi" ? "Hỏa" : "Fire"} (${tyLeNguHanh.Hỏa}): ${language === "vi" ? "Tạo năng lượng, đam mê, khắc Kim hoặc sinh Thổ." : "Creates energy, passion, overcomes Metal or generates Earth."}
    - ${language === "vi" ? "Thủy" : "Water"} (${tyLeNguHanh.Thủy}): ${language === "vi" ? "Thúc đẩy giao tiếp, linh hoạt, sinh Mộc hoặc khắc Hỏa." : "Promotes communication, flexibility, generates Wood or overcomes Fire."}
    - ${language === "vi" ? "Mộc" : "Wood"} (${tyLeNguHanh.Mộc}): ${language === "vi" ? "Biểu thị sáng tạo, phát triển, khắc Thổ hoặc sinh Hỏa." : "Symbolizes creativity, growth, overcomes Earth or generates Fire."}
-   Xác định Nhật Chủ (${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}), tỷ lệ ngũ hành, và tương sinh/tương khắc.
+   Xác định Nhật Chủ (${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}), tỷ lệ ngũ hành, và tương sinh/tương khắc. Đưa ra lý do chi tiết dựa trên ${dungThanText}.
 2. Dự đoán vận trình qua ba giai đoạn (${language === "vi" ? "thời thơ ấu, trung niên, hậu vận" : "childhood, middle age, later years"}), tập trung vào:
    - Vai trò của Dụng Thần (${dungThanTinhToan.hanh.join(", ")}) trong việc cân bằng lá số (${language === "vi" ? "tiết khí nếu Thân Vượng, hỗ trợ nếu Thân Nhược" : "releasing energy if Self is Strong, supporting if Self is Weak"}).
    - Tác động của các ngũ hành mạnh/yếu theo tỷ lệ chính xác từ ${tuTruText}.
@@ -273,7 +297,7 @@ Hướng dẫn phân tích Bát Tự:
    - ${language === "vi" ? "Phương hướng" : "Directions"}: Chỉ đề xuất dựa trên Dụng Thần (${language === "vi" ? "Mộc: Đông, Đông Nam; Thủy: Bắc; Hỏa: Nam; Thổ: Đông Bắc; Kim: Tây, Tây Bắc" : "Wood: East, Southeast; Water: North; Fire: South; Earth: Northeast; Metal: West, Northwest"}).
    - ${language === "vi" ? "Lưu ý" : "Note"}: Không đề xuất các hành ngoài Dụng Thần.
 4. Phân tích vận trình năm hiện tại (${yearCanChi}, ${yearNguHanh}):
-   - Đánh giá tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Xem xét tương sinh/tương khắc.
+   - Đánh giá chi tiết tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Xem xét tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Hỏa sinh Thổ).
    - Dự báo cơ hội/thách thức, đề xuất cách hóa giải chỉ dựa trên Dụng Thần.
    - ${language === "vi" ? "Diễn đạt cá nhân hóa, mang phong cách Việt Nam" : "Personalized expression with a traditional Chinese style"} (ví dụ: ${language === "vi" ? "'Năm nay thuận lợi, như cây xanh đâm chồi'" : "'This year brings fortune, like a blooming tree'"}).
 5. Nếu người dùng hỏi câu hỏi khác (ví dụ: nghề nghiệp, sức khỏe):
@@ -304,7 +328,7 @@ Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh
 
 Hướng dẫn phân tích:
 1. Xác định chính xác can chi và ngũ hành của năm được hỏi (${yearCanChi ? `${yearCanChi} (${yearNguHanh})` : language === "vi" ? "chưa rõ, yêu cầu người dùng cung cấp" : "not specified, request user to provide"}). Nếu năm không rõ, yêu cầu người dùng cung cấp năm cụ thể.
-2. Phân tích tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Giải thích cụ thể sự tương sinh/tương khắc.
+2. Phân tích chi tiết tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Hỏa sinh Thổ).
 3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Dụng Thần, dự báo thuận lợi. Nếu không, dự báo khó khăn và đề xuất cách hóa giải chỉ bằng vật phẩm/màu sắc thuộc Dụng Thần.
 4. ${language === "vi" ? "Diễn đạt bằng lời văn tinh tế, cá nhân hóa, mang phong cách Việt Nam" : "Express with refined language, personalized, in a traditional Chinese style"} (ví dụ: ${language === "vi" ? "'Năm nay như ngọn gió xuân, mang cơ hội mới'" : "'This year is like a spring breeze, bringing new opportunities'"}).
 5. Nếu người dùng hỏi về đại vận, sử dụng logic đại vận (tuổi nhập vận, thuận/nghịch) để xác định giai đoạn, phân tích can chi đại vận, và liên kết với Dụng Thần.
