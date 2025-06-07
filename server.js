@@ -163,37 +163,18 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
 
-  const isRequestBazi =
-    userInput.includes("hãy xem bát tự cho mình") ||
-    userInput.includes("xem bát tự") ||
-    userInput.includes("luận bát tự") ||
-    userInput.includes("xem lá số");
+  // Phát hiện ngôn ngữ dựa trên từ khóa
+  const isEnglish = userInput.includes("please") || userInput.includes("my birth date is") || userInput.includes("interpret");
+  const isVietnamese = userInput.includes("hãy") || userInput.includes("ngày sinh của mình là") || userInput.includes("xem bát tự");
 
-  const isAskingYearOrDaiVan =
-    /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm)/.test(userInput) &&
-    !isRequestBazi;
+  let language = "vi"; // Mặc định là tiếng Việt
+  if (isEnglish && !isVietnamese) language = "en";
+  else if (isVietnamese && !isEnglish) language = "vi";
 
-  const isAskingHealth =
-    userInput.includes("sức khỏe") ||
-    userInput.includes("cha mẹ") ||
-    userInput.includes("bệnh tật");
-
-  const isAskingCareer =
-    userInput.includes("nghề") ||
-    userInput.includes("công việc") ||
-    userInput.includes("thủy sản") ||
-    userInput.includes("kinh doanh");
-
-  let tuTruParsed = null;
-  try {
-    tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
-  } catch (e) {
-    console.error("Lỗi parse tuTruInfo:", e.message);
-    return res.status(400).json({ error: "Dữ liệu Tứ Trụ không hợp lệ" });
-  }
+  const tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
 
   if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
-    return res.status(400).json({ error: "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" });
+    return res.status(400).json({ error: language === "vi" ? "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" : "Please provide complete Tứ Trụ information (year, month, day, hour)" });
   }
 
   let nguHanhCount;
@@ -201,7 +182,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     nguHanhCount = analyzeNguHanh(tuTruParsed);
   } catch (e) {
     console.error("Lỗi trong analyzeNguHanh:", e.message);
-    return res.status(400).json({ error: e.message });
+    return res.status(400).json({ error: language === "vi" ? e.message : "Unable to analyze Ngũ Hành due to invalid Tứ Trụ data" });
   }
 
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
@@ -217,28 +198,28 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     dungThanTinhToan = dungThan ? dungThan : tinhDungThan(nhatChu, thangChi, nguHanhCount);
   } catch (e) {
     console.error("Lỗi trong tinhDungThan:", e.message);
-    return res.status(400).json({ error: "Không thể tính Dụng Thần do dữ liệu không hợp lệ" });
+    return res.status(400).json({ error: language === "vi" ? "Không thể tính Dụng Thần do dữ liệu không hợp lệ" : "Unable to calculate Dụng Thần due to invalid data" });
   }
 
   const tuTruText = `
-Thông tin Tứ Trụ:
-- Năm: ${tuTruParsed.nam || "chưa rõ"}
-- Tháng: ${tuTruParsed.thang || "chưa rõ"}
-- Ngày: ${tuTruParsed.ngay || "chưa rõ"}
-- Giờ: ${tuTruParsed.gio || "chưa rõ"}
-- Nhật Chủ: ${nhatChu}
-- Tỷ lệ Ngũ Hành: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
+${language === "vi" ? "Thông tin Tứ Trụ:" : "Four Pillars Information:"}
+- ${language === "vi" ? "Năm:" : "Year:"} ${tuTruParsed.nam || "chưa rõ" || "not specified"}
+- ${language === "vi" ? "Tháng:" : "Month:"} ${tuTruParsed.thang || "chưa rõ" || "not specified"}
+- ${language === "vi" ? "Ngày:" : "Day:"} ${tuTruParsed.ngay || "chưa rõ" || "not specified"}
+- ${language === "vi" ? "Giờ:" : "Hour:"} ${tuTruParsed.gio || "chưa rõ" || "not specified"}
+- ${language === "vi" ? "Nhật Chủ:" : "Day Master:"} ${nhatChu}
+- ${language === "vi" ? "Tỷ lệ Ngũ Hành:" : "Five Elements Ratio:"} ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 `;
 
   const dungThanText = `
-Dụng Thần: ${dungThanTinhToan.hanh.join(", ")}
-Lý do chọn dụng thần: ${dungThanTinhToan.lyDo}
-Cách Cục: ${dungThanTinhToan.cachCuc}
-Lý do cách cục: ${dungThanTinhToan.lyDoCachCuc}
+${language === "vi" ? "Dụng Thần:" : "Useful God:"} ${dungThanTinhToan.hanh.join(", ")}
+${language === "vi" ? "Lý do chọn dụng thần:" : "Reason for selecting Useful God:"} ${dungThanTinhToan.lyDo}
+${language === "vi" ? "Cách Cục:" : "Structure:"} ${dungThanTinhToan.cachCuc}
+${language === "vi" ? "Lý do cách cục:" : "Reason for Structure:"} ${dungThanTinhToan.lyDoCachCuc}
 `;
 
   const yearMatch = userInput.match(/năm\s*(\d{4})/);
-  let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau")) ? new Date().getFullYear() + 1 : new Date().getFullYear();
+  let year = yearMatch ? parseInt(yearMatch[1]) : (userInput.includes("năm tới") || userInput.includes("năm sau") || userInput.includes("next year")) ? new Date().getFullYear() + 1 : new Date().getFullYear();
   const yearCanChi = year ? getCanChiForYear(year) : null;
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -252,14 +233,19 @@ Lý do cách cục: ${dungThanTinhToan.lyDoCachCuc}
   let yearNguHanh = "";
   if (yearCanChi) {
     const [can, chi] = yearCanChi.split(" ");
-    yearNguHanh = `${can} (${canNguHanh[can] || "chưa rõ"}), ${chi} (${chiNguHanh[chi] || "chưa rõ"})`;
+    yearNguHanh = `${can} (${canNguHanh[can] || "chưa rõ" || "not specified"}), ${chi} (${chiNguHanh[chi] || "chưa rõ" || "not specified"})`;
   }
 
   let fullPrompt = "";
 
+  const isRequestBazi = userInput.includes("hãy xem bát tự cho mình") || userInput.includes("xem bát tự") || userInput.includes("luận bát tự") || userInput.includes("xem lá số") || userInput.includes("please interpret my bazi");
+  const isAskingYearOrDaiVan = /(năm\s*\d{4}|năm\s*\w+|đại vận|vận hạn|vận mệnh|năm tới|năm sau|vận trong năm|year|next year|fortune)/.test(userInput) && !isRequestBazi;
+  const isAskingHealth = userInput.includes("sức khỏe") || userInput.includes("cha mẹ") || userInput.includes("bệnh tật") || userInput.includes("health");
+  const isAskingCareer = userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("thủy sản") || userInput.includes("kinh doanh") || userInput.includes("career") || userInput.includes("job");
+
   if (isRequestBazi) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế, mang tính cá nhân hóa. Trả lời bằng tiếng Việt, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp, kết hợp phong cách truyền thống Việt Nam với lời chúc may mắn. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không tự tạo dữ liệu sai lệch. Kiểm tra kỹ Nhật Chủ (thiên can ngày: ${nhatChu}) và tháng sinh (Địa Chi tháng: ${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}) để đảm bảo chính xác (ví dụ: ngày Mậu Tý có Nhật Chủ Mậu Thổ, tháng Canh Tuất là Tuất - Thổ). Phải sử dụng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}. Nếu người dùng hỏi câu hỏi khác, trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"} và cách diễn đạt tinh tế, mang tính cá nhân hóa. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, trình bày rõ ràng, mạch lạc, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Diễn đạt bằng lời văn sâu sắc, dễ hiểu, tránh thuật ngữ quá phức tạp, kết hợp phong cách ${language === "vi" ? "truyền thống Việt Nam" : "traditional Chinese"} với lời chúc may mắn. Sử dụng đúng thông tin Tứ Trụ và Dụng Thần được cung cấp, không tự tạo dữ liệu sai lệch. Kiểm tra kỹ Nhật Chủ (thiên can ngày: ${nhatChu}) và tháng sinh (Địa Chi tháng: ${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}) để đảm bảo chính xác. Phải sử dụng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}. Nếu người dùng hỏi câu hỏi khác, trả lời ngay lập tức, cá nhân hóa dựa trên Tứ Trụ và Dụng Thần, tích hợp bối cảnh ngũ hành. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -269,66 +255,66 @@ ${canChiNguhanhInfo}
 Năm hiện tại: ${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})
 
 Hướng dẫn phân tích Bát Tự:
-1. Phân tích chi tiết Tứ Trụ (giờ: ${tuTruParsed.gio}, ngày: ${tuTruParsed.ngay}, tháng: ${tuTruParsed.thang}, năm: ${tuTruParsed.nam}), diễn đạt bằng lời văn tinh tế, giải thích vai trò và tương tác ngũ hành dựa trên tỷ lệ chính xác từ ${tuTruText}:
-   - Kim (${tyLeNguHanh.Kim}): Thể hiện sự sắc bén, quyết đoán, sinh Thủy hoặc khắc Mộc.
-   - Thổ (${tyLeNguHanh.Thổ}): Mang lại sự ổn định, bền vững, sinh Kim hoặc khắc Thủy.
-   - Hỏa (${tyLeNguHanh.Hỏa}): Tạo năng lượng, đam mê, khắc Kim hoặc sinh Thổ.
-   - Thủy (${tyLeNguHanh.Thủy}): Thúc đẩy giao tiếp, linh hoạt, sinh Mộc hoặc khắc Hỏa.
-   - Mộc (${tyLeNguHanh.Mộc}): Biểu thị sáng tạo, phát triển, khắc Thổ hoặc sinh Hỏa.
-   Xác định Nhật Chủ (${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}), tỷ lệ ngũ hành, và tương sinh/tương khắc. Phân tích ảnh hưởng của hành mạnh/yếu (ví dụ: Thổ mạnh khắc Thủy).
-2. Dự đoán vận trình qua ba giai đoạn (thời thơ ấu, trung niên, hậu vận), tập trung vào:
-   - Vai trò của Dụng Thần (${dungThanTinhToan.hanh.join(", ")}) trong việc cân bằng lá số (tiết khí nếu Thân Vượng, hỗ trợ nếu Thân Nhược).
+1. Phân tích chi tiết Tứ Trụ (${language === "vi" ? "giờ: " + tuTruParsed.gio : "hour: " + tuTruParsed.gio}, ${language === "vi" ? "ngày: " + tuTruParsed.ngay : "day: " + tuTruParsed.ngay}, ${language === "vi" ? "tháng: " + tuTruParsed.thang : "month: " + tuTruParsed.thang}, ${language === "vi" ? "năm: " + tuTruParsed.nam : "year: " + tuTruParsed.nam}), diễn đạt bằng lời văn tinh tế, giải thích vai trò và tương tác ngũ hành dựa trên tỷ lệ chính xác từ ${tuTruText}:
+   - ${language === "vi" ? "Kim" : "Metal"} (${tyLeNguHanh.Kim}): ${language === "vi" ? "Thể hiện sự sắc bén, quyết đoán, sinh Thủy hoặc khắc Mộc." : "Represents sharpness, decisiveness, generates Water or overcomes Wood."}
+   - ${language === "vi" ? "Thổ" : "Earth"} (${tyLeNguHanh.Thổ}): ${language === "vi" ? "Mang lại sự ổn định, bền vững, sinh Kim hoặc khắc Thủy." : "Brings stability, endurance, generates Metal or overcomes Water."}
+   - ${language === "vi" ? "Hỏa" : "Fire"} (${tyLeNguHanh.Hỏa}): ${language === "vi" ? "Tạo năng lượng, đam mê, khắc Kim hoặc sinh Thổ." : "Creates energy, passion, overcomes Metal or generates Earth."}
+   - ${language === "vi" ? "Thủy" : "Water"} (${tyLeNguHanh.Thủy}): ${language === "vi" ? "Thúc đẩy giao tiếp, linh hoạt, sinh Mộc hoặc khắc Hỏa." : "Promotes communication, flexibility, generates Wood or overcomes Fire."}
+   - ${language === "vi" ? "Mộc" : "Wood"} (${tyLeNguHanh.Mộc}): ${language === "vi" ? "Biểu thị sáng tạo, phát triển, khắc Thổ hoặc sinh Hỏa." : "Symbolizes creativity, growth, overcomes Earth or generates Fire."}
+   Xác định Nhật Chủ (${nhatChu}) và giải thích Thân Vượng/Nhược dựa trên tháng sinh (${thangChi}, ngũ hành: ${chiNguHanh[thangChi]}), tỷ lệ ngũ hành, và tương sinh/tương khắc.
+2. Dự đoán vận trình qua ba giai đoạn (${language === "vi" ? "thời thơ ấu, trung niên, hậu vận" : "childhood, middle age, later years"}), tập trung vào:
+   - Vai trò của Dụng Thần (${dungThanTinhToan.hanh.join(", ")}) trong việc cân bằng lá số (${language === "vi" ? "tiết khí nếu Thân Vượng, hỗ trợ nếu Thân Nhược" : "releasing energy if Self is Strong, supporting if Self is Weak"}).
    - Tác động của các ngũ hành mạnh/yếu theo tỷ lệ chính xác từ ${tuTruText}.
    - Ảnh hưởng của tháng sinh và các hành chính trong Tứ Trụ, sử dụng đúng ngũ hành của Địa Chi.
 3. Đưa ra gợi ý ứng dụng theo Dụng Thần (${dungThanTinhToan.hanh.join(", ")}), giải thích tại sao phù hợp với Cách Cục:
-   - Ngành nghề: Chỉ đề xuất dựa trên Dụng Thần (Mộc: giáo dục, thiết kế; Thủy: truyền thông, logistics; Hỏa: nghệ thuật, marketing; Thổ: bất động sản, tài chính; Kim: công nghệ, kỹ thuật).
-   - Màu sắc: Chỉ đề xuất dựa trên Dụng Thần (Mộc: xanh lá, xanh ngọc; Thủy: xanh dương, đen, xám; Hỏa: đỏ, hồng; Thổ: vàng, nâu; Kim: trắng, bạc).
-   - Vật phẩm phong thủy: Chỉ đề xuất dựa trên Dụng Thần (Mộc: cây xanh; Thủy: bể cá; Hỏa: đèn đỏ; Thổ: đá thạch anh vàng; Kim: trang sức bạc).
-   - Phương hướng: Chỉ đề xuất dựa trên Dụng Thần (Mộc: Đông, Đông Nam; Thủy: Bắc; Hỏa: Nam; Thổ: Đông Bắc; Kim: Tây, Tây Bắc).
-   - Lưu ý: Không đề xuất các hành ngoài Dụng Thần (ví dụ: nếu Dụng Thần là Mộc, Hỏa, không đề xuất xanh dương - Thủy).
+   - ${language === "vi" ? "Ngành nghề" : "Career fields"}: Chỉ đề xuất dựa trên Dụng Thần (${language === "vi" ? "Mộc: giáo dục, thiết kế; Thủy: truyền thông, logistics; Hỏa: nghệ thuật, marketing; Thổ: bất động sản, tài chính; Kim: công nghệ, kỹ thuật" : "Wood: education, design; Water: communication, logistics; Fire: arts, marketing; Earth: real estate, finance; Metal: technology, engineering"}).
+   - ${language === "vi" ? "Màu sắc" : "Colors"}: Chỉ đề xuất dựa trên Dụng Thần (${language === "vi" ? "Mộc: xanh lá, xanh ngọc; Thủy: xanh dương, đen, xám; Hỏa: đỏ, hồng; Thổ: vàng, nâu; Kim: trắng, bạc" : "Wood: green, jade; Water: blue, black, gray; Fire: red, pink; Earth: yellow, brown; Metal: white, silver"}).
+   - ${language === "vi" ? "Vật phẩm phong thủy" : "Feng Shui items"}: Chỉ đề xuất dựa trên Dụng Thần (${language === "vi" ? "Mộc: cây xanh; Thủy: bể cá; Hỏa: đèn đỏ; Thổ: đá thạch anh vàng; Kim: trang sức bạc" : "Wood: plants; Water: aquarium; Fire: red lamp; Earth: yellow quartz; Metal: silver jewelry"}).
+   - ${language === "vi" ? "Phương hướng" : "Directions"}: Chỉ đề xuất dựa trên Dụng Thần (${language === "vi" ? "Mộc: Đông, Đông Nam; Thủy: Bắc; Hỏa: Nam; Thổ: Đông Bắc; Kim: Tây, Tây Bắc" : "Wood: East, Southeast; Water: North; Fire: South; Earth: Northeast; Metal: West, Northwest"}).
+   - ${language === "vi" ? "Lưu ý" : "Note"}: Không đề xuất các hành ngoài Dụng Thần.
 4. Phân tích vận trình năm hiện tại (${yearCanChi}, ${yearNguHanh}):
-   - Đánh giá tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Xem xét tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Hỏa sinh Thổ).
+   - Đánh giá tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Xem xét tương sinh/tương khắc.
    - Dự báo cơ hội/thách thức, đề xuất cách hóa giải chỉ dựa trên Dụng Thần.
-   - Diễn đạt cá nhân hóa, mang phong cách Việt Nam (ví dụ: "Năm nay thuận lợi, như cây xanh đâm chồi").
+   - ${language === "vi" ? "Diễn đạt cá nhân hóa, mang phong cách Việt Nam" : "Personalized expression with a traditional Chinese style"} (ví dụ: ${language === "vi" ? "'Năm nay thuận lợi, như cây xanh đâm chồi'" : "'This year brings fortune, like a blooming tree'"}).
 5. Nếu người dùng hỏi câu hỏi khác (ví dụ: nghề nghiệp, sức khỏe):
    - Phân tích câu hỏi, xác định ngũ hành liên quan.
    - So sánh với Tứ Trụ và Dụng Thần, đánh giá tương sinh/tương khắc.
    - Trả lời ngắn gọn, tập trung, chỉ sử dụng gợi ý thuộc Dụng Thần.
 
 Nguyên lý tương sinh tương khắc ngũ hành:
-- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+- ${language === "vi" ? "Tương sinh" : "Mutual generation"}: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- ${language === "vi" ? "Tương khắc" : "Mutual overcoming"}: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 Ví dụ lời văn tinh tế:
-- Phân tích Bát Tự: "Lá số mang Nhật Chủ Mậu Thổ, sinh vào tháng Tuất (Thổ), như ngọn núi vững chãi. Thổ mạnh tạo sự ổn định, nhưng cần Mộc để tiết khí, như cây xanh làm mềm đất."
-- Gợi ý: "Dựa trên Dụng Thần Mộc, Hỏa, bạn nên chọn màu xanh lá (Mộc) và đỏ (Hỏa) để thu hút may mắn, như ngọn lửa thắp sáng con đường."
+- ${language === "vi" ? "Phân tích Bát Tự" : "Bazi Analysis"}: "${language === "vi" ? "Lá số mang Nhật Chủ Mậu Thổ, sinh vào tháng Tuất (Thổ), như ngọn núi vững chãi." : "Your chart with Day Master Mậu Earth, born in the Tuất month (Earth), stands like a solid mountain."} ${language === "vi" ? "Thổ mạnh tạo sự ổn định, nhưng cần Mộc để tiết khí, như cây xanh làm mềm đất." : "A strong Earth brings stability, but Wood is needed to balance it, like trees softening the soil."}"
+- ${language === "vi" ? "Gợi ý" : "Suggestion"}: "${language === "vi" ? "Dựa trên Dụng Thần Mộc, Hỏa, bạn nên chọn màu xanh lá (Mộc) và đỏ (Hỏa) để thu hút may mắn" : "Based on Useful Gods Wood and Fire, choose green (Wood) and red (Fire) to attract good fortune"} ${language === "vi" ? "như ngọn lửa thắp sáng con đường." : "like a flame lighting your path."}"
 
 Bắt đầu phân tích Bát Tự, diễn đạt tinh tế, cá nhân hóa, và kết thúc với lời chúc may mắn:
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt = `
-Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa Việt Nam và cách diễn đạt tinh tế. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi chính xác của năm. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách Việt Nam, tránh thuật ngữ phức tạp. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia luận mệnh Bát Tự với kiến thức sâu sắc về ngũ hành, am hiểu văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"} và cách diễn đạt tinh tế. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về vận hạn năm ${year ? year : "hoặc đại vận cụ thể"}, cần phân tích dựa trên Tứ Trụ, Dụng Thần, và can chi chính xác của năm. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách ${language === "vi" ? "truyền thống Việt Nam" : "traditional Chinese"}, tránh thuật ngữ phức tạp. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
 ${dungThanText}
 ${canChiNguhanhInfo}
 
-Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})` : "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2025)"}
+Năm được hỏi: ${year ? `${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})` : language === "vi" ? "Chưa rõ năm cụ thể, vui lòng cung cấp năm (ví dụ: 2025)" : "Year not specified, please provide a year (e.g., 2025)"}
 
 Hướng dẫn phân tích:
-1. Xác định chính xác can chi và ngũ hành của năm được hỏi (${yearCanChi ? `${yearCanChi} (${yearNguHanh})` : "chưa rõ, yêu cầu người dùng cung cấp"}). Nếu năm không rõ, yêu cầu người dùng cung cấp năm cụ thể.
-2. Phân tích tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Giải thích cụ thể sự tương sinh/tương khắc (ví dụ: Mộc khắc Thổ, Hỏa sinh Thổ).
+1. Xác định chính xác can chi và ngũ hành của năm được hỏi (${yearCanChi ? `${yearCanChi} (${yearNguHanh})` : language === "vi" ? "chưa rõ, yêu cầu người dùng cung cấp" : "not specified, request user to provide"}). Nếu năm không rõ, yêu cầu người dùng cung cấp năm cụ thể.
+2. Phân tích tương tác giữa ngũ hành của năm và Nhật Chủ (${nhatChu}), tập trung vào Dụng Thần. Giải thích cụ thể sự tương sinh/tương khắc.
 3. Dự đoán vận hạn năm: Nếu ngũ hành của năm thuộc Dụng Thần, dự báo thuận lợi. Nếu không, dự báo khó khăn và đề xuất cách hóa giải chỉ bằng vật phẩm/màu sắc thuộc Dụng Thần.
-4. Diễn đạt bằng lời văn tinh tế, cá nhân hóa, mang phong cách Việt Nam (ví dụ: "Năm nay như ngọn gió xuân, mang cơ hội mới").
+4. ${language === "vi" ? "Diễn đạt bằng lời văn tinh tế, cá nhân hóa, mang phong cách Việt Nam" : "Express with refined language, personalized, in a traditional Chinese style"} (ví dụ: ${language === "vi" ? "'Năm nay như ngọn gió xuân, mang cơ hội mới'" : "'This year is like a spring breeze, bringing new opportunities'"}).
 5. Nếu người dùng hỏi về đại vận, sử dụng logic đại vận (tuổi nhập vận, thuận/nghịch) để xác định giai đoạn, phân tích can chi đại vận, và liên kết với Dụng Thần.
 
-Ví dụ phân tích: "Năm 2025 (Ất Tỵ, Mộc-Hỏa) thuận lợi vì Mộc khắc Thổ (Dụng Thần). Sử dụng cây xanh (Mộc) và đèn đỏ (Hỏa) để thu hút may mắn, như ngọn lửa soi sáng con đường."
+Ví dụ phân tích: "${language === "vi" ? "Năm 2025 (Ất Tỵ, Mộc-Hỏa) thuận lợi vì Mộc khắc Thổ (Dụng Thần). Sử dụng cây xanh (Mộc) và đèn đỏ (Hỏa) để thu hút may mắn" : "Year 2025 (Ất Tỵ, Wood-Fire) is favorable as Wood overcomes Earth (Useful God). Use plants (Wood) and red lamps (Fire) to attract good fortune"}, ${language === "vi" ? "như ngọn lửa soi sáng con đường." : "like a flame lighting your path."}"
 Bắt đầu phân tích:
 `;
   } else if (isAskingCareer) {
     fullPrompt = `
-Bạn là chuyên gia mệnh lý và tư vấn nghề nghiệp với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa Việt Nam. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về nghề nghiệp: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách Việt Nam. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia mệnh lý và tư vấn nghề nghiệp với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"}. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về nghề nghiệp: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách ${language === "vi" ? "truyền thống Việt Nam" : "traditional Chinese"}. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -336,21 +322,21 @@ ${dungThanText}
 ${canChiNguhanhInfo}
 
 Nguyên lý tương sinh tương khắc ngũ hành:
-- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+- ${language === "vi" ? "Tương sinh" : "Mutual generation"}: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- ${language === "vi" ? "Tương khắc" : "Mutual overcoming"}: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 Hướng dẫn trả lời:
-1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan (ví dụ: nghề thủy sản - Thủy).
+1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan.
 2. So sánh ngũ hành của nghề với Dụng Thần (${dungThanTinhToan.hanh.join(", ")}). Đánh giá sự phù hợp, xem xét tương sinh/tương khắc với Nhật Chủ (${nhatChu}).
 3. Trả lời ngắn gọn, tập trung, đề xuất nghề nghiệp chỉ thuộc Dụng Thần, giải thích lý do dựa trên tương sinh/tương khắc.
 4. Nếu nghề không thuộc Dụng Thần, đề xuất nghề phù hợp hơn và giải thích.
 
-Ví dụ trả lời: "Nghề thủy sản (Thủy) không phù hợp vì Dụng Thần là Mộc, Hỏa. Bạn nên chọn giáo dục (Mộc) hoặc marketing (Hỏa) để phát huy sáng tạo, như cây xanh đâm chồi."
+Ví dụ trả lời: "${language === "vi" ? "Nghề thủy sản (Thủy) không phù hợp vì Dụng Thần là Mộc, Hỏa. Bạn nên chọn giáo dục (Mộc) hoặc marketing (Hỏa) để phát huy sáng tạo" : "The fishery career (Water) is not suitable as Useful Gods are Wood and Fire. Consider education (Wood) or marketing (Fire) to enhance creativity"}, ${language === "vi" ? "như cây xanh đâm chồi." : "like a sprouting tree."}"
 Bắt đầu trả lời:
 `;
   } else if (isAskingHealth) {
     fullPrompt = `
-Bạn là chuyên gia mệnh lý với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa Việt Nam. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về sức khỏe: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách Việt Nam. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia mệnh lý với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"}. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi về sức khỏe: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách ${language === "vi" ? "truyền thống Việt Nam" : "traditional Chinese"}. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -358,21 +344,21 @@ ${dungThanText}
 ${canChiNguhanhInfo}
 
 Nguyên lý tương sinh tương khắc ngũ hành:
-- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+- ${language === "vi" ? "Tương sinh" : "Mutual generation"}: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- ${language === "vi" ? "Tương khắc" : "Mutual overcoming"}: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 Hướng dẫn trả lời:
 1. Phân tích câu hỏi "${userInput}" và xem xét Tứ Trụ để đánh giá ngũ hành mạnh/yếu.
 2. Dựa trên Dụng Thần (${dungThanTinhToan.hanh.join(", ")}), đề xuất cách cải thiện sức khỏe (màu sắc, vật phẩm) chỉ thuộc Dụng Thần.
-3. Giải thích ngắn gọn dựa trên tương sinh/tương khắc (ví dụ: hành yếu cần bổ sung qua Dụng Thần).
+3. Giải thích ngắn gọn dựa trên tương sinh/tương khắc.
 4. Tránh dự đoán cụ thể về bệnh tật, tập trung vào cân bằng ngũ hành.
 
-Ví dụ trả lời: "Dựa trên Dụng Thần Mộc, Hỏa, sử dụng cây xanh (Mộc) và đèn đỏ (Hỏa) để hỗ trợ sức khỏe, như ngọn lửa thắp sáng may mắn."
+Ví dụ trả lời: "${language === "vi" ? "Dựa trên Dụng Thần Mộc, Hỏa, sử dụng cây xanh (Mộc) và đèn đỏ (Hỏa) để hỗ trợ sức khỏe" : "Based on Useful Gods Wood and Fire, use plants (Wood) and red lamps (Fire) to support health"}, ${language === "vi" ? "như ngọn lửa thắp sáng may mắn." : "like a flame bringing good fortune."}"
 Bắt đầu trả lời:
 `;
   } else {
     fullPrompt = `
-Bạn là chuyên gia mệnh lý với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa Việt Nam. Trả lời bằng tiếng Việt, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi một câu hỏi tự do: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp nếu câu hỏi liên quan đến quyết định quan trọng. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách Việt Nam. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
+Bạn là chuyên gia mệnh lý với kiến thức sâu sắc về ngũ hành và Bát Tự, am hiểu văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"}. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, rõ ràng, chuyên nghiệp, không dùng dấu * hay ** hoặc # để liệt kê nội dung. Người dùng hỏi một câu hỏi tự do: "${userInput}". Trả lời ngắn gọn, tập trung vào câu hỏi, sử dụng thông tin Tứ Trụ và Dụng Thần để đưa ra gợi ý phù hợp nếu câu hỏi liên quan đến quyết định quan trọng. Diễn đạt dễ hiểu, cá nhân hóa, mang phong cách ${language === "vi" ? "truyền thống Việt Nam" : "traditional Chinese"}. Sử dụng đúng tỷ lệ ngũ hành từ ${tuTruText} và Dụng Thần từ ${dungThanText}, không tự tạo dữ liệu sai lệch. Chỉ sử dụng Dụng Thần từ thông tin cung cấp hoặc tính tự động, ưu tiên Thân Vượng/Nhược, không áp dụng Tòng Cách trừ khi được yêu cầu rõ ràng.
 
 Thông tin tham khảo:
 ${tuTruText}
@@ -382,16 +368,16 @@ ${canChiNguhanhInfo}
 Năm hiện tại: ${year} (${yearCanChi}, ngũ hành: ${yearNguHanh})
 
 Nguyên lý tương sinh tương khắc ngũ hành:
-- Tương sinh: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
-- Tương khắc: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
+- ${language === "vi" ? "Tương sinh" : "Mutual generation"}: Mộc sinh Hỏa, Hỏa sinh Thổ, Thổ sinh Kim, Kim sinh Thủy, Thủy sinh Mộc.
+- ${language === "vi" ? "Tương khắc" : "Mutual overcoming"}: Mộc khắc Thổ, Thổ khắc Thủy, Thủy khắc Hỏa, Hỏa khắc Kim, Kim khắc Mộc.
 
 Hướng dẫn trả lời:
 1. Phân tích câu hỏi "${userInput}" và xác định ngũ hành liên quan.
 2. So sánh với Tứ Trụ và Dụng Thần, đánh giá sự phù hợp, xem xét tương sinh/tương khắc.
 3. Trả lời ngắn gọn, tập trung, đề xuất chỉ thuộc Dụng Thần, không lặp lại phân tích Tứ Trụ trừ khi cần thiết.
-4. Diễn đạt tinh tế, mang phong cách Việt Nam (ví dụ: "Như ngọn gió xuân, quyết định này sẽ mang may mắn").
+4. ${language === "vi" ? "Diễn đạt tinh tế, mang phong cách Việt Nam" : "Express with refined language, in a traditional Chinese style"} (ví dụ: ${language === "vi" ? "'Như ngọn gió xuân, quyết định này sẽ mang may mắn'" : "'Like a spring breeze, this decision will bring good fortune'"}).
 
-Ví dụ trả lời: "Dựa trên Dụng Thần Mộc, Hỏa, bạn nên chọn màu xanh lá (Mộc) hoặc đỏ (Hỏa) để hỗ trợ quyết định, như cây xanh đâm chồi."
+Ví dụ trả lời: "${language === "vi" ? "Dựa trên Dụng Thần Mộc, Hỏa, bạn nên chọn màu xanh lá (Mộc) hoặc đỏ (Hỏa) để hỗ trợ quyết định" : "Based on Useful Gods Wood and Fire, choose green (Wood) or red (Fire) to support your decision"}, ${language === "vi" ? "như cây xanh đâm chồi." : "like a sprouting tree."}"
 Bắt đầu trả lời:
 `;
   }
