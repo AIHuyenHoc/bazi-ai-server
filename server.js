@@ -148,6 +148,63 @@ const tinhThapThan = (nhatChu, tuTru) => {
   return thapThanResults;
 };
 
+// Tính Thần Sát
+const tinhThanSat = (tuTru) => {
+  const chiNguHanh = {
+    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
+  };
+  const thienAtQuyNhan = {
+    Giáp: ["Sửu", "Mùi"], Ất: ["Tý", "Hợi"], Bính: ["Dần", "Mão"], Đinh: ["Sửu", "Hợi"],
+    Mậu: ["Tỵ", "Ngọ"], Kỷ: ["Thìn", "Tuất"], Canh: ["Thân", "Dậu"], Tân: ["Thân", "Dậu"],
+    Nhâm: ["Hợi", "Tý"], Quý: ["Tý", "Hợi"]
+  };
+  const daoHoa = {
+    Tý: "Dậu", Sửu: "Ngọ", Dần: "Mão", Mão: "Tý", Thìn: "Dậu", Tỵ: "Ngọ",
+    Ngọ: "Mão", Mùi: "Tý", Thân: "Dậu", Dậu: "Ngọ", Tuất: "Mão", Hợi: "Tý"
+  };
+  const vanXuong = {
+    Giáp: ["Tỵ"], Ất: ["Ngọ"], Bính: ["Thân"], Đinh: ["Dậu"], Mậu: ["Hợi"],
+    Kỷ: ["Tý"], Canh: ["Dần"], Tân: ["Mão"], Nhâm: ["Tỵ"], Quý: ["Ngọ"]
+  };
+  const thaiCucQuyNhan = {
+    Giáp: ["Tý"], Ất: ["Tý"], Bính: ["Dần"], Đinh: ["Dần"], Mậu: ["Thìn"],
+    Kỷ: ["Thìn"], Canh: ["Ngọ"], Tân: ["Ngọ"], Nhâm: ["Thân"], Quý: ["Thân"]
+  };
+  const hongLoan = {
+    Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
+    Ngọ: "Mão", Mùi: "Dần", Thân: "Sửu", Dậu: "Tý", Tuất: "Hợi", Hợi: "Tuất"
+  };
+  const thienDuc = {
+    Giáp: ["Hợi"], Ất: ["Tý"], Bính: ["Dần"], Đinh: ["Mão"], Mậu: ["Tỵ"],
+    Kỷ: ["Ngọ"], Canh: ["Thân"], Tân: ["Dậu"], Nhâm: ["Hợi"], Quý: ["Tý"]
+  };
+  const nguyetDuc = {
+    Giáp: ["Dần"], Ất: ["Mão"], Bính: ["Tỵ"], Đinh: ["Ngọ"], Mậu: ["Thân"],
+    Kỷ: ["Dậu"], Canh: ["Hợi"], Tân: ["Tý"], Nhâm: ["Dần"], Quý: ["Mão"]
+  };
+
+  const nhatChu = tuTru.ngay.split(" ")[0];
+  const branches = [
+    tuTru.nam ? tuTru.nam.split(" ")[1] : null,
+    tuTru.thang ? tuTru.thang.split(" ")[1] : null,
+    tuTru.ngay ? tuTru.ngay.split(" ")[1] : null,
+    tuTru.gio ? tuTru.gio.split(" ")[1] : null
+  ].filter(Boolean);
+
+  const thanSatResults = {
+    thienAtQuyNhan: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+    daoHoa: branches.includes(daoHoa[tuTru.ngay.split(" ")[1]]) ? [daoHoa[tuTru.ngay.split(" ")[1]]] : [],
+    vanXuong: vanXuong[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+    thaiCucQuyNhan: thaiCucQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+    hongLoan: branches.includes(hongLoan[tuTru.ngay.split(" ")[1]]) ? [hongLoan[tuTru.ngay.split(" ")[1]]] : [],
+    thienDuc: thienDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+    nguyetDuc: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || []
+  };
+
+  return thanSatResults;
+};
+
 // Tính Dụng Thần (Tổng quát cho mọi Nhật Can)
 const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const chiNguHanh = {
@@ -242,8 +299,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
 
   // Phát hiện ngôn ngữ
-  const vietnameseKeywords = ["hãy", "ngày sinh", "xem bát tự", "luận bát tự", "lá số", "sức khỏe", "nghề", "công việc", "vận hạn", "tình duyên"];
-  const englishKeywords = ["please", "my birth date", "interpret", "bazi", "health", "career", "job", "fortune", "love"];
+  const vietnameseKeywords = ["hãy", "ngày sinh", "xem bát tự", "luận bát tự", "lá số", "sức khỏe", "nghề", "công việc", "vận hạn", "tình duyên", "con cái", "gia đạo"];
+  const englishKeywords = ["please", "my birth date", "interpret", "bazi", "health", "career", "job", "fortune", "love", "children", "family"];
   const vietnameseCount = vietnameseKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
   const englishCount = englishKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
   const language = vietnameseCount >= englishCount ? "vi" : "en";
@@ -296,7 +353,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     });
   }
 
-  // Tính Dụng Thần (Tổng quát cho mọi lá số)
+  // Tính Dụng Thần
   let dungThanResult;
   try {
     dungThanResult = tinhDungThan(nhatChu, thangChi, nguHanhCount);
@@ -313,6 +370,30 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 ${language === "vi" ? "Dụng Thần:" : "Useful God:"} ${dungThanResult.dungThan.join(", ")}
 ${language === "vi" ? "Lý do chọn Dụng Thần:" : "Reason for selecting Useful God:"} ${dungThanResult.lyDo}
 ${language === "vi" ? "Cách Cục:" : "Pattern:"} ${dungThanResult.cachCuc}
+`;
+
+  // Tính Thần Sát
+  let thanSatResults;
+  try {
+    thanSatResults = tinhThanSat(tuTruParsed);
+  } catch (e) {
+    console.error("Lỗi trong tinhThanSat:", e.message);
+    return res.status(400).json({ 
+      error: language === "vi" 
+        ? e.message 
+        : "Unable to calculate Auspicious Stars due to invalid data" 
+    });
+  }
+
+  const thanSatText = `
+${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
+- Thiên Ất Quý Nhân: ${thanSatResults.thienAtQuyNhan.length ? thanSatResults.thienAtQuyNhan.join(", ") : "Không có"} (may mắn, quý nhân phù trợ)
+- Đào Hoa: ${thanSatResults.daoHoa.length ? thanSatResults.daoHoa.join(", ") : "Không có"} (hấp dẫn, tình duyên)
+- Văn Xương: ${thanSatResults.vanXuong.length ? thanSatResults.vanXuong.join(", ") : "Không có"} (học vấn, sáng tạo)
+- Thái Cực Quý Nhân: ${thanSatResults.thaiCucQuyNhan.length ? thanSatResults.thaiCucQuyNhan.join(", ") : "Không có"} (trí tuệ, tâm linh)
+- Hồng Loan: ${thanSatResults.hongLoan.length ? thanSatResults.hongLoan.join(", ") : "Không có"} (tình duyên, hôn nhân)
+- Thiên Đức: ${thanSatResults.thienDuc.length ? thanSatResults.thienDuc.join(", ") : "Không có"} (phúc đức, bảo vệ)
+- Nguyệt Đức: ${thanSatResults.nguyetDuc.length ? thanSatResults.nguyetDuc.join(", ") : "Không có"} (ân đức, hòa hợp)
 `;
 
   // Tính Can Chi và ngũ hành của năm
@@ -335,13 +416,14 @@ ${language === "vi" ? "Cách Cục:" : "Pattern:"} ${dungThanResult.cachCuc}
 
   // Prompt học thuật, chạm nội tâm
   let fullPrompt = `
-Bạn là một bậc thầy Bát Tự, am hiểu sâu sắc văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"}, với khả năng diễn đạt tinh tế, thơ ca, chạm đến nội tâm người nghe. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, dài, chi tiết, học thuật nhưng dễ hiểu, sử dụng ẩn dụ tự nhiên như vàng trong đất, cây xanh trong gió, hay dòng sông linh hoạt. Câu trả lời cần giải quyết "nỗi đau" của người dùng: tìm hiểu bản thân, định hướng cuộc sống, vượt qua thử thách, và tìm sự cân bằng. Tránh diễn đạt rập khuôn, đặc biệt khi phân tích tỷ lệ ngũ hành; thay vào đó, mô tả ngũ hành như một bức tranh sống động. Chỉ sử dụng Tứ Trụ để minh họa tương tác Can-Chi, không phân tích lá số cá nhân chi tiết trừ khi cần. Xử lý mọi Nhật Can (Giáp, Ất, Bính, Đinh, Mậu, Kỷ, Canh, Tân, Nhâm, Quý) và áp dụng Dụng Thần chính xác, không áp dụng Tòng Cách trừ khi được yêu cầu.
+Bạn là một bậc thầy Bát Tự, am hiểu sâu sắc văn hóa ${language === "vi" ? "Việt Nam" : "Chinese astrology"}, với khả năng diễn đạt tinh tế, thơ ca, chạm đến nội tâm người nghe. Trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, dài, chi tiết, học thuật nhưng dễ hiểu, sử dụng ẩn dụ tự nhiên như vàng trong đất, cây xanh trong gió, hay dòng sông linh hoạt. Câu trả lời cần giải quyết "nỗi đau" của người dùng: tìm hiểu bản thân, định hướng cuộc sống, vượt qua thử thách, tình duyên, sự nghiệp, con cái, gia đạo. Tránh diễn đạt rập khuôn, đặc biệt khi phân tích tỷ lệ ngũ hành và Thần Sát; thay vào đó, mô tả như một bức tranh sống động. Chỉ sử dụng Tứ Trụ để minh họa tương tác Can-Chi, không phân tích lá số cá nhân chi tiết trừ khi cần. Xử lý mọi Nhật Can (Giáp, Ất, Bính, Đinh, Mậu, Kỷ, Canh, Tân, Nhâm, Quý) và áp dụng Dụng Thần, Thần Sát chính xác, không áp dụng Tòng Cách trừ khi được yêu cầu.
 
 Thông tin:
 ${language === "vi" ? "Tứ Trụ:" : "Four Pillars:"} Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed.nam}
 ${language === "vi" ? "Tỷ lệ Ngũ Hành:" : "Five Elements Ratio:"} ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 ${language === "vi" ? "Thập Thần:" : "Ten Gods:"} ${Object.entries(thapThanResults).map(([can, thapThan]) => `${can}: ${thapThan}`).join(", ")}
 ${dungThanText}
+${thanSatText}
 ${canChiNguhanhInfo}
 Năm hiện tại: ${year} (${yearCanChi || "chưa rõ"}, ngũ hành: ${yearNguHanh || "chưa rõ"})
 
@@ -362,21 +444,26 @@ Thập Thần (dựa trên Nhật Chủ ${nhatChu}):
 - Thiên Ấn: Sinh Nhật Chủ, cùng âm dương (trực giác, tâm linh, sáng tạo độc đáo).
 
 Hướng dẫn trả lời:
-1. Phân tích Nhật Can ${nhatChu} (${canNguHanh[nhatChu]}), mô tả đặc điểm tính cách và vận mệnh theo hành: 
+1. Phân tích Nhật Can ${nhatChu} (${canNguHanh[nhatChu]}), mô tả đặc điểm tính cách và vận mệnh:
    - Mộc (Giáp, Ất): Như cây cối, kiên cường, phát triển.
    - Hỏa (Bính, Đinh): Như ngọn lửa, đam mê, rực rỡ.
    - Thổ (Mậu, Kỷ): Như ngọn núi, ổn định, che chở.
    - Kim (Canh, Tân): Như kim loại, sắc bén, kiên định.
    - Thủy (Nhâm, Quý): Như dòng sông, linh hoạt, trí tuệ.
    Minh họa tương sinh/tương khắc với các hành trong Tứ Trụ (${tuTruParsed.gio}, ${tuTruParsed.ngay}, ${tuTruParsed.thang}, ${tuTruParsed.nam}).
-2. Mô tả tỷ lệ ngũ hành (${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}) như một bức tranh: Hỏa như ngọn lửa soi đường, Thủy như dòng sông linh hoạt, Thổ như ngọn núi che chở, Kim như vàng quý, Mộc như rừng xanh. Liên hệ với Dụng Thần (${dungThanResult.dungThan.join(", ")}) để định hướng cuộc sống.
+2. Mô tả tỷ lệ ngũ hành (${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}) như một bức tranh: Hỏa như ngọn lửa soi đường, Thủy như dòng sông linh hoạt, Thổ như ngọn núi che chở, Kim như vàng quý, Mộc như rừng xanh.
 3. Phân tích Thập Thần (${Object.entries(thapThanResults).map(([can, thapThan]) => `${can}: ${thapThan}`).join(", ")}) để làm rõ khát vọng nội tâm, ví dụ: Chính Ấn mang sự bảo vệ, Thực Thần khơi dậy sáng tạo.
-4. Đề xuất ứng dụng Dụng Thần (${dungThanResult.dungThan.join(", ")}):
+4. Sử dụng Thần Sát (${thanSatText}) để định hướng:
+   - Tình duyên: Đào Hoa, Hồng Loan mang sức hút và duyên phận.
+   - Sự nghiệp: Thiên Ất Quý Nhân, Văn Xương hỗ trợ thành công và học vấn.
+   - Con cái: Thái Cực Quý Nhân, Thiên Đức mang phúc đức và sự gắn kết.
+   - Gia đạo: Nguyet Đức, Thiên Đức mang hòa hợp và bảo vệ.
+5. Đề xuất ứng dụng Dụng Thần (${dungThanResult.dungThan.join(", ")}):
    - Nghề nghiệp: Mộc (giáo dục, sáng tạo), Hỏa (truyền thông, nghệ thuật), Thổ (bất động sản, tài chính), Kim (công nghệ, kỹ thuật), Thủy (giao tiếp, du lịch).
    - Màu sắc: Dựa trên tương sinh với Dụng Thần, ví dụ: Thổ (vàng, nâu), Kim (trắng, bạc), Mộc (xanh lá), Hỏa (đỏ), Thủy (xanh dương, đen).
    - Vật phẩm: Đá phong thủy (thạch anh, ngọc bích), trang sức phù hợp hành.
    - Hướng: Đông (Mộc), Nam (Hỏa), Đông Bắc (Thổ), Tây (Kim), Bắc (Thủy).
-5. Giải quyết "nỗi đau" của người dùng: tìm kiếm ý nghĩa bản thân, định hướng nghề nghiệp, sức khỏe, hay tình duyên. Sử dụng ngôn ngữ thơ ca, ví dụ: "${language === "vi" ? "Như cây xanh vươn mình trong gió, bạn sẽ tìm thấy ánh sáng của vận mệnh." : "Like a tree reaching for the sky, you will find the light of your destiny."}"
+6. Giải quyết "nỗi đau" của người dùng: tìm kiếm ý nghĩa bản thân, định hướng nghề nghiệp, sức khỏe, tình duyên, con cái, gia đạo. Sử dụng ngôn ngữ thơ ca, ví dụ: "${language === "vi" ? "Như cây xanh vươn mình trong gió, bạn sẽ tìm thấy ánh sáng của vận mệnh." : "Like a tree reaching for the sky, you will find the light of your destiny."}"
 `;
 
   // Xác định loại câu hỏi
@@ -385,30 +472,33 @@ Hướng dẫn trả lời:
   const isAskingHealth = userInput.includes("sức khỏe") || userInput.includes("cha mẹ") || userInput.includes("bệnh tật") || userInput.includes("health");
   const isAskingCareer = userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("thủy sản") || userInput.includes("kinh doanh") || userInput.includes("career") || userInput.includes("job");
   const isAskingLove = userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("tình yêu") || userInput.includes("love") || userInput.includes("marriage");
+  const isAskingChildren = userInput.includes("con cái") || userInput.includes("children");
+  const isAskingFamily = userInput.includes("gia đạo") || userInput.includes("family");
 
   if (isRequestBazi) {
     fullPrompt += `
 Hướng dẫn phân tích Bát Tự:
-1. Mô tả Nhật Can ${nhatChu} (${canNguHanh[nhatChu]}) với đặc điểm tính cách và vận mệnh, ví dụ: Tân Kim như vàng tinh luyện, kiên định nhưng cần đất nuôi dưỡng. Phân tích tương sinh/tương khắc với các hành trong Tứ Trụ, ví dụ: ${nhatChu} đối mặt ${chiNguHanh[tuTruParsed.ngay.split(" ")[1]]} như ${canNguHanh[nhatChu]} trong bối cảnh ${chiNguHanh[tuTruParsed.ngay.split(" ")[1]]}, được ${canNguHanh[tuTruParsed.gio.split(" ")[0]]} hỗ trợ.
+1. Mô tả Nhật Can ${nhatChu} (${canNguHanh[nhatChu]}) với đặc điểm tính cách và vận mệnh, ví dụ: Tân Kim như vàng tinh luyện, kiên định nhưng cần đất nuôi dưỡng. Phân tích tương sinh/tương khắc với các hành trong Tứ Trụ, ví dụ: ${nhatChu} đối mặt ${chiNguHanh[tuTruParsed.ngay.split(" ")[1]]} như ${canNguHanh[nhatChu].toLowerCase()} trong bối cảnh ${chiNguHanh[tuTruParsed.ngay.split(" ")[1]]}, được ${canNguHanh[tuTruParsed.gio.split(" ")[0]]} hỗ trợ.
 2. Mô tả ngũ hành như một bức tranh sống động, ví dụ: Hỏa như ngọn lửa rực cháy, Thủy như dòng sông mát lành. Liên hệ với Dụng Thần (${dungThanResult.dungThan.join(", ")}) để giúp người dùng cân bằng cuộc sống.
-3. Phân tích Thập Thần để làm rõ khát vọng nội tâm, ví dụ: Chính Ấn mang sự bảo vệ, Thực Thần khơi dậy sáng tạo. Gợi ý cách tận dụng Thập Thần để vượt qua "nỗi đau" như mất phương hướng.
-4. Đề xuất ứng dụng thực tế: nghề nghiệp, màu sắc, vật phẩm, hướng phù hợp với Dụng Thần.
-5. Kết thúc bằng lời chúc thơ ca, ví dụ: "${language === "vi" ? "Cầu chúc bạn như ${canNguHanh[nhatChu].toLowerCase()} tỏa sáng giữa đất trời, vận mệnh rạng ngời." : "May you shine like ${canNguHanh[nhatChu].toLowerCase()} under the heavens, your destiny radiant."}"
+3. Phân tích Thập Thần để làm rõ khát vọng nội tâm, ví dụ: Chính Ấn mang sự bảo vệ, Thực Thần khơi dậy sáng tạo.
+4. Sử dụng Thần Sát để định hướng: Thiên Ất Quý Nhân mang quý nhân phù trợ, Đào Hoa và Hồng Loan tăng sức hút, Văn Xương hỗ trợ học vấn, Thái Cực Quý Nhân và Thiên Đức mang phúc đức, Nguyet Đức mang hòa hợp.
+5. Đề xuất ứng dụng thực tế: nghề nghiệp, màu sắc, vật phẩm, hướng phù hợp với Dụng Thần.
+6. Kết thúc bằng lời chúc thơ ca, ví dụ: "${language === "vi" ? "Cầu chúc bạn như ${canNguHanh[nhatChu].toLowerCase()} tỏa sáng giữa đất trời, vận mệnh rạng ngời." : "May you shine like ${canNguHanh[nhatChu].toLowerCase()} under the heavens, your destiny radiant."}"
 `;
   } else if (isAskingYearOrDaiVan) {
     fullPrompt += `
 Hướng dẫn phân tích vận năm ${year || "chưa rõ"}:
 1. Phân tích tương tác ngũ hành của năm (${yearCanChi || "chưa rõ"}, ${yearNguHanh || "chưa rõ"}) với Nhật Can ${nhatChu}. Ví dụ: Năm ${yearCanChi} (${yearNguHanh}) tương tác với ${canNguHanh[nhatChu]} như ${canNguHanh[nhatChu].toLowerCase()} trong bối cảnh ${yearNguHanh.split(", ")[1] || "chưa rõ"}.
-2. Liên hệ với Thập Thần và Dụng Thần (${dungThanResult.dungThan.join(", ")}) để đề xuất cách tận dụng cơ hội hoặc vượt qua thách thức.
+2. Liên hệ với Thập Thần, Dụng Thần (${dungThanResult.dungThan.join(", ")}), và Thần Sát (${thanSatText}) để đề xuất cách tận dụng cơ hội hoặc vượt qua thách thức.
 3. Mô tả năm như một hành trình, ví dụ: "${language === "vi" ? "Năm như ngọn gió thổi qua, cần ${dungThanResult.dungThan[0].toLowerCase()} để giữ vững ánh sáng." : "The year is like a breeze passing through, needing ${dungThanResult.dungThan[0].toLowerCase()} to hold your light."}"
 4. Đề xuất ứng dụng: nghề nghiệp, màu sắc, vật phẩm, hướng phù hợp.
 5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc bạn như ${canNguHanh[nhatChu].toLowerCase()} đứng vững trước gió, vận mệnh rạng ngời." : "May you stand like ${canNguHanh[nhatChu].toLowerCase()} against the wind, your destiny shining brightly."}"
 `;
   } else if (isAskingCareer) {
     fullPrompt += `
-Hướng dẫn trả lời về nghề nghiệp ("${userInput}"):
-1. Phân tích nghề nghiệp liên quan đến Dụng Thần (${dungThanResult.dungThan.join(", ")}) và tương sinh với Nhật Can ${nhatChu}. Ví dụ: Dụng Thần ${dungThanResult.dungThan[0]} như ${dungThanResult.dungThan[0].toLowerCase()} nuôi dưỡng ${canNguHanh[nhatChu].toLowerCase()}.
-2. Liên hệ Thập Thần, ví dụ: Thực Thần thúc đẩy sáng tạo, Chính Ấn mang sự ổn định.
+Hướng dẫn trả lời về sự nghiệp ("${userInput}"):
+1. Phân tích sự nghiệp liên quan đến Dụng Thần (${dungThanResult.dungThan.join(", ")}) và tương sinh với Nhật Can ${nhatChu}. Ví dụ: Dụng Thần ${dungThanResult.dungThan[0]} như ${dungThanResult.dungThan[0].toLowerCase()} nuôi dưỡng ${canNguHanh[nhatChu].toLowerCase()}.
+2. Liên hệ Thập Thần (ví dụ: Thực Thần thúc đẩy sáng tạo, Chính Ấn mang sự ổn định) và Thần Sát (Thiên Ất Quý Nhân mang quý nhân, Văn Xương hỗ trợ học vấn).
 3. Giải quyết "nỗi đau" như thiếu định hướng nghề nghiệp, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} tìm thấy ${dungThanResult.dungThan[0].toLowerCase()}, bạn sẽ khám phá con đường sự nghiệp rực rỡ." : "Like ${canNguHanh[nhatChu].toLowerCase()} finding ${dungThanResult.dungThan[0].toLowerCase()}, you will discover a radiant career path."}"
 4. Đề xuất nghề, màu sắc, vật phẩm, hướng phù hợp.
 5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc sự nghiệp bạn như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].toLowerCase()} nâng niu, tỏa sáng muôn đời." : "May your career shine like ${canNguHanh[nhatChu].toLowerCase()} cradled by ${dungThanResult.dungThan[0].toLowerCase()}, radiant forever."}"
@@ -417,7 +507,7 @@ Hướng dẫn trả lời về nghề nghiệp ("${userInput}"):
     fullPrompt += `
 Hướng dẫn trả lời về sức khỏe ("${userInput}"):
 1. Phân tích ngũ hành liên quan đến sức khỏe, tập trung vào Dụng Thần (${dungThanResult.dungThan.join(", ")}) và Nhật Can ${nhatChu}. Ví dụ: ${dungThanResult.dungThan[0]} như ${dungThanResult.dungThan[0].toLowerCase()} che chở ${canNguHanh[nhatChu].toLowerCase()}.
-2. Liên hệ Thập Thần, ví dụ: Chính Ấn mang sự bảo vệ, Thực Thần mang sự thư thái.
+2. Liên hệ Thập Thần (Chính Ấn mang sự bảo vệ, Thực Thần mang sự thư thái) và Thần Sát (Thiên Đức, Nguyet Đức mang phúc đức và hòa hợp).
 3. Giải quyết "nỗi đau" như lo lắng về sức khỏe, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].toLowerCase()} sưởi ấm, sức khỏe bạn sẽ bền lâu." : "Like ${canNguHanh[nhatChu].toLowerCase()} warmed by ${dungThanResult.dungThan[0].toLowerCase()}, your health will endure."}"
 4. Đề xuất màu sắc, vật phẩm, hướng phù hợp.
 5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc sức khỏe bạn như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh, vững bền như ${dungThanResult.dungThan[0].toLowerCase()}." : "May your health shine like ${canNguHanh[nhatChu].toLowerCase()}, enduring like ${dungThanResult.dungThan[0].toLowerCase()}."}"
@@ -426,16 +516,34 @@ Hướng dẫn trả lời về sức khỏe ("${userInput}"):
     fullPrompt += `
 Hướng dẫn trả lời về tình duyên ("${userInput}"):
 1. Phân tích tình duyên liên quan đến Nhật Can ${nhatChu} và Dụng Thần (${dungThanResult.dungThan.join(", ")}). Ví dụ: ${nhatChu} (${canNguHanh[nhatChu]}) như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThanResult.dungThan[0].toLowerCase()} để bền vững.
-2. Liên hệ tương sinh/tương khắc và Thập Thần, ví dụ: Thực Thần mang sự hòa hợp, Chính Quan mang sự trách nhiệm.
+2. Liên hệ Thập Thần (Thực Thần mang sự hòa hợp, Chính Quan mang sự trách nhiệm) và Thần Sát (Đào Hoa, Hồng Loan mang sức hút và duyên phận).
 3. Giải quyết "nỗi đau" như tìm kiếm tình yêu, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} tìm thấy ${dungThanResult.dungThan[0].toLowerCase()}, tình duyên bạn sẽ nở hoa." : "Like ${canNguHanh[nhatChu].toLowerCase()} finding ${dungThanResult.dungThan[0].toLowerCase()}, your love will blossom."}"
 4. Đề xuất màu sắc, vật phẩm, hướng để thu hút tình duyên.
 5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc tình duyên bạn như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh, mãi mãi bền lâu." : "May your love shine like ${canNguHanh[nhatChu].toLowerCase()}, enduring forever."}"
+`;
+  } else if (isAskingChildren) {
+    fullPrompt += `
+Hướng dẫn trả lời về con cái ("${userInput}"):
+1. Phân tích con cái liên quan đến Nhật Can ${nhatChu} và Dụng Thần (${dungThanResult.dungThan.join(", ")}). Ví dụ: ${nhatChu} (${canNguHanh[nhatChu]}) như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThanResult.dungThan[0].toLowerCase()} để nuôi dưỡng phúc đức.
+2. Liên hệ Thập Thần (Thực Thần, Thương Quan liên quan đến con cái) và Thần Sát (Thái Cực Quý Nhân, Thiên Đức mang phúc đức và gắn kết).
+3. Giải quyết "nỗi đau" như mong cầu con cái hay mối quan hệ với con, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].toLowerCase()} che chở, con cái bạn sẽ là niềm vui rực rỡ." : "Like ${canNguHanh[nhatChu].toLowerCase()} sheltered by ${dungThanResult.dungThan[0].toLowerCase()}, your children will be a radiant joy."}"
+4. Đề xuất màu sắc, vật phẩm, hướng để tăng phúc đức cho con cái.
+5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc con cái bạn như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh, mang phúc đức muôn đời." : "May your children shine like ${canNguHanh[nhatChu].toLowerCase()}, bringing blessings forever."}"
+`;
+  } else if (isAskingFamily) {
+    fullPrompt += `
+Hướng dẫn trả lời về gia đạo ("${userInput}"):
+1. Phân tích gia đạo liên quan đến Nhật Can ${nhatChu} và Dụng Thần (${dungThanResult.dungThan.join(", ")}). Ví dụ: ${nhatChu} (${canNguHanh[nhatChu]}) như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThanResult.dungThan[0].toLowerCase()} để hòa hợp gia đình.
+2. Liên hệ Thập Thần (Chính Ấn, Thiên Ấn mang sự bảo vệ gia đình) và Thần Sát (Nguyet Đức, Thiên Đức mang hòa hợp và phúc đức).
+3. Giải quyết "nỗi đau" như mong cầu gia đạo yên ấm, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].toLowerCase()} ôm ấp, gia đạo bạn sẽ ấm êm." : "Like ${canNguHanh[nhatChu].toLowerCase()} embraced by ${dungThanResult.dungThan[0].toLowerCase()}, your family will be harmonious."}"
+4. Đề xuất màu sắc, vật phẩm, hướng để tăng hòa hợp gia đạo.
+5. Kết thúc bằng lời chúc, ví dụ: "${language === "vi" ? "Cầu chúc gia đạo bạn như ${canNguHanh[nhatChu].toLowerCase()} vững bền, ấm áp muôn đời." : "May your family shine like ${canNguHanh[nhatChu].toLowerCase()}, harmonious forever."}"
 `;
   } else {
     fullPrompt += `
 Hướng dẫn trả lời câu hỏi tự do ("${userInput}"):
 1. Phân tích câu hỏi liên quan đến Nhật Can ${nhatChu} và tương sinh/tương khắc. Ví dụ: ${nhatChu} (${canNguHanh[nhatChu]}) như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThanResult.dungThan[0].toLowerCase()} để tỏa sáng.
-2. Liên hệ Thập Thần và Dụng Thần (${dungThanResult.dungThan.join(", ")}) để giải đáp, sử dụng ẩn dụ tự nhiên.
+2. Liên hệ Thập Thần, Dụng Thần (${dungThanResult.dungThan.join(", ")}), và Thần Sát (${thanSatText}) để giải đáp, sử dụng ẩn dụ tự nhiên.
 3. Giải quyết "nỗi đau" của người dùng, ví dụ: "${language === "vi" ? "Như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh trong ${dungThanResult.dungThan[0].toLowerCase()}, bạn sẽ tìm thấy ánh sáng của vận mệnh." : "Like ${canNguHanh[nhatChu].toLowerCase()} gleaming in ${dungThanResult.dungThan[0].toLowerCase()}, you will find the light of your destiny."}"
 4. Đề xuất ứng dụng: nghề nghiệp, màu sắc, vật phẩm, hướng.
 5. Kết thúc bằng lời chúc thơ ca, ví dụ: "${language === "vi" ? "Cầu chúc bạn như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].toLowerCase()} nâng niu, vận mệnh rạng ngời." : "May your destiny shine like ${canNguHanh[nhatChu].toLowerCase()} cradled by ${dungThanResult.dungThan[0].toLowerCase()}, radiant forever."}"
@@ -458,7 +566,7 @@ Bắt đầu trả lời:
       model: "gpt-3.5-turbo",
       messages: formattedMessages,
       temperature: 0.4,
-      max_tokens: 2500, // Tăng để đảm bảo câu trả lời dài, chi tiết
+      max_tokens: 3000, // Tăng để đảm bảo câu trả lời dài, chi tiết
       top_p: 0.9,
       frequency_penalty: 0.2,
       presence_penalty: 0.1
