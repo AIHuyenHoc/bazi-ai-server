@@ -373,9 +373,15 @@ ${language === "vi" ? "Cầu chúc bạn như" : "May you shine like"} ${canNguH
 };
 
 // Gọi API OpenAI
-const callOpenAI = async (payload, retries = 3, delay = 1000) => {
+const callOpenAI = async (payload, retries = 5, delay = 2000) => {
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("Lỗi: OPENAI_API_KEY không được cấu hình trong .env");
+    throw new Error("Missing OpenAI API key");
+  }
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      console.log(`Thử gọi OpenAI lần ${attempt}...`);
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         payload,
@@ -384,13 +390,17 @@ const callOpenAI = async (payload, retries = 3, delay = 1000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
-          timeout: 15000
+          timeout: 20000
         }
       );
+      console.log("Gọi OpenAI thành công:", response.data.id);
       return response.data;
     } catch (err) {
-      console.error(`Thử lại lần ${attempt}:`, err.message);
-      if (attempt === retries) throw err;
+      console.error(`Thử lại lần ${attempt} thất bại:`, err.message, err.response?.data || {});
+      if (attempt === retries) {
+        console.error("Hết số lần thử, chuyển sang generateResponse");
+        throw new Error("Failed to connect to OpenAI after retries");
+      }
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
     }
   }
@@ -398,11 +408,12 @@ const callOpenAI = async (payload, retries = 3, delay = 1000) => {
 
 // API luận giải Bát Tự
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  console.log("Request received:", req.body);
+  console.log("Request received:", JSON.stringify(req.body, null, 2));
   const { messages, tuTruInfo } = req.body;
   const useOpenAI = process.env.USE_OPENAI !== "false";
 
   if (!messages || !tuTruInfo) {
+    console.error("Thiếu messages hoặc tuTruInfo");
     return res.status(400).json({ error: "Thiếu messages hoặc tuTruInfo" });
   }
 
@@ -426,14 +437,16 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   }
 
   if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
+    console.error("Tứ Trụ không hợp lệ:", tuTruInfo);
     return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
   }
-  console.log("Parsed Tu Tru:", tuTruParsed);
+  console.log("Parsed Tu Tru:", JSON.stringify(tuTruParsed, null, 2));
 
   // Phân tích ngũ hành
   let nguHanhCount;
   try {
     nguHanhCount = analyzeNguHanh(tuTruParsed);
+    console.log("Ngũ hành:", JSON.stringify(nguHanhCount, null, 2));
   } catch (e) {
     console.error("Lỗi analyzeNguHanh:", e.message);
     return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Five Elements data" });
@@ -443,6 +456,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   let thapThanResults;
   try {
     thapThanResults = tinhThapThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed);
+    console.log("Thập Thần:", JSON.stringify(thapThanResults, null, 2));
   } catch (e) {
     console.error("Lỗi tinhThapThan:", e.message);
     return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Ten Gods data" });
@@ -452,6 +466,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   let dungThanResult;
   try {
     dungThanResult = tinhDungThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed.thang.split(" ")[1], nguHanhCount);
+    console.log("Dụng Thần:", JSON.stringify(dungThanResult, null, 2));
   } catch (e) {
     console.error("Lỗi tinhDungThan:", e.message);
     return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Useful God data" });
@@ -461,6 +476,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   let thanSatResults;
   try {
     thanSatResults = tinhThanSat(tuTruParsed);
+    console.log("Thần Sát:", JSON.stringify(thanSatResults, null, 2));
   } catch (e) {
     console.error("Lỗi tinhThanSat:", e.message);
     return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Auspicious Stars data" });
@@ -468,6 +484,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Tạo câu trả lời
   if (!useOpenAI) {
+    console.log("Sử dụng generateResponse vì USE_OPENAI=false");
     const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language);
     return res.json({ answer });
   }
@@ -501,8 +518,10 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
     });
     res.json({ answer: gptRes.choices[0].message.content });
   } catch (err) {
-    console.error("GPT API error:", err.response?.data || err.message);
-    res.status(500).json({ error: language === "vi" ? "Lỗi kết nối đến OpenAI" : "Error connecting to OpenAI" });
+    console.error("GPT API error:", err.message, err.response?.data || {});
+    console.log("Chuyển sang generateResponse do lỗi OpenAI");
+    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language);
+    res.json({ answer });
   }
 });
 
