@@ -8,21 +8,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Kiểm tra dependencies
-const dependencies = ["express", "axios", "cors", "dotenv"];
-dependencies.forEach(dep => {
-  try {
-    require(dep);
-    console.log(`Module ${dep} loaded successfully`);
-  } catch (e) {
-    console.error(`Failed to load module ${dep}: ${e.message}`);
-    process.exit(1);
-  }
-});
-
-// Kiểm tra môi trường
-console.log(`OPENAI_API_KEY is ${process.env.OPENAI_API_KEY ? "set" : "not set"}`);
-
 // Health check endpoint cho Render
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -85,530 +70,428 @@ const hoaGiap = [
 
 // Tính Can Chi cho năm
 const getCanChiForYear = (year) => {
-  try {
-    const baseYear = 1984; // Mốc Giáp Tý
-    const index = (year - baseYear) % 60;
-    const adjustedIndex = index < 0 ? index + 60 : index;
-    return hoaGiap[adjustedIndex] || "Không xác định";
-  } catch (e) {
-    console.error(`Error in getCanChiForYear: ${e.message}`);
-    return "Không xác định";
-  }
+  const baseYear = 1984; // Mốc Giáp Tý
+  const index = (year - baseYear) % 60;
+  const adjustedIndex = index < 0 ? index + 60 : index;
+  return hoaGiap[adjustedIndex] || "Không xác định";
 };
 
 // Chuyển đổi Tứ Trụ từ tiếng Anh sang tiếng Việt
 const parseEnglishTuTru = (input) => {
   try {
     const parts = input.match(/(\w+\s+\w+)\s*(?:hour|day|month|year)/gi)?.map(part => part.trim().split(" "));
-    if (!parts || parts.length !== 4) {
-      console.error("Invalid tuTru format in parseEnglishTuTru");
-      return null;
-    }
+    if (!parts || parts.length !== 4) return null;
     return {
       gio: `${heavenlyStemsMap.en[parts[0][0]] || parts[0][0]} ${earthlyBranchesMap.en[parts[0][1]] || parts[0][1]}`,
       ngay: `${heavenlyStemsMap.en[parts[1][0]] || parts[1][0]} ${earthlyBranchesMap.en[parts[1][1]] || parts[1][1]}`,
       thang: `${heavenlyStemsMap.en[parts[2][0]] || parts[2][0]} ${earthlyBranchesMap.en[parts[2][1]] || parts[2][1]}`,
       nam: `${heavenlyStemsMap.en[parts[3][0]] || parts[3][0]} ${earthlyBranchesMap.en[parts[3][1]] || parts[3][1]}`
     };
-  } catch (e) {
-    console.error(`Error in parseEnglishTuTru: ${e.message}`);
+  } catch {
     return null;
   }
 };
 
 // Xác định Thân Vượng hay Thân Nhược
 function xetThanVuong(tuTru) {
-  try {
-    const [canNgay, chiNgay] = tuTru.ngay.split(' ');
-    if (!nguHanhMap[canNgay] || !nguHanhMap[chiNgay]) throw new Error("Invalid Day Master or Branch");
-    const menh = nguHanhMap[canNgay];
-    const thangChi = tuTru.thang.split(' ')[1];
-    const thangHanh = nguHanhMap[thangChi];
+  const [canNgay, chiNgay] = tuTru.ngay.split(' ');
+  const menh = nguHanhMap[canNgay];
+  const thangChi = tuTru.thang.split(' ')[1];
+  const thangHanh = nguHanhMap[thangChi];
 
-    let diem = 0;
+  let diem = 0;
 
-    const muaSinh = {
-      'Mộc': ['Dần', 'Mão'], 'Hỏa': ['Tỵ', 'Ngọ'], 'Thổ': ['Thìn', 'Tuất', 'Sửu', 'Mùi'],
-      'Kim': ['Thân', 'Dậu'], 'Thủy': ['Hợi', 'Tý']
-    };
+  const muaSinh = {
+    'Mộc': ['Dần', 'Mão'], 'Hỏa': ['Tỵ', 'Ngọ'], 'Thổ': ['Thìn', 'Tuất', 'Sửu', 'Mùi'],
+    'Kim': ['Thân', 'Dậu'], 'Thủy': ['Hợi', 'Tý']
+  };
 
-    if (muaSinh[menh]?.includes(thangChi)) {
-      diem += 1;
-    }
-
-    const khac = { 'Mộc': 'Thổ', 'Thổ': 'Thủy', 'Thủy': 'Hỏa', 'Hỏa': 'Kim', 'Kim': 'Mộc' };
-    if (khac[thangHanh] === menh) {
-      diem -= 1;
-    }
-
-    const chiList = [
-      tuTru.nam?.split(' ')[1],
-      tuTru.thang?.split(' ')[1],
-      tuTru.ngay?.split(' ')[1],
-      tuTru.gio?.split(' ')[1]
-    ].filter(Boolean);
-    let thongCan = 0;
-    chiList.forEach(chi => {
-      const hidden = hiddenElements[chi] || [];
-      if (hidden.includes(menh)) {
-        thongCan += 0.3;
-      }
-    });
-    if (thongCan >= 1) {
-      diem += thongCan;
-    }
-
-    let count = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
-    let countSurface = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
-    [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].filter(Boolean).forEach(tru => {
-      const [can, chi] = tru.split(' ');
-      count[nguHanhMap[can]] += 1;
-      count[nguHanhMap[chi]] += 1;
-      countSurface[nguHanhMap[chi]] += 1;
-      (hiddenElements[chi] || []).forEach(hanh => count[hanh] += 0.3);
-    });
-    if (count[menh] >= 3) {
-      diem += 1;
-    }
-    const hanhKhac = khac[menh];
-    if (count[hanhKhac] >= 3 || countSurface[hanhKhac] >= 2) {
-      diem -= 0.5;
-    }
-
-    const sinhChoMenh = Object.entries({ 'Thủy': 'Mộc', 'Mộc': 'Hỏa', 'Hỏa': 'Thổ', 'Thổ': 'Kim', 'Kim': 'Thủy' }).find(([from, to]) => to === menh)?.[0];
-    const canList = [
-      tuTru.nam?.split(' ')[0],
-      tuTru.thang?.split(' ')[0],
-      tuTru.ngay?.split(' ')[0],
-      tuTru.gio?.split(' ')[0]
-    ].filter(Boolean);
-    if (canList.some(can => nguHanhMap[can] === sinhChoMenh)) {
-      diem += 1;
-    }
-
-    return diem >= 2.5 ? 'Thân Vượng' : 'Thân Nhược';
-  } catch (e) {
-    console.error(`Error in xetThanVuong: ${e.message}`);
-    return 'Thân Nhược'; // Default to avoid crashes
+  if (muaSinh[menh]?.includes(thangChi)) {
+    diem += 1;
   }
+
+  const khac = { 'Mộc': 'Thổ', 'Thổ': 'Thủy', 'Thủy': 'Hỏa', 'Hỏa': 'Kim', 'Kim': 'Mộc' };
+  if (khac[thangHanh] === menh) {
+    diem -= 1;
+  }
+
+  const chiList = [tuTru.nam.split(' ')[1], tuTru.thang.split(' ')[1], tuTru.ngay.split(' ')[1], tuTru.gio.split(' ')[1]];
+  let thongCan = 0;
+  chiList.forEach(chi => {
+    const hidden = hiddenElements[chi] || [];
+    if (hidden.includes(menh)) {
+      thongCan += 0.3;
+    }
+  });
+  if (thongCan >= 1) {
+    diem += thongCan;
+  }
+
+  let count = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
+  let countSurface = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
+  [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].forEach(tru => {
+    const [can, chi] = tru.split(' ');
+    count[nguHanhMap[can]] += 1;
+    count[nguHanhMap[chi]] += 1;
+    countSurface[nguHanhMap[chi]] += 1;
+    (hiddenElements[chi] || []).forEach(hanh => count[hanh] += 0.3);
+  });
+  if (count[menh] >= 3) {
+    diem += 1;
+  }
+  const hanhKhac = khac[menh];
+  if (count[hanhKhac] >= 3 || countSurface[hanhKhac] >= 2) {
+    diem -= 0.5;
+  }
+
+  const sinhChoMenh = Object.entries({ 'Thủy': 'Mộc', 'Mộc': 'Hỏa', 'Hỏa': 'Thổ', 'Thổ': 'Kim', 'Kim': 'Thủy' }).find(([from, to]) => to === menh)?.[0];
+  const canList = [tuTru.nam.split(' ')[0], tuTru.thang.split(' ')[0], tuTru.ngay.split(' ')[0], tuTru.gio.split(' ')[0]];
+  if (canList.some(can => nguHanhMap[can] === sinhChoMenh)) {
+    diem += 1;
+  }
+
+  return diem >= 2.5 ? 'Thân Vượng' : 'Thân Nhược';
 }
 
 // Tính Dụng Thần
 function tinhDungThan(tuTru, locale = 'vi') {
-  try {
-    const [canNgay] = tuTru.ngay.split(' ');
-    if (!nguHanhMap[canNgay]) throw new Error("Invalid Day Master");
-    const menh = nguHanhMap[canNgay];
-    const cachCuc = xetThanVuong(tuTru);
+  const [canNgay] = tuTru.ngay.split(' ');
+  const menh = nguHanhMap[canNgay];
+  const cachCuc = xetThanVuong(tuTru);
 
-    let tyLeNguHanh = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
-    [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].filter(Boolean).forEach(tru => {
-      const [can, chi] = tru.split(' ');
-      tyLeNguHanh[nguHanhMap[can]] += 1;
-      tyLeNguHanh[nguHanhMap[chi]] += 1;
-      (hiddenElements[chi] || []).forEach(hanh => tyLeNguHanh[hanh] += 0.3);
-    });
-    const total = Object.values(tyLeNguHanh).reduce((a, b) => a + b, 0);
-    Object.keys(tyLeNguHanh).forEach(hanh => {
-      tyLeNguHanh[hanh] = total ? Math.round((tyLeNguHanh[hanh] / total) * 100) + '%' : '0%';
-    });
+  let tyLeNguHanh = { 'Mộc': 0, 'Hỏa': 0, 'Thổ': 0, 'Kim': 0, 'Thủy': 0 };
+  [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].forEach(tru => {
+    const [can, chi] = tru.split(' ');
+    tyLeNguHanh[nguHanhMap[can]] += 1;
+    tyLeNguHanh[nguHanhMap[chi]] += 1;
+    (hiddenElements[chi] || []).forEach(hanh => tyLeNguHanh[hanh] += 0.3);
+  });
+  const total = Object.values(tyLeNguHanh).reduce((a, b) => a + b, 0);
+  Object.keys(tyLeNguHanh).forEach(hanh => {
+    tyLeNguHanh[hanh] = Math.round((tyLeNguHanh[hanh] / total) * 100) + '%';
+  });
 
-    const elementsMap = {
-      vi: { Mộc: 'Mộc', Hỏa: 'Hỏa', Thổ: 'Thổ', Kim: 'Kim', Thủy: 'Thủy' },
-      en: { Mộc: 'Wood', Hỏa: 'Fire', Thổ: 'Earth', Kim: 'Metal', Thủy: 'Water' }
-    };
+  const elementsMap = {
+    vi: { Mộc: 'Mộc', Hỏa: 'Hỏa', Thổ: 'Thổ', Kim: 'Kim', Thủy: 'Thủy' },
+    en: { Mộc: 'Wood', Hỏa: 'Fire', Thổ: 'Earth', Kim: 'Metal', Thủy: 'Water' }
+  };
 
-    const metaphors = {
-      Mộc: {
-        Vượng: {
-          vi: 'Cây cối mọc um tùm, rễ lan khắp nơi, phải dùng lửa đốt bớt và lấy đất vùi gốc để cân bằng sức sống.',
-          en: 'Branches overgrow, roots invade — fire trims them, and earth buries their spread.'
-        },
-        Nhược: {
-          vi: 'Mầm non yếu ớt trong gió sương, chỉ khi có nước tưới mát và rừng cây che chở mới sống nổi.',
-          en: 'A young sprout shakes in the wind — only water and a forest\'s shade help it thrive.'
-        }
+  const metaphors = {
+    Mộc: {
+      Vượng: {
+        vi: 'Cây cối mọc um tùm, rễ lan khắp nơi, phải dùng lửa đốt bớt và lấy đất vùi gốc để cân bằng sức sống.',
+        en: 'Branches overgrow, roots invade — fire trims them, and earth buries their spread.'
       },
-      Hỏa: {
-        Vượng: {
-          vi: 'Lửa cháy ngùn ngụt, thiêu rụi cả cánh đồng, cần đất vùi dập và kim loại hút bớt khí nóng.',
-          en: 'Flames roar across fields — earth smothers them, and metal absorbs the heat.'
-        },
-        Nhược: {
-          vi: 'Lửa leo lét giữa trời lạnh, cần thêm củi khô và ngọn lửa khác để bùng cháy.',
-          en: 'A flicker in the dark — more fuel and shared flame keep it alive.'
-        }
-      },
-      Thổ: {
-        Vượng: {
-          vi: 'Đất đá chất chồng, bít lối dòng sông, chỉ nước thấm mềm và cuốc sắt đục phá mới thông mạch sống.',
-          en: 'Earth piles block the river — rain softens it, and tools carve the path.'
-        },
-        Nhược: {
-          vi: 'Đất khô nứt nẻ, bạc màu, chỉ ánh mặt trời nung ấm và tro củi bón vào mới hồi sinh.',
-          en: 'Parched soil lies bare — sunlight and wood ash restore its strength.'
-        }
-      },
-      Kim: {
-        Vượng: {
-          vi: 'Kim loại sắc bén, cứng rắn quá mức, chỉ nước mài mòn và cây cối tiêu hao khí kim.',
-          en: 'Metal sharp and cold — water wears it, and wood draws its force.'
-        },
-        Nhược: {
-          vi: 'Kim loại chưa thành hình, ẩn sâu trong đất, cần đất nuôi dưỡng và kim trợ lực để cứng cáp.',
-          en: 'Unshaped ore sleeps in stone — earth nurtures it, and metal lends strength.'
-        }
-      },
-      Thủy: {
-        Vượng: {
-          vi: 'Nước lớn cuồn cuộn, cuốn trôi mọi thứ, cần rừng cây chặn lại và ánh nắng hong khô.',
-          en: 'Floodwaters sweep all away — forests hold them, and sunlight dries them.'
-        },
-        Nhược: {
-          vi: 'Dòng suối nhỏ lạc giữa đá khô, cần quặng sinh thủy và mưa rơi từ khí Kim để hóa sông lớn.',
-          en: 'A tiny stream lost among stones — metal rain and gathered waters give it power.'
-        }
+      Nhược: {
+        vi: 'Mầm non yếu ớt trong gió sương, chỉ khi có nước tưới mát và rừng cây che chở mới sống nổi.',
+        en: 'A young sprout shakes in the wind — only water and a forest\'s shade help it thrive.'
       }
-    };
-
-    const dungThan = [];
-    let lyDo = { vi: '', en: '' };
-
-    const sinh = { 'Thủy': 'Mộc', 'Mộc': 'Hỏa', 'Hỏa': 'Thổ', 'Thổ': 'Kim', 'Kim': 'Thủy' };
-    const khac = { 'Mộc': 'Thổ', 'Thổ': 'Thủy', 'Thủy': 'Hỏa', 'Hỏa': 'Kim', 'Kim': 'Mộc' };
-    const duocSinhBoi = { 'Mộc': 'Thủy', 'Hỏa': 'Mộc', 'Thổ': 'Hỏa', 'Kim': 'Thổ', 'Thủy': 'Kim' };
-
-    if (cachCuc === 'Thân Vượng') {
-      const dungThanMap = {
-        Mộc: ['Hỏa', 'Thổ'], Hỏa: ['Thổ', 'Kim'], Thổ: ['Kim', 'Thủy'],
-        Kim: ['Thủy', 'Mộc'], Thủy: ['Mộc', 'Hỏa']
-      };
-      dungThan.push(...dungThanMap[menh]);
-      const [hanhSinh, hanhKhac] = dungThan;
-      lyDo.vi = `${metaphors[menh].Vượng.vi} Lá số cần hành sinh (${elementsMap.vi[hanhSinh]}) để cân bằng và hành khắc (${elementsMap.vi[hanhKhac]}) để tiết khí.`;
-      lyDo.en = `${metaphors[menh].Vượng.en} The chart requires the producing element (${elementsMap.en[hanhSinh]}) to balance and the restraining element (${elementsMap.en[hanhKhac]}) to release energy.`;
-    } else {
-      const dungThanMap = {
-        Mộc: ['Thủy', 'Mộc'], Hỏa: ['Mộc', 'Hỏa'], Thổ: ['Hỏa', 'Thổ'],
-        Kim: ['Thổ', 'Kim'], Thủy: ['Kim', 'Thủy']
-      };
-      dungThan.push(...dungThanMap[menh]);
-      const [hanhDuocSinh, hanhBanThan] = dungThan;
-      const hanhSinhChoSinh = duocSinhBoi[hanhDuocSinh];
-      if (hanhSinhChoSinh !== khac[menh]) {
-        dungThan.push(hanhSinhChoSinh);
-        lyDo.vi = `${metaphors[menh].Nhược.vi} Lá số cần hành sinh thân (${elementsMap.vi[hanhDuocSinh]}), hành bản thân (${elementsMap.vi[hanhBanThan]}), và hành hỗ trợ (${elementsMap.vi[hanhSinhChoSinh]}).`;
-        lyDo.en = `${metaphors[menh].Nhược.en} The chart requires the generating element (${elementsMap.en[hanhDuocSinh]}), its own element (${elementsMap.en[hanhBanThan]}), and the supporting element (${elementsMap.en[hanhSinhChoSinh]}).`;
-      } else {
-        lyDo.vi = `${metaphors[menh].Nhược.vi} Lá số cần hành sinh thân (${elementsMap.vi[hanhDuocSinh]}) và hành bản thân (${elementsMap.vi[hanhBanThan]}).`;
-        lyDo.en = `${metaphors[menh].Nhược.en} The chart requires the generating element (${elementsMap.en[hanhDuocSinh]}) and its own element (${elementsMap.en[hanhBanThan]}).`;
+    },
+    Hỏa: {
+      Vượng: {
+        vi: 'Lửa cháy ngùn ngụt, thiêu rụi cả cánh đồng, cần đất vùi dập và kim loại hút bớt khí nóng.',
+        en: 'Flames roar across fields — earth smothers them, and metal absorbs the heat.'
+      },
+      Nhược: {
+        vi: 'Lửa leo lét giữa trời lạnh, cần thêm củi khô và ngọn lửa khác để bùng cháy.',
+        en: 'A flicker in the dark — more fuel and shared flame keep it alive.'
+      }
+    },
+    Thổ: {
+      Vượng: {
+        vi: 'Đất đá chất chồng, bít lối dòng sông, chỉ nước thấm mềm và cuốc sắt đục phá mới thông mạch sống.',
+        en: 'Earth piles block the river — rain softens it, and tools carve the path.'
+      },
+      Nhược: {
+        vi: 'Đất khô nứt nẻ, bạc màu, chỉ ánh mặt trời nung ấm và tro củi bón vào mới hồi sinh.',
+        en: 'Parched soil lies bare — sunlight and wood ash restore its strength.'
+      }
+    },
+    Kim: {
+      Vượng: {
+        vi: 'Kim loại sắc bén, cứng rắn quá mức, chỉ nước mài mòn và cây cối tiêu hao khí kim.',
+        en: 'Metal sharp and cold — water wears it, and wood draws its force.'
+      },
+      Nhược: {
+        vi: 'Kim loại chưa thành hình, ẩn sâu trong đất, cần đất nuôi dưỡng và kim trợ lực để cứng cáp.',
+        en: 'Unshaped ore sleeps in stone — earth nurtures it, and metal lends strength.'
+      }
+    },
+    Thủy: {
+      Vượng: {
+        vi: 'Nước lớn cuồn cuộn, cuốn trôi mọi thứ, cần rừng cây chặn lại và ánh nắng hong khô.',
+        en: 'Floodwaters sweep all away — forests hold them, and sunlight dries them.'
+      },
+      Nhược: {
+        vi: 'Dòng suối nhỏ lạc giữa đá khô, cần quặng sinh thủy và mưa rơi từ khí Kim để hóa sông lớn.',
+        en: 'A tiny stream lost among stones — metal rain and gathered waters give it power.'
       }
     }
+  };
 
-    return { hanh: [...new Set(dungThan)], lyDo, cachCuc, tyLeNguHanh };
-  } catch (e) {
-    console.error(`Error in tinhDungThan: ${e.message}`);
-    throw new Error("Không thể tính Dụng Thần do dữ liệu Tứ Trụ không hợp lệ");
+  const dungThan = [];
+  let lyDo = { vi: '', en: '' };
+
+  const sinh = { 'Thủy': 'Mộc', 'Mộc': 'Hỏa', 'Hỏa': 'Thổ', 'Thổ': 'Kim', 'Kim': 'Thủy' };
+  const khac = { 'Mộc': 'Thổ', 'Thổ': 'Thủy', 'Thủy': 'Hỏa', 'Hỏa': 'Kim', 'Kim': 'Mộc' };
+  const duocSinhBoi = { 'Mộc': 'Thủy', 'Hỏa': 'Mộc', 'Thổ': 'Hỏa', 'Kim': 'Thổ', 'Thủy': 'Kim' };
+
+  if (cachCuc === 'Thân Vượng') {
+    const dungThanMap = {
+      Mộc: ['Hỏa', 'Thổ'], Hỏa: ['Thổ', 'Kim'], Thổ: ['Kim', 'Thủy'],
+      Kim: ['Thủy', 'Mộc'], Thủy: ['Mộc', 'Hỏa']
+    };
+    dungThan.push(...dungThanMap[menh]);
+    const [hanhSinh, hanhKhac] = dungThan;
+    lyDo.vi = `${metaphors[menh].Vượng.vi} Lá số cần hành sinh (${elementsMap.vi[hanhSinh]}) để cân bằng và hành khắc (${elementsMap.vi[hanhKhac]}) để tiết khí.`;
+    lyDo.en = `${metaphors[menh].Vượng.en} The chart requires the producing element (${elementsMap.en[hanhSinh]}) to balance and the restraining element (${elementsMap.en[hanhKhac]}) to release energy.`;
+  } else {
+    const dungThanMap = {
+      Mộc: ['Thủy', 'Mộc'], Hỏa: ['Mộc', 'Hỏa'], Thổ: ['Hỏa', 'Thổ'],
+      Kim: ['Thổ', 'Kim'], Thủy: ['Kim', 'Thủy']
+    };
+    dungThan.push(...dungThanMap[menh]);
+    const [hanhDuocSinh, hanhBanThan] = dungThan;
+    const hanhSinhChoSinh = duocSinhBoi[hanhDuocSinh];
+    if (hanhSinhChoSinh !== khac[menh]) {
+      dungThan.push(hanhSinhChoSinh);
+      lyDo.vi = `${metaphors[menh].Nhược.vi} Lá số cần hành sinh thân (${elementsMap.vi[hanhDuocSinh]}), hành bản thân (${elementsMap.vi[hanhBanThan]}), và hành hỗ trợ (${elementsMap.vi[hanhSinhChoSinh]}).`;
+      lyDo.en = `${metaphors[menh].Nhược.en} The chart requires the generating element (${elementsMap.en[hanhDuocSinh]}), its own element (${elementsMap.en[hanhBanThan]}), and the supporting element (${elementsMap.en[hanhSinhChoSinh]}).`;
+    } else {
+      lyDo.vi = `${metaphors[menh].Nhược.vi} Lá số cần hành sinh thân (${elementsMap.vi[hanhDuocSinh]}) và hành bản thân (${elementsMap.vi[hanhBanThan]}).`;
+      lyDo.en = `${metaphors[menh].Nhược.en} The chart requires the generating element (${elementsMap.en[hanhDuocSinh]}) and its own element (${elementsMap.en[hanhBanThan]}).`;
+    }
   }
+
+  return { hanh: [...new Set(dungThan)], lyDo, cachCuc, tyLeNguHanh };
 }
 
 // Tính Thập Thần
 function tinhThapThan(tuTru) {
-  try {
-    const [canNgay] = tuTru.ngay.split(' ');
-    if (!nguHanhMap[canNgay]) throw new Error("Invalid Day Master");
-    const menh = nguHanhMap[canNgay];
-    const thapThanMap = {
-      Mộc: { 'Giáp': 'Tỷ Kiên', 'Ất': 'Kiếp Đao', 'Bính': 'Thực Thần', 'Đinh': 'Thương Quan', 'Mậu': 'Thiên Ấn', 'Kỷ': 'Chính Ấn', 'Canh': 'Thất Sát', 'Tân': 'Chính Quan', 'Nhâm': 'Tài Tinh', 'Quý': 'Chính Tài' },
-      Hỏa: { 'Bính': 'Tỷ Kiên', 'Đinh': 'Kiếp Đao', 'Mậu': 'Thực Thần', 'Kỷ': 'Thương Quan', 'Canh': 'Thiên Ấn', 'Tân': 'Chính Ấn', 'Nhâm': 'Thất Sát', 'Quý': 'Chính Quan', 'Giáp': 'Tài Tinh', 'Ất': 'Chính Tài' },
-      Thổ: { 'Mậu': 'Tỷ Kiên', 'Kỷ': 'Kiếp Đao', 'Canh': 'Thực Thần', 'Tân': 'Thương Quan', 'Nhâm': 'Thiên Ấn', 'Quý': 'Chính Ấn', 'Giáp': 'Thất Sát', 'Ất': 'Chính Quan', 'Bính': 'Tài Tinh', 'Đinh': 'Chính Tài' },
-      Kim: { 'Canh': 'Tỷ Kiên', 'Tân': 'Kiếp Đao', 'Nhâm': 'Thực Thần', 'Quý': 'Thương Quan', 'Giáp': 'Thiên Ấn', 'Ất': 'Chính Ấn', 'Bính': 'Thất Sát', 'Đinh': 'Chính Quan', 'Mậu': 'Tài Tinh', 'Kỷ': 'Chính Tài' },
-      Thủy: { 'Nhâm': 'Tỷ Kiên', 'Quý': 'Kiếp Đao', 'Giáp': 'Thực Thần', 'Ất': 'Thương Quan', 'Bính': 'Thiên Ấn', 'Đinh': 'Chính Ấn', 'Mậu': 'Thất Sát', 'Kỷ': 'Chính Quan', 'Canh': 'Tài Tinh', 'Tân': 'Chính Tài' }
-    };
+  const [canNgay] = tuTru.ngay.split(' ');
+  const menh = nguHanhMap[canNgay];
+  const thapThanMap = {
+    Mộc: { 'Giáp': 'Tỷ Kiên', 'Ất': 'Kiếp Đao', 'Bính': 'Thực Thần', 'Đinh': 'Thương Quan', 'Mậu': 'Thiên Ấn', 'Kỷ': 'Chính Ấn', 'Canh': 'Thất Sát', 'Tân': 'Chính Quan', 'Nhâm': 'Tài Tinh', 'Quý': 'Chính Tài' },
+    Hỏa: { 'Bính': 'Tỷ Kiên', 'Đinh': 'Kiếp Đao', 'Mậu': 'Thực Thần', 'Kỷ': 'Thương Quan', 'Canh': 'Thiên Ấn', 'Tân': 'Chính Ấn', 'Nhâm': 'Thất Sát', 'Quý': 'Chính Quan', 'Giáp': 'Tài Tinh', 'Ất': 'Chính Tài' },
+    Thổ: { 'Mậu': 'Tỷ Kiên', 'Kỷ': 'Kiếp Đao', 'Canh': 'Thực Thần', 'Tân': 'Thương Quan', 'Nhâm': 'Thiên Ấn', 'Quý': 'Chính Ấn', 'Giáp': 'Thất Sát', 'Ất': 'Chính Quan', 'Bính': 'Tài Tinh', 'Đinh': 'Chính Tài' },
+    Kim: { 'Canh': 'Tỷ Kiên', 'Tân': 'Kiếp Đao', 'Nhâm': 'Thực Thần', 'Quý': 'Thương Quan', 'Giáp': 'Thiên Ấn', 'Ất': 'Chính Ấn', 'Bính': 'Thất Sát', 'Đinh': 'Chính Quan', 'Mậu': 'Tài Tinh', 'Kỷ': 'Chính Tài' },
+    Thủy: { 'Nhâm': 'Tỷ Kiên', 'Quý': 'Kiếp Đao', 'Giáp': 'Thực Thần', 'Ất': 'Thương Quan', 'Bính': 'Thiên Ấn', 'Đinh': 'Chính Ấn', 'Mậu': 'Thất Sát', 'Kỷ': 'Chính Quan', 'Canh': 'Tài Tinh', 'Tân': 'Chính Tài' }
+  };
 
-    const thapThan = {};
-    [tuTru.nam, tuTru.thang, tuTru.gio].filter(Boolean).forEach(tru => {
-      const [can] = tru.split(' ');
-      thapThan[can] = thapThanMap[menh][can] || 'Không xác định';
-    });
+  const thapThan = {};
+  [tuTru.nam, tuTru.thang, tuTru.gio].forEach(tru => {
+    const [can] = tru.split(' ');
+    thapThan[can] = thapThanMap[menh][can];
+  });
 
-    return thapThan;
-  } catch (e) {
-    console.error(`Error in tinhThapThan: ${e.message}`);
-    return {};
-  }
+  return thapThan;
 }
 
 // Tính Thần Sát
 function tinhThanSat(tuTru) {
-  try {
-    const [canNgay, chiNgay] = tuTru.ngay.split(' ');
-    if (!nguHanhMap[canNgay] || !nguHanhMap[chiNgay]) throw new Error("Invalid Day Master or Branch");
-    const chiList = [
-      tuTru.nam?.split(' ')[1],
-      tuTru.thang?.split(' ')[1],
-      tuTru.ngay?.split(' ')[1],
-      tuTru.gio?.split(' ')[1]
-    ].filter(Boolean);
-    const thanSat = [];
+  const [canNgay, chiNgay] = tuTru.ngay.split(' ');
+  const chiList = [tuTru.nam.split(' ')[1], tuTru.thang.split(' ')[1], tuTru.ngay.split(' ')[1], tuTru.gio.split(' ')[1]];
+  const thanSat = [];
 
-    const thienAtMap = { 'Tân': ['Thân', 'Dậu'] };
-    if (thienAtMap[canNgay]?.some(chi => chiList.includes(chi))) {
-      thanSat.push('Thiên Ất Quý Nhân');
-    }
-
-    const daoHoaMap = { 'Tý': 'Dậu', 'Sửu': 'Ngọ', 'Dần': 'Mão', 'Mão': 'Tý', 'Thìn': 'Dậu', 'Tỵ': 'Ngọ', 'Ngọ': 'Mão', 'Mùi': 'Tý', 'Thân': 'Dậu', 'Dậu': 'Ngọ', 'Tuất': 'Mão', 'Hợi': 'Tý' };
-    if (chiList.includes(daoHoaMap[chiNgay])) {
-      thanSat.push('Đào Hoa');
-    }
-
-    const vanXuongMap = { 'Tân': ['Mão'] };
-    if (vanXuongMap[canNgay]?.some(chi => chiList.includes(chi))) {
-      thanSat.push('Văn Xương');
-    }
-
-    const thienDucMap = { 'Tân': ['Dậu'] };
-    if (thienDucMap[canNgay]?.some(chi => chiList.includes(chi))) {
-      thanSat.push('Thiên Đức');
-    }
-
-    const nguyetDucMap = { 'Tân': ['Tý'] };
-    if (nguyetDucMap[canNgay]?.some(chi => chiList.includes(chi))) {
-      thanSat.push('Nguyệt Đức');
-    }
-
-    const hongLoanMap = { 'Tý': 'Dậu', 'Sửu': 'Thân', 'Dần': 'Mùi', 'Mão': 'Ngọ', 'Thìn': 'Tỵ', 'Tỵ': 'Thìn', 'Ngọ': 'Mão', 'Mùi': 'Dần', 'Thân': 'Sửu', 'Dậu': 'Tý', 'Tuất': 'Hợi', 'Hợi': 'Tuất' };
-    if (chiList.includes(hongLoanMap[chiNgay])) {
-      thanSat.push('Hồng Loan');
-    }
-
-    return thanSat;
-  } catch (e) {
-    console.error(`Error in tinhThanSat: ${e.message}`);
-    return [];
+  const thienAtMap = { 'Tân': ['Thân', 'Dậu'] };
+  if (thienAtMap[canNgay]?.some(chi => chiList.includes(chi))) {
+    thanSat.push('Thiên Ất Quý Nhân');
   }
+
+  const daoHoaMap = { 'Tý': 'Dậu', 'Sửu': 'Ngọ', 'Dần': 'Mão', 'Mão': 'Tý', 'Thìn': 'Dậu', 'Tỵ': 'Ngọ', 'Ngọ': 'Mão', 'Mùi': 'Tý', 'Thân': 'Dậu', 'Dậu': 'Ngọ', 'Tuất': 'Mão', 'Hợi': 'Tý' };
+  if (chiList.includes(daoHoaMap[chiNgay])) {
+    thanSat.push('Đào Hoa');
+  }
+
+  const vanXuongMap = { 'Tân': ['Mão'] };
+  if (vanXuongMap[canNgay]?.some(chi => chiList.includes(chi))) {
+    thanSat.push('Văn Xương');
+  }
+
+  const thienDucMap = { 'Tân': ['Dậu'] };
+  if (thienDucMap[canNgay]?.some(chi => chiList.includes(chi))) {
+    thanSat.push('Thiên Đức');
+  }
+
+  const nguyetDucMap = { 'Tân': ['Tý'] };
+  if (nguyetDucMap[canNgay]?.some(chi => chiList.includes(chi))) {
+    thanSat.push('Nguyệt Đức');
+  }
+
+  const hongLoanMap = { 'Tý': 'Dậu', 'Sửu': 'Thân', 'Dần': 'Mùi', 'Mão': 'Ngọ', 'Thìn': 'Tỵ', 'Tỵ': 'Thìn', 'Ngọ': 'Mão', 'Mùi': 'Dần', 'Thân': 'Sửu', 'Dậu': 'Tý', 'Tuất': 'Hợi', 'Hợi': 'Tuất' };
+  if (chiList.includes(hongLoanMap[chiNgay])) {
+    thanSat.push('Hồng Loan');
+  }
+
+  return thanSat;
 }
 
 // Phân tích ngũ hành từ Tứ Trụ
 const analyzeNguHanh = (tuTru) => {
+  const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   try {
-    const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
-    [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].filter(Boolean).forEach(tru => {
+    [tuTru.nam, tuTru.thang, tuTru.ngay, tuTru.gio].forEach(tru => {
       const [can, chi] = tru.split(' ');
       nguHanhCount[nguHanhMap[can]] += 1;
       nguHanhCount[nguHanhMap[chi]] += 1;
       (hiddenElements[chi] || []).forEach(hanh => nguHanhCount[hanh] += 0.3);
     });
-    return nguHanhCount;
   } catch (e) {
-    console.error(`Error in analyzeNguHanh: ${e.message}`);
+    console.error("Lỗi phân tích ngũ hành:", e.message);
     throw new Error("Không thể phân tích ngũ hành do dữ liệu Tứ Trụ không hợp lệ");
   }
+  return nguHanhCount;
 };
 
 // Hàm tạo câu trả lời chi tiết
 function generateResponse(tuTru, dungThanResult, locale = 'vi') {
-  try {
-    const { hanh: dungThan, lyDo, cachCuc, tyLeNguHanh } = dungThanResult;
-    const thanSat = tinhThanSat(tuTru);
-    const thapThan = tinhThapThan(tuTru);
-    const [canNgay] = tuTru.ngay.split(' ');
-    const menh = nguHanhMap[canNgay] || 'Không xác định';
+  const { hanh: dungThan, lyDo, cachCuc, tyLeNguHanh } = dungThanResult;
+  const thanSat = tinhThanSat(tuTru);
+  const thapThan = tinhThapThan(tuTru);
+  const [canNgay] = tuTru.ngay.split(' ');
+  const menh = nguHanhMap[canNgay];
 
-    const menhDescriptions = {
-      Mộc: {
-        vi: 'như cây xanh vươn cao giữa đất trời, mang sức sống mãnh liệt và khát vọng tự do.',
-        en: 'like a green tree reaching for the sky, full of vitality and a yearning for freedom.'
-      },
-      Hỏa: {
-        vi: 'như ngọn lửa rực cháy, mang đam mê và sức mạnh soi sáng muôn nơi.',
-        en: 'like a blazing flame, carrying passion and the power to illuminate all.'
-      },
-      Thổ: {
-        vi: 'như ngọn núi vững chãi, mang sự ổn định và che chở cho đời.',
-        en: 'like a steadfast mountain, offering stability and shelter to life.'
-      },
-      Kim: {
-        vi: 'như ánh vàng tinh luyện, sắc sảo và kiên định, lấp lánh giữa đất trời.',
-        en: 'like refined gold, sharp and resolute, gleaming between heaven and earth.'
-      },
-      Thủy: {
-        vi: 'như dòng suối mát lành, linh hoạt và trôi chảy, ôm lấy muôn vật.',
-        en: 'like a cool stream, fluid and adaptable, embracing all things.'
-      }
-    };
-
-    const colors = {
-      Thủy: { vi: 'xanh dương, đen', en: 'blue, black' },
-      Mộc: { vi: 'xanh lá', en: 'green' },
-      Hỏa: { vi: 'đỏ, cam', en: 'red, orange' },
-      Thổ: { vi: 'vàng, nâu', en: 'yellow, brown' },
-      Kim: { vi: 'trắng, bạc', en: 'white, silver' }
-    };
-
-    const careers = {
-      Thủy: { vi: 'giao tiếp, truyền thông, du lịch, logistics', en: 'communication, media, travel, logistics' },
-      Mộc: { vi: 'giáo dục, thiết kế, nghệ thuật, sáng tạo', en: 'education, design, art, creativity' },
-      Hỏa: { vi: 'công nghệ, năng lượng, marketing, giải trí', en: 'technology, energy, marketing, entertainment' },
-      Thổ: { vi: 'bất động sản, nông nghiệp, xây dựng', en: 'real estate, agriculture, construction' },
-      Kim: { vi: 'tài chính, kỹ thuật, luật pháp', en: 'finance, engineering, law' }
-    };
-
-    const items = {
-      Thủy: { vi: 'đá thạch anh xanh, ngọc bích', en: 'blue quartz, jade' },
-      Mộc: { vi: 'ngọc bích, gỗ thơm', en: 'jade, sandalwood' },
-      Hỏa: { vi: 'đá ruby, hồng ngọc', en: 'ruby, garnet' },
-      Thổ: { vi: 'đá thạch anh vàng, ngọc lam', en: 'yellow quartz, turquoise' },
-      Kim: { vi: 'trang sức bạc, đá thạch anh trắng', en: 'silver jewelry, white quartz' }
-    };
-
-    const directions = {
-      Thủy: { vi: 'Bắc', en: 'North' },
-      Mộc: { vi: 'Đông', en: 'East' },
-      Hỏa: { vi: 'Nam', en: 'South' },
-      Thổ: { vi: 'Trung tâm', en: 'Center' },
-      Kim: { vi: 'Tây', en: 'West' }
-    };
-
-    // Kiểm tra dữ liệu đầu vào
-    if (!dungThan || !dungThan.length || !menh || menh === 'Không xác định') {
-      console.error(`Invalid data in generateResponse: dungThan=${JSON.stringify(dungThan)}, menh=${menh}`);
-      return locale === 'vi'
-        ? 'Dữ liệu Tứ Trụ không hợp lệ, không thể luận giải. Vui lòng kiểm tra lại thông tin.'
-        : 'Invalid Four Pillars data, unable to generate interpretation. Please check the input.';
+  const menhDescriptions = {
+    Mộc: {
+      vi: 'như cây xanh vươn cao giữa đất trời, mang sức sống mãnh liệt và khát vọng tự do.',
+      en: 'like a green tree reaching for the sky, full of vitality and a yearning for freedom.'
+    },
+    Hỏa: {
+      vi: 'như ngọn lửa rực cháy, mang đam mê và sức mạnh soi sáng muôn nơi.',
+      en: 'like a blazing flame, carrying passion and the power to illuminate all.'
+    },
+    Thổ: {
+      vi: 'như ngọn núi vững chãi, mang sự ổn định và che chở cho đời.',
+      en: 'like a steadfast mountain, offering stability and shelter to life.'
+    },
+    Kim: {
+      vi: 'như ánh vàng tinh luyện, sắc sảo và kiên định, lấp lánh giữa đất trời.',
+      en: 'like refined gold, sharp and resolute, gleaming between heaven and earth.'
+    },
+    Thủy: {
+      vi: 'như dòng suối mát lành, linh hoạt và trôi chảy, ôm lấy muôn vật.',
+      en: 'like a cool stream, fluid and adaptable, embracing all things.'
     }
+  };
 
-    const thapThanText = Object.keys(thapThan).length
-      ? Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')
-      : 'không xác định';
+  const colors = {
+    Thủy: { vi: 'xanh dương, đen', en: 'blue, black' },
+    Mộc: { vi: 'xanh lá', en: 'green' },
+    Hỏa: { vi: 'đỏ, cam', en: 'red, orange' },
+    Thổ: { vi: 'vàng, nâu', en: 'yellow, brown' },
+    Kim: { vi: 'trắng, bạc', en: 'white, silver' }
+  };
 
-    const response = {
-      vi: `Nhật Chủ ${canNgay}, thuộc hành ${menh}, ${menhDescriptions[menh]?.vi || 'không xác định'}. Trong Tứ Trụ (${tuTru.gio || ''}, ${tuTru.ngay || ''}, ${tuTru.thang || ''}, ${tuTru.nam || ''}), mệnh bạn như ánh sáng lấp lánh, được đất trời nâng niu và thử thách. Ngũ hành hòa quyện: Mộc (${tyLeNguHanh.Mộc}), Hỏa (${tyLeNguHanh.Hỏa}), Thổ (${tyLeNguHanh.Thổ}), Kim (${tyLeNguHanh.Kim}), Thủy (${tyLeNguHanh.Thủy}), như bức tranh thiên nhiên, nơi mỗi yếu tố kể một câu chuyện.
+  const careers = {
+    Thủy: { vi: 'giao tiếp, truyền thông, du lịch, logistics', en: 'communication, media, travel, logistics' },
+    Mộc: { vi: 'giáo dục, thiết kế, nghệ thuật, sáng tạo', en: 'education, design, art, creativity' },
+    Hỏa: { vi: 'công nghệ, năng lượng, marketing, giải trí', en: 'technology, energy, marketing, entertainment' },
+    Thổ: { vi: 'bất động sản, nông nghiệp, xây dựng', en: 'real estate, agriculture, construction' },
+    Kim: { vi: 'tài chính, kỹ thuật, luật pháp', en: 'finance, engineering, law' }
+  };
 
-Thập Thần hé lộ khát vọng nội tâm: ${thapThanText} như những ngọn gió dẫn lối, khơi dậy tinh thần tự lập, trí tuệ, và trách nhiệm. Dụng Thần ${dungThan.map(h => h).join(' và ')}, ${lyDo.vi}
+  const items = {
+    Thủy: { vi: 'đá thạch anh xanh, ngọc bích', en: 'blue quartz, jade' },
+    Mộc: { vi: 'ngọc bích, gỗ thơm', en: 'jade, sandalwood' },
+    Hỏa: { vi: 'đá ruby, hồng ngọc', en: 'ruby, garnet' },
+    Thổ: { vi: 'đá thạch anh vàng, ngọc lam', en: 'yellow quartz, turquoise' },
+    Kim: { vi: 'trang sức bạc, đá thạch anh trắng', en: 'silver jewelry, white quartz' }
+  };
+
+  const directions = {
+    Thủy: { vi: 'Bắc', en: 'North' },
+    Mộc: { vi: 'Đông', en: 'East' },
+    Hỏa: { vi: 'Nam', en: 'South' },
+    Thổ: { vi: 'Trung tâm', en: 'Center' },
+    Kim: { vi: 'Tây', en: 'West' }
+  };
+
+  const response = {
+    vi: `Nhật Chủ ${canNgay}, thuộc hành ${menh}, ${menhDescriptions[menh].vi} Trong Tứ Trụ (${tuTru.gio}, ${tuTru.ngay}, ${tuTru.thang}, ${tuTru.nam}), mệnh bạn như ánh sáng lấp lánh, được đất trời nâng niu và thử thách. Ngũ hành hòa quyện: Mộc (${tyLeNguHanh.Mộc}), Hỏa (${tyLeNguHanh.Hỏa}), Thổ (${tyLeNguHanh.Thổ}), Kim (${tyLeNguHanh.Kim}), Thủy (${tyLeNguHanh.Thủy}), như bức tranh thiên nhiên, nơi mỗi yếu tố kể một câu chuyện.
+
+Thập Thần hé lộ khát vọng nội tâm: ${Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')} như những ngọn gió dẫn lối, khơi dậy tinh thần tự lập, trí tuệ, và trách nhiệm. Dụng Thần ${dungThan.map(h => h).join(' và ')}, ${lyDo.vi}
 
 Thần Sát như ánh trăng soi đường: ${thanSat.length ? thanSat.join(', ') : 'không có Thần Sát nổi bật'}. ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như quý nhân dẫn lối, mang may mắn trong sự nghiệp và gia đạo.' : ''} ${thanSat.includes('Đào Hoa') ? 'Đào Hoa như hoa nở bên suối, tăng sức hút trong tình duyên.' : ''} ${thanSat.includes('Nguyệt Đức') ? 'Nguyệt Đức như ánh trăng rằm, mang hòa hợp và phúc đức.' : ''} ${thanSat.includes('Thiên Đức') ? 'Thiên Đức như phúc đức che chở, bảo vệ gia đạo.' : ''} ${thanSat.includes('Hồng Loan') ? 'Hồng Loan như duyên phận rực rỡ, mang hạnh phúc trong tình yêu.' : ''}
 
 **Tình duyên**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Đào Hoa và Hồng Loan khiến bạn như hoa nở bên dòng suối, dễ thu hút ánh nhìn. ' : ''}${menh} cần ${dungThan.map(h => h).join(' và ')} để làm mềm nét cứng cỏi, mở lòng như dòng suối chảy, tình duyên sẽ nở hoa.
-**Sự nghiệp**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như ngọn gió nâng cánh tài năng, ' : ''}phù hợp với ${dungThan.map(h => careers[h]?.vi || h).join(' hoặc ')}. Tận dụng trí tuệ và sự kiên định để tỏa sáng.
+**Sự nghiệp**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như ngọn gió nâng cánh tài năng, ' : ''}phù hợp với ${dungThan.map(h => careers[h].vi).join(' hoặc ')}. Tận dụng trí tuệ và sự kiên định để tỏa sáng.
 **Con cái**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Nguyệt Đức và Thiên Đức như phúc đức che chở, con cái là niềm vui lớn, ' : ''}nuôi dưỡng sự sáng tạo (${dungThan.find(h => h === 'Mộc') || dungThan[0]}) để gắn kết.
 **Gia đạo**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Nguyệt Đức và Thiên Đức như ánh trăng rằm, mang hòa hợp và bình an.' : 'Gia đạo cần sự linh hoạt và sáng tạo để hòa hợp.'}
 
-Để cân bằng lá số, hãy dùng màu ${dungThan.map(h => colors[h]?.vi || h).join(' và ')}; đặt ${dungThan.map(h => items[h]?.vi || h).join(' hoặc ')} trong không gian sống; ưu tiên hướng ${dungThan.map(h => directions[h]?.vi || h).join(' hoặc ')}. Mệnh bạn, như ánh sáng giữa đất trời, sẽ tỏa rực rỡ khi được ${dungThan.map(h => h).join(' và ')} nâng niu. Cầu chúc bạn vận mệnh rạng ngời, tình duyên và sự nghiệp nở hoa!`,
-      en: `The Day Master ${canNgay}, of the ${elementsMap.en[menh] || 'unknown'} element, ${menhDescriptions[menh]?.en || 'unknown'}. Within the Four Pillars (${tuTru.gio || ''}, ${tuTru.ngay || ''}, ${tuTru.thang || ''}, ${tuTru.nam || ''}), your destiny shines, nurtured and tested by heaven and earth. The Five Elements blend: Wood (${tyLeNguHanh.Mộc}), Fire (${tyLeNguHanh.Hỏa}), Earth (${tyLeNguHanh.Thổ}), Metal (${tyLeNguHanh.Kim}), Water (${tyLeNguHanh.Thủy}), like a natural tapestry, each element telling a story.
+Để cân bằng lá số, hãy dùng màu ${dungThan.map(h => colors[h].vi).join(' và ')}; đặt ${dungThan.map(h => items[h].vi).join(' hoặc ')} trong không gian sống; ưu tiên hướng ${dungThan.map(h => directions[h].vi).join(' hoặc ')}. Mệnh bạn, như ánh sáng giữa đất trời, sẽ tỏa rực rỡ khi được ${dungThan.map(h => h).join(' và ')} nâng niu. Cầu chúc bạn vận mệnh rạng ngời, tình duyên và sự nghiệp nở hoa!`,
+    en: `The Day Master ${canNgay}, of the ${elementsMap.en[menh]} element, ${menhDescriptions[menh].en} Within the Four Pillars (${tuTru.gio}, ${tuTru.ngay}, ${tuTru.thang}, ${tuTru.nam}), your destiny shines, nurtured and tested by heaven and earth. The Five Elements blend: Wood (${tyLeNguHanh.Mộc}), Fire (${tyLeNguHanh.Hỏa}), Earth (${tyLeNguHanh.Thổ}), Metal (${tyLeNguHanh.Kim}), Water (${tyLeNguHanh.Thủy}), like a natural tapestry, each element telling a story.
 
-The Ten Gods reveal your inner aspirations: ${thapThanText}, like winds guiding your path, igniting independence, wisdom, and duty. The Useful Gods ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')}, ${lyDo.en}
+The Ten Gods reveal your inner aspirations: ${Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')}, like winds guiding your path, igniting independence, wisdom, and duty. The Useful Gods ${dungThan.map(h => elementsMap.en[h]).join(' and ')}, ${lyDo.en}
 
 The Auspicious Stars light your way: ${thanSat.length ? thanSat.join(', ') : 'no prominent Auspicious Stars'}. ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a guiding ally, brings luck in career and family.' : ''} ${thanSat.includes('Đào Hoa') ? 'Peach Blossom, like flowers by a stream, enhances romantic allure.' : ''} ${thanSat.includes('Nguyệt Đức') ? 'Moon Virtue, like a full moon, brings harmony and blessings.' : ''} ${thanSat.includes('Thiên Đức') ? 'Heavenly Virtue, like divine protection, safeguards your home.' : ''} ${thanSat.includes('Hồng Loan') ? 'Red Phoenix, like radiant fate, brings joy in love.' : ''}
 
-**Romance**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Peach Blossom and Red Phoenix make you like a flower by a stream, drawing admiring glances. ' : ''}${elementsMap.en[menh] || menh} needs ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')} to soften its edges, opening your heart like a flowing stream to let love bloom.
-**Career**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a breeze lifting your talents, ' : ''}suits ${dungThan.map(h => careers[h]?.en || h).join(' or ')}. Leverage your wisdom and resolve to shine.
-**Children**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like blessings, make children a great joy, ' : ''}nurture creativity (${elementsMap.en[dungThan.find(h => h === 'Mộc') || dungThan[0]] || dungThan[0]}) to bond.
+**Romance**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Peach Blossom and Red Phoenix make you like a flower by a stream, drawing admiring glances. ' : ''}${elementsMap.en[menh]} needs ${dungThan.map(h => elementsMap.en[h]).join(' and ')} to soften its edges, opening your heart like a flowing stream to let love bloom.
+**Career**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a breeze lifting your talents, ' : ''}suits ${dungThan.map(h => careers[h].en).join(' or ')}. Leverage your wisdom and resolve to shine.
+**Children**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like blessings, make children a great joy, ' : ''}nurture creativity (${elementsMap.en[dungThan.find(h => h === 'Mộc') || dungThan[0]]}) to bond.
 **Family**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like a full moon, bring harmony and peace.' : 'Family harmony requires flexibility and creativity.'}
 
-To balance your chart, use colors ${dungThan.map(h => colors[h]?.en || h).join(' and ')}; place ${dungThan.map(h => items[h]?.en || h).join(' or ')} in your living space; favor directions ${dungThan.map(h => directions[h]?.en || h).join(' or ')}. Your destiny, like a radiant light between heaven and earth, will shine brightly when nurtured by ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')}. May your path be luminous, with love and career in full bloom!`
-    };
+To balance your chart, use colors ${dungThan.map(h => colors[h].en).join(' and ')}; place ${dungThan.map(h => items[h].en).join(' or ')} in your living space; favor directions ${dungThan.map(h => directions[h].en).join(' or ')}. Your destiny, like a radiant light between heaven and earth, will shine brightly when nurtured by ${dungThan.map(h => elementsMap.en[h]).join(' and ')}. May your path be luminous, with love and career in full bloom!`
+  };
 
-    return response[locale];
-  } catch (e) {
-    console.error(`Error in generateResponse: ${e.message}, tuTru=${JSON.stringify(tuTru)}, dungThanResult=${JSON.stringify(dungThanResult)}`);
-    return locale === 'vi'
-      ? 'Đã xảy ra lỗi khi tạo câu trả lời, vui lòng kiểm tra dữ liệu Tứ Trụ.'
-      : 'An error occurred while generating the response, please check the Four Pillars data.';
-  }
+  return response[locale];
 }
 
 // API luận giải Bát Tự
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  try {
-    const { messages, tuTruInfo } = req.body;
-    console.log(`Received request: messages=${JSON.stringify(messages)}, tuTruInfo=${tuTruInfo}`);
+  const { messages, tuTruInfo, dungThan } = req.body;
 
-    // Lấy tin nhắn người dùng gần nhất
-    const lastUserMsg = messages?.slice().reverse().find(m => m.role === "user");
-    const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
-    console.log(`User input: ${userInput}`);
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY is not set');
+    return res.status(500).json({ error: "Cấu hình API không hợp lệ" });
+  }
 
-    // Phát hiện ngôn ngữ
-    const vietnameseKeywords = ["hãy", "ngày sinh", "xem bát tự", "luận bát tự", "lá số", "sức khỏe", "nghề", "công việc", "vận hạn", "tình duyên", "con cái", "gia đạo"];
-    const englishKeywords = ["please", "my birth date", "interpret", "bazi", "health", "career", "job", "fortune", "love", "children", "family"];
-    const vietnameseCount = vietnameseKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
-    const englishCount = englishKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
-    const language = vietnameseCount >= englishCount ? "vi" : "en";
-    console.log(`Detected language: ${language}`);
+  // Lấy tin nhắn người dùng gần nhất
+  const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
+  const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
 
-    // Parse Tứ Trụ
-    let tuTruParsed;
-    try {
-      tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
-    } catch (e) {
-      console.error(`Error parsing tuTruInfo: ${e.message}`);
-      return res.status(400).json({ 
-        error: language === "vi" 
-          ? "Dữ liệu Tứ Trụ không đúng định dạng JSON" 
-          : "Four Pillars data is not in valid JSON format" 
-      });
-    }
+  // Phát hiện ngôn ngữ
+  const vietnameseKeywords = ["hãy", "ngày sinh", "xem bát tự", "luận bát tự", "lá số", "sức khỏe", "nghề", "công việc", "vận hạn", "tình duyên", "con cái", "gia đạo"];
+  const englishKeywords = ["please", "my birth date", "interpret", "bazi", "health", "career", "job", "fortune", "love", "children", "family"];
+  const vietnameseCount = vietnameseKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
+  const englishCount = englishKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
+  const language = vietnameseCount >= englishCount ? "vi" : "en";
 
-    if (language === "en" && userInput.includes("my birth date is")) {
-      tuTruParsed = parseEnglishTuTru(userInput) || tuTruParsed;
-    }
+  // Parse Tứ Trụ
+  let tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
+  if (language === "en" && userInput.includes("my birth date is")) {
+    tuTruParsed = parseEnglishTuTru(userInput) || tuTruParsed;
+  }
 
-    if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
-      console.error(`Invalid Four Pillars data: ${JSON.stringify(tuTruParsed)}`);
-      return res.status(400).json({ 
-        error: language === "vi" 
-          ? "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" 
-          : "Please provide complete Four Pillars information (year, month, day, hour)" 
-      });
-    }
-
-    // Kiểm tra tính hợp lệ của Can Chi
-    const validStems = Object.keys(heavenlyStemsMap.vi);
-    const validBranches = Object.keys(earthlyBranchesMap.vi);
-    for (const tru of ['nam', 'thang', 'ngay', 'gio']) {
-      const [can, chi] = tuTruParsed[tru].split(' ');
-      if (!validStems.includes(can) || !validBranches.includes(chi)) {
-        console.error(`Invalid Can/Chi in ${tru}: ${tuTruParsed[tru]}`);
-        return res.status(400).json({
-          error: language === "vi"
-            ? `Dữ liệu Tứ Trụ không hợp lệ tại ${tru}: ${tuTruParsed[tru]}`
-            : `Invalid Four Pillars data at ${tru}: ${tuTruParsed[tru]}`
-        });
-      }
-    }
-
-    // Tính Dụng Thần
-    let dungThanResult;
-    try {
-      dungThanResult = tinhDungThan(tuTruParsed, language);
-      console.log(`DungThanResult: ${JSON.stringify(dungThanResult)}`);
-    } catch (e) {
-      console.error(`Error calculating Useful God: ${e.message}`);
-      return res.status(400).json({ 
-        error: language === "vi" 
-          ? e.message 
-          : "Unable to calculate Useful God due to invalid data" 
-      });
-    }
-
-    // Tạo câu trả lời chi tiết
-    const answer = generateResponse(tuTruParsed, dungThanResult, language);
-    console.log(`Generated answer: ${answer.substring(0, 100)}...`);
-    res.json({ answer });
-  } catch (e) {
-    console.error(`Error in /api/luan-giai-bazi: ${e.message}, request=${JSON.stringify(req.body)}`);
-    res.status(500).json({ 
-      error: req.body.language === "vi" 
-        ? "Đã xảy ra lỗi khi xử lý yêu cầu, vui lòng thử lại sau" 
-        : "An error occurred while processing the request, please try again later" 
+  if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
+    return res.status(400).json({ 
+      error: language === "vi" 
+        ? "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" 
+        : "Please provide complete Four Pillars information (year, month, day, hour)" 
     });
   }
+
+  // Tính Dụng Thần
+  let dungThanResult;
+  try {
+    dungThanResult = tinhDungThan(tuTruParsed, language);
+  } catch (e) {
+    console.error("Lỗi trong tinhDungThan:", e.message);
+    return res.status(400).json({ 
+      error: language === "vi" 
+        ? e.message 
+        : "Unable to calculate Useful God due to invalid data" 
+    });
+  }
+
+  // Tạo câu trả lời chi tiết
+  const answer = generateResponse(tuTruParsed, dungThanResult, language);
+
+  res.json({ answer });
 });
 
 // Xử lý lỗi toàn cục
 app.use((err, req, res, next) => {
-  console.error(`Server error: ${err.stack}, request=${JSON.stringify(req.body)}`);
+  console.error("Lỗi server:", err.stack);
   res.status(500).json({ 
     error: req.body.language === "vi" 
       ? "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau" 
@@ -621,4 +504,4 @@ const port = process.env.PORT || 5000;
 const server = app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-server.setTimeout(60000); // Giảm timeout để phù hợp với Render
+server.setTimeout(120000);
