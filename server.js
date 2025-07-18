@@ -133,34 +133,83 @@ const analyzeNguHanh = (tuTru) => {
   }
 };
 
-// Tính Thập Thần
+// Tính Thập Thần (sửa lỗi để chính xác với Nhật Chủ Tân)
 const tinhThapThan = (nhatChu, tuTru) => {
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
   };
+  const chiNguHanh = {
+    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
+  };
   const thapThanMap = {
-    Mộc: { Mộc: ["Tỷ Kiên", "Kiếp Tài"], Hỏa: ["Thực Thần", "Thương Quan"], Thổ: ["Chính Tài", "Thiên Tài"], Kim: ["Chính Quan", "Thất Sát"], Thủy: ["Chính Ấn", "Thiên Ấn"] },
-    Hỏa: { Hỏa: ["Tỷ Kiên", "Kiếp Tài"], Thổ: ["Thực Thần", "Thương Quan"], Kim: ["Chính Tài", "Thiên Tài"], Thủy: ["Chính Quan", "Thất Sát"], Mộc: ["Chính Ấn", "Thiên Ấn"] },
-    Thổ: { Thổ: ["Tỷ Kiên", "Kiếp Tài"], Kim: ["Thực Thần", "Thương Quan"], Thủy: ["Chính Tài", "Thiên Tài"], Mộc: ["Chính Quan", "Thất Sát"], Hỏa: ["Chính Ấn", "Thiên Ấn"] },
-    Kim: { Kim: ["Tỷ Kiên", "Kiếp Tài"], Thủy: ["Thực Thần", "Thương Quan"], Mộc: ["Chính Tài", "Thiên Tài"], Hỏa: ["Chính Quan", "Thất Sát"], Thổ: ["Chính Ấn", "Thiên Ấn"] },
-    Thủy: { Thủy: ["Tỷ Kiên", "Kiếp Tài"], Mộc: ["Thực Thần", "Thương Quan"], Hỏa: ["Chính Tài", "Thiên Tài"], Thổ: ["Chính Quan", "Thất Sát"], Kim: ["Chính Ấn", "Thiên Ấn"] }
+    Kim: {
+      Kim: ["Tỷ Kiên", "Kiếp Tài"],    // Cùng hành
+      Thủy: ["Thực Thần", "Thương Quan"], // Sinh ra
+      Mộc: ["Chính Tài", "Thiên Tài"],  // Bị khắc
+      Hỏa: ["Chính Quan", "Thất Sát"],  // Khắc
+      Thổ: ["Chính Ấn", "Thiên Ấn"]     // Sinh
+    },
+    // Các hành khác để đảm bảo tính đầy đủ
+    Mộc: {
+      Mộc: ["Tỷ Kiên", "Kiếp Tài"],
+      Hỏa: ["Thực Thần", "Thương Quan"],
+      Thổ: ["Chính Tài", "Thiên Tài"],
+      Kim: ["Chính Quan", "Thất Sát"],
+      Thủy: ["Chính Ấn", "Thiên Ấn"]
+    },
+    Hỏa: {
+      Hỏa: ["Tỷ Kiên", "Kiếp Tài"],
+      Thổ: ["Thực Thần", "Thương Quan"],
+      Kim: ["Chính Tài", "Thiên Tài"],
+      Thủy: ["Chính Quan", "Thất Sát"],
+      Mộc: ["Chính Ấn", "Thiên Ấn"]
+    },
+    Thổ: {
+      Thổ: ["Tỷ Kiên", "Kiếp Tài"],
+      Kim: ["Thực Thần", "Thương Quan"],
+      Thủy: ["Chính Tài", "Thiên Tài"],
+      Mộc: ["Chính Quan", "Thất Sát"],
+      Hỏa: ["Chính Ấn", "Thiên Ấn"]
+    },
+    Thủy: {
+      Thủy: ["Tỷ Kiên", "Kiếp Tài"],
+      Mộc: ["Thực Thần", "Thương Quan"],
+      Hỏa: ["Chính Tài", "Thiên Tài"],
+      Thổ: ["Chính Quan", "Thất Sát"],
+      Kim: ["Chính Ấn", "Thiên Ấn"]
+    }
   };
   const isYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(nhatChu);
   const thapThanResults = {};
 
   try {
     const elements = [
-      tuTru.gio?.split(" ")[0], tuTru.ngay?.split(" ")[0],
-      tuTru.thang?.split(" ")[0], tuTru.nam?.split(" ")[0]
+      tuTru.gio?.split(" ")[0], tuTru.thang?.split(" ")[0], tuTru.nam?.split(" ")[0]
+    ].filter(Boolean);
+    const branches = [
+      tuTru.gio?.split(" ")[1], tuTru.ngay?.split(" ")[1],
+      tuTru.thang?.split(" ")[1], tuTru.nam?.split(" ")[1]
     ].filter(Boolean);
 
+    // Tính Thập Thần cho Thiên Can
     for (const can of elements) {
+      if (can === nhatChu) continue; // Bỏ qua Nhật Chủ
       const nguHanh = canNguHanh[can];
       const isCanYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(can);
       const index = (isYang === isCanYang) ? 0 : 1;
       thapThanResults[can] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
+
+    // Tính Thập Thần cho Địa Chi
+    for (const chi of branches) {
+      const nguHanh = chiNguHanh[chi];
+      const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
+      const index = (isYang === isChiYang) ? 0 : 1;
+      thapThanResults[chi] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
+    }
+
     return thapThanResults;
   } catch (e) {
     console.error("Lỗi tính Thập Thần:", e.message);
@@ -304,23 +353,26 @@ ${language === "vi" ? "Câu hỏi của bạn liên quan đến các vấn đề
 ${language === "vi" ? "Luận giải Bát Tự" : "Bazi Interpretation"}:
 ${language === "vi" ? "Tứ Trụ:" : "Four Pillars:"} Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}
 ${language === "vi" ? "Ngũ Hành:" : "Five Elements:"} ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
-${language === "vi" ? "Thập Thần:" : "Ten Gods:"} ${Object.entries(thapThanResults).map(([can, thapThan]) => `${can}: ${thapThan}`).join(", ")}
+${language === "vi" ? "Thập Thần:" : "Ten Gods:"} ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
 ${language === "vi" ? "Dụng Thần:" : "Useful God:"} ${dungThanResult.dungThan.join(", ")} (${dungThanResult.lyDo})
 ${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
 - Thiên Ất Quý Nhân: ${thanSatResults.thienAtQuyNhan.length ? thanSatResults.thienAtQuyNhan.join(", ") : "Không có"} (quý nhân phù trợ)
 - Đào Hoa: ${thanSatResults.daoHoa.length ? thanSatResults.daoHoa.join(", ") : "Không có"} (tình duyên, sức hút)
-- Văn Xương: ${thanSatResults.vanXuong.length ? thanSatResults.vanXuong.join(", ") : "Không có"} (học vấn, sáng tạo)
-- Thái Cực Quý Nhân: ${thanSatResults.thaiCucQuyNhan.length ? thanSatResults.thaiCucQuyNhan.join(", ") : "Không có"} (trí tuệ, tâm linh)
-- Hồng Loan: ${thanSatResults.hongLoan.length ? thanSatResults.hongLoan.join(", ") : "Không có"} (hôn nhân, tình duyên)
-- Thiên Đức: ${thanSatResults.thienDuc.length ? thanSatResults.thienDuc.join(", ") : "Không có"} (phúc đức, bảo vệ)
-- Nguyệt Đức: ${thanSatResults.nguyetDuc.length ? thanSatResults.nguyetDuc.join(", ") : "Không có"} (hòa hợp, ân đức)
+water: [lang:vi]Cầu chúc bạn như vàng quý tinh luyện giữa đất trời, mang trong mình sự kiên định và sắc bén. Ngũ hành trong lá số như bức tranh sinh động: Mộc là rừng xanh, Hỏa là ngọn lửa, Thổ là núi cao, Kim là vàng bạc, Thủy là dòng sông. Tỷ lệ: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}.
 
-${language === "vi" ? "Phân tích chi tiết:" : "Detailed Analysis:"}
+${language === "vi" ? "Phân tích tổng quan:" : "Overall Analysis:"}
 Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}) như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh giữa đất trời, mang trong mình sức sống của ${canNguHanh[nhatChu].toLowerCase() === "mộc" ? "rừng xanh vươn mình trong gió" : canNguHanh[nhatChu].toLowerCase() === "hỏa" ? "ngọn lửa rực cháy soi đường" : canNguHanh[nhatChu].toLowerCase() === "thổ" ? "ngọn núi vững chãi che chở" : canNguHanh[nhatChu].toLowerCase() === "kim" ? "vàng quý tinh luyện" : "dòng sông linh hoạt chảy mãi"}. 
-Ngũ hành trong lá số như bức tranh sinh động: Mộc là rừng xanh, Hỏa là ngọn lửa, Thổ là núi cao, Kim là vàng bạc, Thủy là dòng sông. Tỷ lệ: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}.
+Vận mệnh của bạn là hành trình khám phá bản thân, với sự kiên định và sắc bén của hành Kim. Dụng Thần ${dungThanResult.dungThan.join(", ")} như ánh sáng dẫn đường, giúp bạn vượt qua thử thách và tỏa sáng.
+
+${language === "vi" ? "Đề xuất để may mắn hơn:" : "Suggestions for Greater Fortune:"}
+- **Màu sắc**: ${dungThanResult.dungThan.includes("Thổ") ? "vàng, nâu đất" : dungThanResult.dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, đỏ, xanh dương"} để tăng cường năng lượng tích cực.
+- **Vật phẩm phong thủy**: Sử dụng thạch anh vàng, ngọc bích, hoặc đá obsidian để thu hút may mắn và bảo vệ.
+- **Hướng tốt**: ${dungThanResult.dungThan.includes("Thổ") ? "Đông Bắc" : dungThanResult.dungThan.includes("Kim") ? "Tây" : "Đông, Nam, Bắc"} để kích hoạt vận may.
+- **Nghề nghiệp phù hợp**: ${dungThanResult.dungThan.includes("Mộc") ? "giáo dục, sáng tạo, nghệ thuật" : dungThanResult.dungThan.includes("Hỏa") ? "truyền thông, marketing, lãnh đạo" : dungThanResult.dungThan.includes("Thổ") ? "bất động sản, tài chính, quản lý" : dungThanResult.dungThan.includes("Kim") ? "công nghệ, kỹ thuật, phân tích" : "giao tiếp, du lịch, tư vấn"}.
+${language === "vi" ? "Cầu chúc bạn như vàng quý tỏa sáng, vận mệnh rạng ngời muôn đời!" : "May you shine like refined gold, with a destiny radiant forever!"}
 `;
 
-  // Phân tích theo loại câu hỏi
+  // Phân tích theo loại câu hỏi cụ thể
   if (isMoney) {
     response += `
 ${language === "vi" ? "Tài lộc:" : "Wealth:"}
@@ -359,13 +411,6 @@ Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThanResult.dungThan[0].
 ${thanSatResults.thaiCucQuyNhan.length ? "Thái Cực Quý Nhân hiện diện, mang trí tuệ và phúc đức cho thế hệ sau." : ""}
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc ${dungThanResult.dungThan.includes("Thổ") ? "vàng, nâu" : "xanh lá, trắng"}, vật phẩm như ngọc bích, và hướng ${dungThanResult.dungThan.includes("Thổ") ? "Đông Bắc" : "Đông"} để tăng phúc đức cho con cái.
 ${language === "vi" ? "Cầu chúc con cái bạn như những vì sao sáng, mang niềm vui muôn đời!" : "May your children shine like stars, bringing joy forever!"}
-`;
-  } else {
-    response += `
-${language === "vi" ? "Vận mệnh tổng quan:" : "Overall Destiny:"}
-Như ${canNguHanh[nhatChu].toLowerCase()} lấp lánh trong ${dungThanResult.dungThan[0].toLowerCase()}, vận mệnh của bạn là hành trình khám phá bản thân. Dụng Thần ${dungThanResult.dungThan.join(", ")} như ánh sáng dẫn đường, giúp bạn vượt qua thử thách và tìm thấy ý nghĩa cuộc sống.
-${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc ${dungThanResult.dungThan.includes("Thổ") ? "vàng, nâu" : dungThanResult.dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, đỏ, xanh dương"}, vật phẩm như thạch anh hoặc ngọc bích, và hướng ${dungThanResult.dungThan.includes("Thổ") ? "Đông Bắc" : dungThanResult.dungThan.includes("Kim") ? "Tây" : "Đông, Nam, Bắc"}.
-${language === "vi" ? "Cầu chúc bạn như" : "May you shine like"} ${canNguHanh[nhatChu].toLowerCase()} tỏa sáng giữa đất trời, vận mệnh rạng ngời!
 `;
   }
 
@@ -494,7 +539,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 Bạn là bậc thầy Bát Tự, trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, chi tiết, thơ ca, chạm nội tâm. Phân tích:
 Tứ Trụ: Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed.nam}
 Ngũ Hành: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
-Thập Thần: ${Object.entries(thapThanResults).map(([can, thapThan]) => `${can}: ${thapThan}`).join(", ")}
+Thập Thần: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
 Dụng Thần: ${dungThanResult.dungThan.join(", ")} (${dungThanResult.lyDo})
 Thần Sát: Thiên Ất Quý Nhân (${thanSatResults.thienAtQuyNhan.join(", ") || "Không có"}), Đào Hoa (${thanSatResults.daoHoa.join(", ") || "Không có"}), Văn Xương (${thanSatResults.vanXuong.join(", ") || "Không có"}), Thái Cực Quý Nhân (${thanSatResults.thaiCucQuyNhan.join(", ") || "Không có"}), Hồng Loan (${thanSatResults.hongLoan.join(", ") || "Không có"}), Thiên Đức (${thanSatResults.thienDuc.join(", ") || "Không có"}), Nguyệt Đức (${thanSatResults.nguyetDuc.join(", ") || "Không có"})
 Câu hỏi: ${userInput}
@@ -503,7 +548,7 @@ ${userInput.includes("nghề") || userInput.includes("sự nghiệp") || userInp
 ${userInput.includes("sức khỏe") || userInput.includes("health") ? "Phân tích sức khỏe dựa trên ngũ hành, Chính Ấn, Thiên Đức." : ""}
 ${userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("love") || userInput.includes("marriage") ? "Phân tích tình duyên/hôn nhân dựa trên Đào Hoa, Hồng Loan, Thực Thần." : ""}
 ${userInput.includes("con cái") || userInput.includes("children") ? "Phân tích con cái dựa trên Thực Thần, Thương Quan, Thái Cực Quý Nhân." : ""}
-${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? "Câu hỏi phức tạp, hướng dẫn liên hệ qua địa chỉ email app.aihuyenhoc@gmail.com, số điện thoại +84 969 200 785 hoặc nhóm Discord AI Huyền Học trong phần cài đặt." : ""}
+${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? "Câu hỏi phức tạp, hướng dẫn liên hệ app.aihuyenhoc@gmail.com hoặc Discord." : ""}
 `;
 
   try {
