@@ -335,7 +335,7 @@ function tinhThapThan(tuTru) {
     return thapThan;
   } catch (e) {
     console.error(`Error in tinhThapThan: ${e.message}`);
-    throw new Error("Không thể tính Thập Thần do dữ liệu Tứ Trụ không hợp lệ");
+    return {};
   }
 }
 
@@ -413,7 +413,7 @@ function generateResponse(tuTru, dungThanResult, locale = 'vi') {
     const thanSat = tinhThanSat(tuTru);
     const thapThan = tinhThapThan(tuTru);
     const [canNgay] = tuTru.ngay.split(' ');
-    const menh = nguHanhMap[canNgay];
+    const menh = nguHanhMap[canNgay] || 'Không xác định';
 
     const menhDescriptions = {
       Mộc: {
@@ -470,36 +470,48 @@ function generateResponse(tuTru, dungThanResult, locale = 'vi') {
       Kim: { vi: 'Tây', en: 'West' }
     };
 
-    const response = {
-      vi: `Nhật Chủ ${canNgay}, thuộc hành ${menh}, ${menhDescriptions[menh].vi} Trong Tứ Trụ (${tuTru.gio}, ${tuTru.ngay}, ${tuTru.thang}, ${tuTru.nam}), mệnh bạn như ánh sáng lấp lánh, được đất trời nâng niu và thử thách. Ngũ hành hòa quyện: Mộc (${tyLeNguHanh.Mộc}), Hỏa (${tyLeNguHanh.Hỏa}), Thổ (${tyLeNguHanh.Thổ}), Kim (${tyLeNguHanh.Kim}), Thủy (${tyLeNguHanh.Thủy}), như bức tranh thiên nhiên, nơi mỗi yếu tố kể một câu chuyện.
+    // Kiểm tra dữ liệu đầu vào
+    if (!dungThan || !dungThan.length || !menh || menh === 'Không xác định') {
+      console.error(`Invalid data in generateResponse: dungThan=${JSON.stringify(dungThan)}, menh=${menh}`);
+      return locale === 'vi'
+        ? 'Dữ liệu Tứ Trụ không hợp lệ, không thể luận giải. Vui lòng kiểm tra lại thông tin.'
+        : 'Invalid Four Pillars data, unable to generate interpretation. Please check the input.';
+    }
 
-Thập Thần hé lộ khát vọng nội tâm: ${Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')} như những ngọn gió dẫn lối, khơi dậy tinh thần tự lập, trí tuệ, và trách nhiệm. Dụng Thần ${dungThan.map(h => h).join(' và ')}, ${lyDo.vi}
+    const thapThanText = Object.keys(thapThan).length
+      ? Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')
+      : 'không xác định';
+
+    const response = {
+      vi: `Nhật Chủ ${canNgay}, thuộc hành ${menh}, ${menhDescriptions[menh]?.vi || 'không xác định'}. Trong Tứ Trụ (${tuTru.gio || ''}, ${tuTru.ngay || ''}, ${tuTru.thang || ''}, ${tuTru.nam || ''}), mệnh bạn như ánh sáng lấp lánh, được đất trời nâng niu và thử thách. Ngũ hành hòa quyện: Mộc (${tyLeNguHanh.Mộc}), Hỏa (${tyLeNguHanh.Hỏa}), Thổ (${tyLeNguHanh.Thổ}), Kim (${tyLeNguHanh.Kim}), Thủy (${tyLeNguHanh.Thủy}), như bức tranh thiên nhiên, nơi mỗi yếu tố kể một câu chuyện.
+
+Thập Thần hé lộ khát vọng nội tâm: ${thapThanText} như những ngọn gió dẫn lối, khơi dậy tinh thần tự lập, trí tuệ, và trách nhiệm. Dụng Thần ${dungThan.map(h => h).join(' và ')}, ${lyDo.vi}
 
 Thần Sát như ánh trăng soi đường: ${thanSat.length ? thanSat.join(', ') : 'không có Thần Sát nổi bật'}. ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như quý nhân dẫn lối, mang may mắn trong sự nghiệp và gia đạo.' : ''} ${thanSat.includes('Đào Hoa') ? 'Đào Hoa như hoa nở bên suối, tăng sức hút trong tình duyên.' : ''} ${thanSat.includes('Nguyệt Đức') ? 'Nguyệt Đức như ánh trăng rằm, mang hòa hợp và phúc đức.' : ''} ${thanSat.includes('Thiên Đức') ? 'Thiên Đức như phúc đức che chở, bảo vệ gia đạo.' : ''} ${thanSat.includes('Hồng Loan') ? 'Hồng Loan như duyên phận rực rỡ, mang hạnh phúc trong tình yêu.' : ''}
 
 **Tình duyên**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Đào Hoa và Hồng Loan khiến bạn như hoa nở bên dòng suối, dễ thu hút ánh nhìn. ' : ''}${menh} cần ${dungThan.map(h => h).join(' và ')} để làm mềm nét cứng cỏi, mở lòng như dòng suối chảy, tình duyên sẽ nở hoa.
-**Sự nghiệp**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như ngọn gió nâng cánh tài năng, ' : ''}phù hợp với ${dungThan.map(h => careers[h].vi).join(' hoặc ')}. Tận dụng trí tuệ và sự kiên định để tỏa sáng.
+**Sự nghiệp**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Thiên Ất Quý Nhân như ngọn gió nâng cánh tài năng, ' : ''}phù hợp với ${dungThan.map(h => careers[h]?.vi || h).join(' hoặc ')}. Tận dụng trí tuệ và sự kiên định để tỏa sáng.
 **Con cái**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Nguyệt Đức và Thiên Đức như phúc đức che chở, con cái là niềm vui lớn, ' : ''}nuôi dưỡng sự sáng tạo (${dungThan.find(h => h === 'Mộc') || dungThan[0]}) để gắn kết.
 **Gia đạo**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Nguyệt Đức và Thiên Đức như ánh trăng rằm, mang hòa hợp và bình an.' : 'Gia đạo cần sự linh hoạt và sáng tạo để hòa hợp.'}
 
-Để cân bằng lá số, hãy dùng màu ${dungThan.map(h => colors[h].vi).join(' và ')}; đặt ${dungThan.map(h => items[h].vi).join(' hoặc ')} trong không gian sống; ưu tiên hướng ${dungThan.map(h => directions[h].vi).join(' hoặc ')}. Mệnh bạn, như ánh sáng giữa đất trời, sẽ tỏa rực rỡ khi được ${dungThan.map(h => h).join(' và ')} nâng niu. Cầu chúc bạn vận mệnh rạng ngời, tình duyên và sự nghiệp nở hoa!`,
-      en: `The Day Master ${canNgay}, of the ${elementsMap.en[menh]} element, ${menhDescriptions[menh].en} Within the Four Pillars (${tuTru.gio}, ${tuTru.ngay}, ${tuTru.thang}, ${tuTru.nam}), your destiny shines, nurtured and tested by heaven and earth. The Five Elements blend: Wood (${tyLeNguHanh.Mộc}), Fire (${tyLeNguHanh.Hỏa}), Earth (${tyLeNguHanh.Thổ}), Metal (${tyLeNguHanh.Kim}), Water (${tyLeNguHanh.Thủy}), like a natural tapestry, each element telling a story.
+Để cân bằng lá số, hãy dùng màu ${dungThan.map(h => colors[h]?.vi || h).join(' và ')}; đặt ${dungThan.map(h => items[h]?.vi || h).join(' hoặc ')} trong không gian sống; ưu tiên hướng ${dungThan.map(h => directions[h]?.vi || h).join(' hoặc ')}. Mệnh bạn, như ánh sáng giữa đất trời, sẽ tỏa rực rỡ khi được ${dungThan.map(h => h).join(' và ')} nâng niu. Cầu chúc bạn vận mệnh rạng ngời, tình duyên và sự nghiệp nở hoa!`,
+      en: `The Day Master ${canNgay}, of the ${elementsMap.en[menh] || 'unknown'} element, ${menhDescriptions[menh]?.en || 'unknown'}. Within the Four Pillars (${tuTru.gio || ''}, ${tuTru.ngay || ''}, ${tuTru.thang || ''}, ${tuTru.nam || ''}), your destiny shines, nurtured and tested by heaven and earth. The Five Elements blend: Wood (${tyLeNguHanh.Mộc}), Fire (${tyLeNguHanh.Hỏa}), Earth (${tyLeNguHanh.Thổ}), Metal (${tyLeNguHanh.Kim}), Water (${tyLeNguHanh.Thủy}), like a natural tapestry, each element telling a story.
 
-The Ten Gods reveal your inner aspirations: ${Object.entries(thapThan).map(([can, than]) => `${can} (${than})`).join(', ')}, like winds guiding your path, igniting independence, wisdom, and duty. The Useful Gods ${dungThan.map(h => elementsMap.en[h]).join(' and ')}, ${lyDo.en}
+The Ten Gods reveal your inner aspirations: ${thapThanText}, like winds guiding your path, igniting independence, wisdom, and duty. The Useful Gods ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')}, ${lyDo.en}
 
 The Auspicious Stars light your way: ${thanSat.length ? thanSat.join(', ') : 'no prominent Auspicious Stars'}. ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a guiding ally, brings luck in career and family.' : ''} ${thanSat.includes('Đào Hoa') ? 'Peach Blossom, like flowers by a stream, enhances romantic allure.' : ''} ${thanSat.includes('Nguyệt Đức') ? 'Moon Virtue, like a full moon, brings harmony and blessings.' : ''} ${thanSat.includes('Thiên Đức') ? 'Heavenly Virtue, like divine protection, safeguards your home.' : ''} ${thanSat.includes('Hồng Loan') ? 'Red Phoenix, like radiant fate, brings joy in love.' : ''}
 
-**Romance**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Peach Blossom and Red Phoenix make you like a flower by a stream, drawing admiring glances. ' : ''}${elementsMap.en[menh]} needs ${dungThan.map(h => elementsMap.en[h]).join(' and ')} to soften its edges, opening your heart like a flowing stream to let love bloom.
-**Career**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a breeze lifting your talents, ' : ''}suits ${dungThan.map(h => careers[h].en).join(' or ')}. Leverage your wisdom and resolve to shine.
-**Children**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like blessings, make children a great joy, ' : ''}nurture creativity (${elementsMap.en[dungThan.find(h => h === 'Mộc') || dungThan[0]]}) to bond.
+**Romance**: ${thanSat.includes('Đào Hoa') || thanSat.includes('Hồng Loan') ? 'Peach Blossom and Red Phoenix make you like a flower by a stream, drawing admiring glances. ' : ''}${elementsMap.en[menh] || menh} needs ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')} to soften its edges, opening your heart like a flowing stream to let love bloom.
+**Career**: ${thanSat.includes('Thiên Ất Quý Nhân') ? 'Nobleman Star, like a breeze lifting your talents, ' : ''}suits ${dungThan.map(h => careers[h]?.en || h).join(' or ')}. Leverage your wisdom and resolve to shine.
+**Children**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like blessings, make children a great joy, ' : ''}nurture creativity (${elementsMap.en[dungThan.find(h => h === 'Mộc') || dungThan[0]] || dungThan[0]}) to bond.
 **Family**: ${thanSat.includes('Nguyệt Đức') || thanSat.includes('Thiên Đức') ? 'Moon Virtue and Heavenly Virtue, like a full moon, bring harmony and peace.' : 'Family harmony requires flexibility and creativity.'}
 
-To balance your chart, use colors ${dungThan.map(h => colors[h].en).join(' and ')}; place ${dungThan.map(h => items[h].en).join(' or ')} in your living space; favor directions ${dungThan.map(h => directions[h].en).join(' or ')}. Your destiny, like a radiant light between heaven and earth, will shine brightly when nurtured by ${dungThan.map(h => elementsMap.en[h]).join(' and ')}. May your path be luminous, with love and career in full bloom!`
+To balance your chart, use colors ${dungThan.map(h => colors[h]?.en || h).join(' and ')}; place ${dungThan.map(h => items[h]?.en || h).join(' or ')} in your living space; favor directions ${dungThan.map(h => directions[h]?.en || h).join(' or ')}. Your destiny, like a radiant light between heaven and earth, will shine brightly when nurtured by ${dungThan.map(h => elementsMap.en[h] || h).join(' and ')}. May your path be luminous, with love and career in full bloom!`
     };
 
     return response[locale];
   } catch (e) {
-    console.error(`Error in generateResponse: ${e.message}`);
+    console.error(`Error in generateResponse: ${e.message}, tuTru=${JSON.stringify(tuTru)}, dungThanResult=${JSON.stringify(dungThanResult)}`);
     return locale === 'vi'
       ? 'Đã xảy ra lỗi khi tạo câu trả lời, vui lòng kiểm tra dữ liệu Tứ Trụ.'
       : 'An error occurred while generating the response, please check the Four Pillars data.';
@@ -510,10 +522,12 @@ To balance your chart, use colors ${dungThan.map(h => colors[h].en).join(' and '
 app.post("/api/luan-giai-bazi", async (req, res) => {
   try {
     const { messages, tuTruInfo } = req.body;
+    console.log(`Received request: messages=${JSON.stringify(messages)}, tuTruInfo=${tuTruInfo}`);
 
     // Lấy tin nhắn người dùng gần nhất
     const lastUserMsg = messages?.slice().reverse().find(m => m.role === "user");
     const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
+    console.log(`User input: ${userInput}`);
 
     // Phát hiện ngôn ngữ
     const vietnameseKeywords = ["hãy", "ngày sinh", "xem bát tự", "luận bát tự", "lá số", "sức khỏe", "nghề", "công việc", "vận hạn", "tình duyên", "con cái", "gia đạo"];
@@ -521,15 +535,27 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     const vietnameseCount = vietnameseKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
     const englishCount = englishKeywords.reduce((count, kw) => count + (userInput.includes(kw) ? 1 : 0), 0);
     const language = vietnameseCount >= englishCount ? "vi" : "en";
+    console.log(`Detected language: ${language}`);
 
     // Parse Tứ Trụ
-    let tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
+    let tuTruParsed;
+    try {
+      tuTruParsed = tuTruInfo ? JSON.parse(tuTruInfo) : null;
+    } catch (e) {
+      console.error(`Error parsing tuTruInfo: ${e.message}`);
+      return res.status(400).json({ 
+        error: language === "vi" 
+          ? "Dữ liệu Tứ Trụ không đúng định dạng JSON" 
+          : "Four Pillars data is not in valid JSON format" 
+      });
+    }
+
     if (language === "en" && userInput.includes("my birth date is")) {
       tuTruParsed = parseEnglishTuTru(userInput) || tuTruParsed;
     }
 
     if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
-      console.error("Invalid Four Pillars data");
+      console.error(`Invalid Four Pillars data: ${JSON.stringify(tuTruParsed)}`);
       return res.status(400).json({ 
         error: language === "vi" 
           ? "Vui lòng cung cấp đầy đủ thông tin Tứ Trụ (năm, tháng, ngày, giờ)" 
@@ -537,10 +563,26 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
       });
     }
 
+    // Kiểm tra tính hợp lệ của Can Chi
+    const validStems = Object.keys(heavenlyStemsMap.vi);
+    const validBranches = Object.keys(earthlyBranchesMap.vi);
+    for (const tru of ['nam', 'thang', 'ngay', 'gio']) {
+      const [can, chi] = tuTruParsed[tru].split(' ');
+      if (!validStems.includes(can) || !validBranches.includes(chi)) {
+        console.error(`Invalid Can/Chi in ${tru}: ${tuTruParsed[tru]}`);
+        return res.status(400).json({
+          error: language === "vi"
+            ? `Dữ liệu Tứ Trụ không hợp lệ tại ${tru}: ${tuTruParsed[tru]}`
+            : `Invalid Four Pillars data at ${tru}: ${tuTruParsed[tru]}`
+        });
+      }
+    }
+
     // Tính Dụng Thần
     let dungThanResult;
     try {
       dungThanResult = tinhDungThan(tuTruParsed, language);
+      console.log(`DungThanResult: ${JSON.stringify(dungThanResult)}`);
     } catch (e) {
       console.error(`Error calculating Useful God: ${e.message}`);
       return res.status(400).json({ 
@@ -552,9 +594,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
     // Tạo câu trả lời chi tiết
     const answer = generateResponse(tuTruParsed, dungThanResult, language);
+    console.log(`Generated answer: ${answer.substring(0, 100)}...`);
     res.json({ answer });
   } catch (e) {
-    console.error(`Error in /api/luan-giai-bazi: ${e.message}`);
+    console.error(`Error in /api/luan-giai-bazi: ${e.message}, request=${JSON.stringify(req.body)}`);
     res.status(500).json({ 
       error: req.body.language === "vi" 
         ? "Đã xảy ra lỗi khi xử lý yêu cầu, vui lòng thử lại sau" 
@@ -565,7 +608,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
 // Xử lý lỗi toàn cục
 app.use((err, req, res, next) => {
-  console.error(`Server error: ${err.stack}`);
+  console.error(`Server error: ${err.stack}, request=${JSON.stringify(req.body)}`);
   res.status(500).json({ 
     error: req.body.language === "vi" 
       ? "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau" 
