@@ -503,7 +503,7 @@ ${userInput.includes("nghề") || userInput.includes("sự nghiệp") || userInp
 ${userInput.includes("sức khỏe") || userInput.includes("health") ? "Phân tích sức khỏe dựa trên ngũ hành, Chính Ấn, Thiên Đức." : ""}
 ${userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("love") || userInput.includes("marriage") ? "Phân tích tình duyên/hôn nhân dựa trên Đào Hoa, Hồng Loan, Thực Thần." : ""}
 ${userInput.includes("con cái") || userInput.includes("children") ? "Phân tích con cái dựa trên Thực Thần, Thương Quan, Thái Cực Quý Nhân." : ""}
-${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? "Câu hỏi phức tạp, hướng dẫn liên hệ app.aihuyenhoc@gmail.com hoặc Discord." : ""}
+${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? "Câu hỏi phức tạp, hướng dẫn liên hệ qua địa chỉ email app.aihuyenhoc@gmail.com, số điện thoại +84 969 200 785 hoặc nhóm Discord AI Huyền Học trong phần cài đặt." : ""}
 `;
 
   try {
