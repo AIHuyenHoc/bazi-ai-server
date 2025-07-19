@@ -1,5 +1,4 @@
 const express = require("express");
-const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
 
@@ -91,6 +90,7 @@ const getCanChiForYear = (year) => {
 
 // Analyze Ngũ Hành distribution
 const analyzeNguHanh = (tuTru) => {
+  const startTime = Date.now();
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -132,6 +132,8 @@ const analyzeNguHanh = (tuTru) => {
 
     const total = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
     if (total === 0) throw new Error("Không tìm thấy ngũ hành hợp lệ");
+    
+    console.log(`Ngũ Hành Analysis Time: ${Date.now() - startTime}ms`);
     return nguHanhCount;
   } catch (e) {
     console.error("Lỗi phân tích ngũ hành:", e.message);
@@ -141,6 +143,7 @@ const analyzeNguHanh = (tuTru) => {
 
 // Calculate Thập Thần
 const tinhThapThan = (nhatChu, tuTru) => {
+  const startTime = Date.now();
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
@@ -213,6 +216,7 @@ const tinhThapThan = (nhatChu, tuTru) => {
       thapThanResults[chi] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
 
+    console.log(`Thập Thần Calculation Time: ${Date.now() - startTime}ms`);
     return thapThanResults;
   } catch (e) {
     console.error("Lỗi tính Thập Thần:", e.message);
@@ -222,6 +226,7 @@ const tinhThapThan = (nhatChu, tuTru) => {
 
 // Calculate Thần Sát
 const tinhThanSat = (tuTru) => {
+  const startTime = Date.now();
   const thienAtQuyNhan = {
     Giáp: ["Sửu", "Mùi"], Ất: ["Tý", "Hợi"], Bính: ["Dần", "Mão"], Đinh: ["Sửu", "Hợi"],
     Mậu: ["Tỵ", "Ngọ"], Kỷ: ["Thìn", "Tuất"], Canh: ["Thân", "Dậu"], Tân: ["Thân", "Dậu"],
@@ -260,7 +265,7 @@ const tinhThanSat = (tuTru) => {
 
   if (!nhatChu || !branches.length) throw new Error("Invalid nhatChu or branches");
 
-  return {
+  const result = {
     thienAtQuyNhan: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
     daoHoa: branches.includes(daoHoa[tuTru.ngay?.split(" ")[1]]) ? [daoHoa[tuTru.ngay?.split(" ")[1]]] : [],
     vanXuong: vanXuong[nhatChu]?.filter(chi => branches.includes(chi)) || [],
@@ -269,10 +274,14 @@ const tinhThanSat = (tuTru) => {
     thienDuc: thienDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
     nguyetDuc: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || []
   };
+
+  console.log(`Thần Sát Calculation Time: ${Date.now() - startTime}ms`);
+  return result;
 };
 
 // Calculate Dụng Thần
 const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
+  const startTime = Date.now();
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
@@ -321,11 +330,13 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
     lyDo = `Vì ${cachCuc}, cần hỗ trợ bằng hành sinh Nhật Chủ (${tuongSinh[nhatChuNguHanh]}) và hành sinh hành khắc Nhật Chủ (${tuongSinh[tuongKhac[nhatChuNguHanh]]}).`;
   }
 
+  console.log(`Dụng Thần Calculation Time: ${Date.now() - startTime}ms`);
   return { dungThan, lyDo, cachCuc };
 };
 
 // Generate direct response
-const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language) => {
+const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language) => {
+  const startTime = Date.now();
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
     Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
@@ -494,98 +505,13 @@ ${language === "vi" ? `Cầu chúc bạn như ${canNguHanh[nhatChu] === "Thổ" 
 `;
   }
 
+  console.log(`Response Generation Time: ${Date.now() - startTime}ms`);
   return response.trim();
-};
-
-// Call OpenAI API with enhanced retry logic
-const callOpenAI = async (tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language) => {
-  const prompt = `
-Bạn là chuyên gia phong thủy và Bát Tự, cung cấp câu trả lời sâu sắc, thơ ca, chính xác. Dữ liệu:
-
-- **Tứ Trụ**: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}
-- **Nhật Chủ**: ${tuTru.ngay.split(" ")[0]} (${canChiNguhanhInfo.match(new RegExp(`${tuTru.ngay.split(" ")[0]}[^:]*: ([^)]+)`))?.[1] || "Không xác định"})
-- **Ngũ Hành**: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
-- **Thập Thần**: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ")}
-- **Dụng Thần**: ${dungThanResult.dungThan.join(", ")} (${dungThanResult.lyDo})
-- **Cách Cục**: ${dungThanResult.cachCuc}
-- **Thần Sát**: ${Object.entries(thanSatResults).filter(([_, v]) => v.length > 0).map(([k, v]) => `${k}: ${v.join(", ")}`).join("; ") || "Không có"}
-
-**Yêu cầu**:
-1. Trả lời "${userInput}" bằng văn phong thơ ca, dựa trên Nhật Chủ, Thập Thần, Dụng Thần, Thần Sát.
-2. Không mặc định Nhật Chủ là Tân Kim. Phân tích dựa trên Tứ Trụ cung cấp.
-3. Văn Xương là "trí tuệ, học vấn, sáng tạo".
-4. Đề xuất nghề nghiệp, màu sắc, hướng theo Dụng Thần.
-5. Nếu hỏi về năm cụ thể (e.g., 2026), phân tích năng lượng năm.
-6. Nếu hỏi về Văn Xương, trả lời ngắn gọn, tập trung vào trí tuệ.
-7. Nếu hỏi về hôn nhân, dựa trên Thực Thần, Thiên Tài, Chính Quan, không nhầm Đào Hoa/Hồng Loan.
-8. Kết thúc bằng lời chúc mang hình ảnh thơ ca.
-
-**Ngôn ngữ**: ${language === "vi" ? "Tiếng Việt" : "English"}  
-**Câu hỏi**: "${userInput}"
-`;
-
-  const maxRetries = 3;
-  let attempt = 0;
-  const apiUrl = "https://api.openai.com/v1/chat/completions";
-
-  while (attempt <= maxRetries) {
-    try {
-      if (!process.env.OPENAI_API_KEY) {
-        throw new Error("Missing OPENAI_API_KEY in environment variables");
-      }
-
-      console.log(`Attempt ${attempt + 1}: Calling OpenAI API at ${apiUrl}`);
-      const response = await axios.post(
-        apiUrl,
-        {
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: prompt },
-            ...messages,
-            { role: "user", content: userInput }
-          ],
-          max_tokens: 1500,
-          temperature: 0.7
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          timeout: 15000 // 15s timeout
-        }
-      );
-      console.log(`OpenAI API Success: Attempt ${attempt + 1}`);
-      return response.data.choices[0].message.content.trim();
-    } catch (error) {
-      console.error(`OpenAI API Attempt ${attempt + 1} Failed:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: apiUrl,
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY ? '[REDACTED]' : 'MISSING'}` }
-      });
-
-      if (error.response?.status === 404) {
-        console.warn("404 Error: Verify API endpoint or OpenAI service availability");
-      } else if (error.response?.status === 401) {
-        console.warn("401 Error: Invalid API key");
-        return generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
-      }
-
-      if (attempt === maxRetries) {
-        console.warn("Max retries reached, falling back to generateResponse");
-        return generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
-      }
-
-      attempt++;
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff: 1s, 2s, 4s
-    }
-  }
 };
 
 // Main API endpoint
 app.post("/api/tu-tru", async (req, res) => {
+  const startTime = Date.now();
   const { gio, ngay, thang, nam, userInput, messages = [], language = "vi" } = req.body;
 
   try {
@@ -615,8 +541,14 @@ app.post("/api/tu-tru", async (req, res) => {
     const dungThanResult = tinhDungThan(nhatChu, thangChi, nguHanhCount);
     const thanSatResults = tinhThanSat(tuTru);
 
+    // Temporarily bypass OpenAI API to avoid 404 and slow response
+    // To re-enable OpenAI, uncomment the callOpenAI function and import axios
+    /*
     const response = await callOpenAI(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
+    */
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language);
 
+    console.log(`Total Request Processing Time: ${Date.now() - startTime}ms`);
     res.json({ response });
   } catch (error) {
     console.error("Lỗi xử lý Tứ Trụ:", error.message);
