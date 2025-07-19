@@ -7,6 +7,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Set server timeout to 120 seconds
+const server = app.listen(0, () => {
+  const port = server.address().port;
+  console.log(`Server is running on port ${port}`);
+});
+server.setTimeout(120000);
+
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
@@ -490,7 +497,7 @@ ${language === "vi" ? `Cầu chúc bạn như ${canNguHanh[nhatChu] === "Thổ" 
   return response.trim();
 };
 
-// Call OpenAI API with retry logic
+// Call OpenAI API with enhanced retry logic
 const callOpenAI = async (tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language) => {
   const prompt = `
 Bạn là chuyên gia phong thủy và Bát Tự, cung cấp câu trả lời sâu sắc, thơ ca, chính xác. Dữ liệu:
@@ -517,8 +524,9 @@ Bạn là chuyên gia phong thủy và Bát Tự, cung cấp câu trả lời s�
 **Câu hỏi**: "${userInput}"
 `;
 
-  const maxRetries = 2;
+  const maxRetries = 3;
   let attempt = 0;
+  const apiUrl = "https://api.openai.com/v1/chat/completions";
 
   while (attempt <= maxRetries) {
     try {
@@ -526,8 +534,9 @@ Bạn là chuyên gia phong thủy và Bát Tự, cung cấp câu trả lời s�
         throw new Error("Missing OPENAI_API_KEY in environment variables");
       }
 
+      console.log(`Attempt ${attempt + 1}: Calling OpenAI API at ${apiUrl}`);
       const response = await axios.post(
-        "https://api.openai.com/v1/chat/completions",
+        apiUrl,
         {
           model: "gpt-4o",
           messages: [
@@ -543,25 +552,34 @@ Bạn là chuyên gia phong thủy và Bát Tự, cung cấp câu trả lời s�
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json"
           },
-          timeout: 10000 // 10s timeout
+          timeout: 15000 // 15s timeout
         }
       );
+      console.log(`OpenAI API Success: Attempt ${attempt + 1}`);
       return response.data.choices[0].message.content.trim();
     } catch (error) {
       console.error(`OpenAI API Attempt ${attempt + 1} Failed:`, {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
-        url: "https://api.openai.com/v1/chat/completions"
+        url: apiUrl,
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY ? '[REDACTED]' : 'MISSING'}` }
       });
 
-      if (attempt === maxRetries || error.response?.status === 401) {
-        console.warn("Falling back to generateResponse due to API failure");
+      if (error.response?.status === 404) {
+        console.warn("404 Error: Verify API endpoint or OpenAI service availability");
+      } else if (error.response?.status === 401) {
+        console.warn("401 Error: Invalid API key");
+        return generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
+      }
+
+      if (attempt === maxRetries) {
+        console.warn("Max retries reached, falling back to generateResponse");
         return generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
       }
 
       attempt++;
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff: 1s, 2s, 4s
     }
   }
 };
@@ -606,8 +624,8 @@ app.post("/api/tu-tru", async (req, res) => {
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err.stack);
+  res.status(500).json({ error: "Lỗi server nội bộ. Vui lòng thử lại sau." });
 });
