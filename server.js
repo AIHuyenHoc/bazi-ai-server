@@ -9,19 +9,39 @@ app.use(express.json());
 // Set server timeout to 120 seconds
 const server = app.listen(0, () => {
   const port = server.address().port;
-  console.log(`Server deployed and running on port ${port}`);
+  console.log(`Server deployed and running on port ${port} at ${new Date().toISOString()}`);
 });
 server.setTimeout(120000);
 
-// Cache for Ngũ Hành and Thập Thần calculations
-const cache = new Map();
+// LRU Cache implementation
+class LRUCache {
+  constructor(capacity) {
+    this.capacity = capacity;
+    this.cache = new Map();
+  }
+  get(key) {
+    if (!this.cache.has(key)) return null;
+    const value = this.cache.get(key);
+    this.cache.delete(key);
+    this.cache.set(key, value);
+    return value;
+  }
+  set(key, value) {
+    if (this.cache.size >= this.capacity) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, value);
+  }
+}
+const cache = new LRUCache(1000); // Cache up to 1000 entries
 
-// Health check endpoint for Render
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Ngũ hành information for Thiên Can and Địa Chi
+// Ngũ hành information
 const canChiNguhanhInfo = `
 Ngũ hành 10 Thiên Can:
 - Giáp, Ất: Mộc (cây cối, sự phát triển, sáng tạo)
@@ -94,10 +114,11 @@ const getCanChiForYear = (year) => {
 // Analyze Ngũ Hành distribution
 const analyzeNguHanh = (tuTru) => {
   const startTime = Date.now();
-  const cacheKey = JSON.stringify(tuTru);
-  if (cache.has(cacheKey)) {
+  const cacheKey = `nguhanh:${JSON.stringify(tuTru)}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
     console.log(`Ngũ Hành Cache Hit: ${cacheKey}`);
-    return cache.get(cacheKey);
+    return cached;
   }
 
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
@@ -154,10 +175,11 @@ const analyzeNguHanh = (tuTru) => {
 // Calculate Thập Thần
 const tinhThapThan = (nhatChu, tuTru) => {
   const startTime = Date.now();
-  const cacheKey = `${nhatChu}:${JSON.stringify(tuTru)}`;
-  if (cache.has(cacheKey)) {
+  const cacheKey = `thapthan:${nhatChu}:${JSON.stringify(tuTru)}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
     console.log(`Thập Thần Cache Hit: ${cacheKey}`);
-    return cache.get(cacheKey);
+    return cached;
   }
 
   const canNguHanh = {
@@ -170,38 +192,28 @@ const tinhThapThan = (nhatChu, tuTru) => {
   };
   const thapThanMap = {
     Kim: {
-      Kim: ["Tỷ Kiên", "Kiếp Tài"],
-      Thủy: ["Thực Thần", "Thương Quan"],
-      Mộc: ["Chính Tài", "Thiên Tài"],
-      Hỏa: ["Chính Quan", "Thất Sát"],
+      Kim: ["Tỷ Kiên", "Kiếp Tài"], Thủy: ["Thực Thần", "Thương Quan"],
+      Mộc: ["Chính Tài", "Thiên Tài"], Hỏa: ["Chính Quan", "Thất Sát"],
       Thổ: ["Chính Ấn", "Thiên Ấn"]
     },
     Mộc: {
-      Mộc: ["Tỷ Kiên", "Kiếp Tài"],
-      Hỏa: ["Thực Thần", "Thương Quan"],
-      Thổ: ["Chính Tài", "Thiên Tài"],
-      Kim: ["Chính Quan", "Thất Sát"],
+      Mộc: ["Tỷ Kiên", "Kiếp Tài"], Hỏa: ["Thực Thần", "Thương Quan"],
+      Thổ: ["Chính Tài", "Thiên Tài"], Kim: ["Chính Quan", "Thất Sát"],
       Thủy: ["Chính Ấn", "Thiên Ấn"]
     },
     Hỏa: {
-      Hỏa: ["Tỷ Kiên", "Kiếp Tài"],
-      Thổ: ["Thực Thần", "Thương Quan"],
-      Kim: ["Chính Tài", "Thiên Tài"],
-      Thủy: ["Chính Quan", "Thất Sát"],
+      Hỏa: ["Tỷ Kiên", "Kiếp Tài"], Thổ: ["Thực Thần", "Thương Quan"],
+      Kim: ["Chính Tài", "Thiên Tài"], Thủy: ["Chính Quan", "Thất Sát"],
       Mộc: ["Chính Ấn", "Thiên Ấn"]
     },
     Thổ: {
-      Thổ: ["Tỷ Kiên", "Kiếp Tài"],
-      Kim: ["Thực Thần", "Thương Quan"],
-      Thủy: ["Chính Tài", "Thiên Tài"],
-      Mộc: ["Chính Quan", "Thất Sát"],
+      Thổ: ["Tỷ Kiên", "Kiếp Tài"], Kim: ["Thực Thần", "Thương Quan"],
+      Thủy: ["Chính Tài", "Thiên Tài"], Mộc: ["Chính Quan", "Thất Sát"],
       Hỏa: ["Chính Ấn", "Thiên Ấn"]
     },
     Thủy: {
-      Thủy: ["Tỷ Kiên", "Kiếp Tài"],
-      Mộc: ["Thực Thần", "Thương Quan"],
-      Hỏa: ["Chính Tài", "Thiên Tài"],
-      Thổ: ["Chính Quan", "Thất Sát"],
+      Thủy: ["Tỷ Kiên", "Kiếp Tài"], Mộc: ["Thực Thần", "Thương Quan"],
+      Hỏa: ["Chính Tài", "Thiên Tài"], Thổ: ["Chính Quan", "Thất Sát"],
       Kim: ["Chính Ấn", "Thiên Ấn"]
     }
   };
@@ -244,10 +256,11 @@ const tinhThapThan = (nhatChu, tuTru) => {
 // Calculate Thần Sát
 const tinhThanSat = (tuTru) => {
   const startTime = Date.now();
-  const cacheKey = JSON.stringify(tuTru);
-  if (cache.has(cacheKey + ":thansat")) {
-    console.log(`Thần Sát Cache Hit: ${cacheKey}:thansat`);
-    return cache.get(cacheKey + ":thansat");
+  const cacheKey = `thansat:${JSON.stringify(tuTru)}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`Thần Sát Cache Hit: ${cacheKey}`);
+    return cached;
   }
 
   const thienAtQuyNhan = {
@@ -298,7 +311,7 @@ const tinhThanSat = (tuTru) => {
     nguyetDuc: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || []
   };
 
-  cache.set(cacheKey + ":thansat", result);
+  cache.set(cacheKey, result);
   console.log(`Thần Sát Calculation Time: ${Date.now() - startTime}ms`);
   return result;
 };
@@ -306,10 +319,11 @@ const tinhThanSat = (tuTru) => {
 // Calculate Dụng Thần
 const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const startTime = Date.now();
-  const cacheKey = `${nhatChu}:${thangChi}:${JSON.stringify(nguHanhCount)}`;
-  if (cache.has(cacheKey)) {
+  const cacheKey = `dungthan:${nhatChu}:${thangChi}:${JSON.stringify(nguHanhCount)}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
     console.log(`Dụng Thần Cache Hit: ${cacheKey}`);
-    return cache.get(cacheKey);
+    return cached;
   }
 
   const canNguHanh = {
@@ -369,6 +383,13 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
 // Generate direct response
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language) => {
   const startTime = Date.now();
+  const cacheKey = `response:${JSON.stringify(tuTru)}:${userInput}:${language}`;
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`Response Cache Hit: ${cacheKey}`);
+    return cached;
+  }
+
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
     Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
@@ -436,6 +457,24 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThanResult, 
     Thổ: { colors: "vàng, nâu", directions: "Trung tâm, Đông Bắc" },
     Kim: { colors: "trắng, bạc", directions: "Tây" },
     Thủy: { colors: "xanh dương, đen", directions: "Bắc" }
+  };
+
+  // Poetic metaphors for Dụng Thần (from June 22, 2025 conversation)
+  const dungThanMetaphors = {
+    "Thân Vượng": {
+      Mộc: "Như khu rừng rực cháy dưới ánh hỏa quang, cần đất mẹ ôm ấp để lắng dịu.",
+      Hỏa: "Như ngọn lửa bùng cháy rực rỡ, cần kim loại rèn giũa để định hình.",
+      Thổ: "Như ngọn núi sừng sững, cần dòng sông uốn lượn để làm mềm đất.",
+      Kim: "Như thanh gươm sắc bén, cần ngọn lửa tôi luyện để tỏa sáng.",
+      Thủy: "Như đại dương mênh mông, cần rừng xanh nuôi dưỡng để hài hòa."
+    },
+    "Thân Nhược": {
+      Mộc: "Như cây non yếu ớt, cần ánh lửa sưởi ấm và đất mẹ nuôi dưỡng.",
+      Hỏa: "Như ngọn lửa nhỏ bé, cần rừng xanh tiếp sức và đất đai che chở.",
+      Thổ: "Như đất khô cằn, cần ngọn lửa sưởi ấm và kim loại khai phá.",
+      Kim: "Như vàng thô chưa mài, cần dòng nước rửa sạch và cây cối tô điểm.",
+      Thủy: "Như dòng suối nhỏ, cần kim loại dẫn lối và rừng xanh bảo vệ."
+    }
   };
 
   // Generate response based on question type
@@ -513,6 +552,7 @@ ${language === "vi" ? `Cầu chúc sự nghiệp bạn như ${canNguHanh[nhatChu
 ${language === "vi" ? "Luận giải Bát Tự" : "Bazi Interpretation"}:
 
 Như ${canNguHanh[nhatChu] === "Thổ" ? "ngọn núi vững chãi" : "ngọn lửa rực rỡ"}, Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}) mang ánh sáng của ${personalityDescriptions[canNguHanh[nhatChu]]}  
+${dungThanMetaphors[dungThanResult.cachCuc][canNguHanh[nhatChu]]}  
 ${language === "vi" ? "Tứ Trụ:" : "Four Pillars:"} Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}  
 ${language === "vi" ? "Ngũ Hành:" : "Five Elements:"} ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}  
 
@@ -537,6 +577,7 @@ ${language === "vi" ? `Cầu chúc bạn như ${canNguHanh[nhatChu] === "Thổ" 
 `;
   }
 
+  cache.set(cacheKey, response);
   console.log(`Response Generation Time: ${Date.now() - startTime}ms`);
   return response.trim();
 };
