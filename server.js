@@ -9,9 +9,12 @@ app.use(express.json());
 // Set server timeout to 120 seconds
 const server = app.listen(0, () => {
   const port = server.address().port;
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server deployed and running on port ${port}`);
 });
 server.setTimeout(120000);
+
+// Cache for Ngũ Hành and Thập Thần calculations
+const cache = new Map();
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
@@ -91,6 +94,12 @@ const getCanChiForYear = (year) => {
 // Analyze Ngũ Hành distribution
 const analyzeNguHanh = (tuTru) => {
   const startTime = Date.now();
+  const cacheKey = JSON.stringify(tuTru);
+  if (cache.has(cacheKey)) {
+    console.log(`Ngũ Hành Cache Hit: ${cacheKey}`);
+    return cache.get(cacheKey);
+  }
+
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -132,7 +141,8 @@ const analyzeNguHanh = (tuTru) => {
 
     const total = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
     if (total === 0) throw new Error("Không tìm thấy ngũ hành hợp lệ");
-    
+
+    cache.set(cacheKey, nguHanhCount);
     console.log(`Ngũ Hành Analysis Time: ${Date.now() - startTime}ms`);
     return nguHanhCount;
   } catch (e) {
@@ -144,6 +154,12 @@ const analyzeNguHanh = (tuTru) => {
 // Calculate Thập Thần
 const tinhThapThan = (nhatChu, tuTru) => {
   const startTime = Date.now();
+  const cacheKey = `${nhatChu}:${JSON.stringify(tuTru)}`;
+  if (cache.has(cacheKey)) {
+    console.log(`Thập Thần Cache Hit: ${cacheKey}`);
+    return cache.get(cacheKey);
+  }
+
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
@@ -216,6 +232,7 @@ const tinhThapThan = (nhatChu, tuTru) => {
       thapThanResults[chi] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
 
+    cache.set(cacheKey, thapThanResults);
     console.log(`Thập Thần Calculation Time: ${Date.now() - startTime}ms`);
     return thapThanResults;
   } catch (e) {
@@ -227,6 +244,12 @@ const tinhThapThan = (nhatChu, tuTru) => {
 // Calculate Thần Sát
 const tinhThanSat = (tuTru) => {
   const startTime = Date.now();
+  const cacheKey = JSON.stringify(tuTru);
+  if (cache.has(cacheKey + ":thansat")) {
+    console.log(`Thần Sát Cache Hit: ${cacheKey}:thansat`);
+    return cache.get(cacheKey + ":thansat");
+  }
+
   const thienAtQuyNhan = {
     Giáp: ["Sửu", "Mùi"], Ất: ["Tý", "Hợi"], Bính: ["Dần", "Mão"], Đinh: ["Sửu", "Hợi"],
     Mậu: ["Tỵ", "Ngọ"], Kỷ: ["Thìn", "Tuất"], Canh: ["Thân", "Dậu"], Tân: ["Thân", "Dậu"],
@@ -275,6 +298,7 @@ const tinhThanSat = (tuTru) => {
     nguyetDuc: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || []
   };
 
+  cache.set(cacheKey + ":thansat", result);
   console.log(`Thần Sát Calculation Time: ${Date.now() - startTime}ms`);
   return result;
 };
@@ -282,6 +306,12 @@ const tinhThanSat = (tuTru) => {
 // Calculate Dụng Thần
 const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const startTime = Date.now();
+  const cacheKey = `${nhatChu}:${thangChi}:${JSON.stringify(nguHanhCount)}`;
+  if (cache.has(cacheKey)) {
+    console.log(`Dụng Thần Cache Hit: ${cacheKey}`);
+    return cache.get(cacheKey);
+  }
+
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
@@ -330,8 +360,10 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
     lyDo = `Vì ${cachCuc}, cần hỗ trợ bằng hành sinh Nhật Chủ (${tuongSinh[nhatChuNguHanh]}) và hành sinh hành khắc Nhật Chủ (${tuongSinh[tuongKhac[nhatChuNguHanh]]}).`;
   }
 
+  const result = { dungThan, lyDo, cachCuc };
+  cache.set(cacheKey, result);
   console.log(`Dụng Thần Calculation Time: ${Date.now() - startTime}ms`);
-  return { dungThan, lyDo, cachCuc };
+  return result;
 };
 
 // Generate direct response
@@ -541,11 +573,6 @@ app.post("/api/tu-tru", async (req, res) => {
     const dungThanResult = tinhDungThan(nhatChu, thangChi, nguHanhCount);
     const thanSatResults = tinhThanSat(tuTru);
 
-    // Temporarily bypass OpenAI API to avoid 404 and slow response
-    // To re-enable OpenAI, uncomment the callOpenAI function and import axios
-    /*
-    const response = await callOpenAI(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
-    */
     const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, language);
 
     console.log(`Total Request Processing Time: ${Date.now() - startTime}ms`);
