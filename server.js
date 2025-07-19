@@ -192,7 +192,6 @@ const tinhThapThan = (nhatChu, tuTru) => {
       tuTru.thang?.split(" ")[1], tuTru.nam?.split(" ")[1]
     ].filter(Boolean);
 
-    // Tính Thập Thần cho Thiên Can
     for (const can of elements) {
       if (can === nhatChu) continue;
       const nguHanh = canNguHanh[can];
@@ -201,7 +200,6 @@ const tinhThapThan = (nhatChu, tuTru) => {
       thapThanResults[can] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
 
-    // Tính Thập Thần cho Địa Chi
     for (const chi of branches) {
       const nguHanh = chiNguHanh[chi];
       const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
@@ -270,7 +268,7 @@ const tinhThanSat = (tuTru) => {
 // Tính Dụng Thần
 const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đing: "Hỏa", Mậu: "Thổ",
+    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
   };
   const chiNguHanh = {
@@ -294,7 +292,6 @@ const tinhDungThan = (nhatChu, thangChi, nguHanhCount) => {
   const nhatChuCount = nguHanhCount[nhatChuNguHanh] || 0;
   const khacNhatChuCount = nguHanhCount[tuongKhac[nhatChuNguHanh]] || 0;
 
-  // Đánh giá Thân Vượng/Nhược
   if (
     thangTrongSo[nhatChuNguHanh].includes(thangChi) ||
     tuongSinh[thangHanh] === nhatChuNguHanh ||
@@ -380,7 +377,6 @@ ${language === "vi" ? "Đề xuất để may mắn hơn:" : "Suggestions for Gr
 ${language === "vi" ? "Cầu chúc bạn như vàng quý tỏa sáng, vận mệnh rạng ngời muôn đời!" : "May you shine like refined gold, with a destiny radiant forever!"}
 `;
 
-  // Phân tích theo loại câu hỏi cụ thể
   if (isMoney) {
     response += `
 ${language === "vi" ? "Tài lộc:" : "Wealth:"}
@@ -461,7 +457,7 @@ const callOpenAI = async (payload, retries = 5, delay = 2000) => {
 
 // API luận giải Bát Tự
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  console.log("Request received:", JSON.stringify(req.body, null, 2));
+  console.log("Request received:", JSON.stringify(req/body, null, 2));
   const { messages, tuTruInfo } = req.body;
   const useOpenAI = process.env.USE_OPENAI !== "false";
 
@@ -547,53 +543,37 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   // Gọi OpenAI
   const prompt = `
 Bạn là bậc thầy Bát Tự, trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, chi tiết, thơ ca, chạm nội tâm. Chỉ liệt kê các Thần Sát có trong lá số (bỏ qua những Thần Sát không xuất hiện). Phân tích:
-Tứ Trụ: Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed彼此
+Tứ Trụ: Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed.nam}
+Ngũ Hành: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
+Thập Thần: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
+Dụng Thần: ${dungThanResult.dungThan.join(", ")} (${dungThanResult.lyDo})
+Thần Sát: ${Object.entries(thanSatResults).filter(([_, value]) => value.length > 0).map(([key, value]) => `${key}: ${value.join(", ")}`).join("; ")}
+Câu hỏi: ${userInput}
+${userInput.includes("tiền bạc") || userInput.includes("money") ? "Phân tích tài lộc dựa trên Chính Tài, Thiên Tài và Dụng Thần." : ""}
+${userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("sự nghiệp") || userInput.includes("career") ? "Phân tích sự nghiệp dựa trên Thực Thần, Chính Quan, Văn Xương, Đào Hoa." : ""}
+${userInput.includes("sức khỏe") || userInput.includes("health") ? "Phân tích sức khỏe dựa trên ngũ hành, Chính Ấn, Thiên Đức." : ""}
+${userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("love") || userInput.includes("marriage") ? "Phân tích tình duyên/hôn nhân dựa trên Đào Hoa, Hồng Loan, Thực Thần." : ""}
+${userInput.includes("con cái") || userInput.includes("children") ? "Phân tích con cái dựa trên Thực Thần, Thương Quan, Thái Cực Quý Nhân." : ""}
+${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? "Câu hỏi phức tạp, hướng dẫn liên hệ app.aihuyenhoc@gmail.com hoặc Discord." : ""}
+`;
 
-System: Parsed Tu Tru:", JSON.stringify(tuTruParsed, null, 2));
-
-  // Phân tích ngũ hành
-  let nguHanhCount;
   try {
-    nguHanhCount = analyzeNguHanh(tuTruParsed);
-    console.log("Ngũ hành:", JSON.stringify(nguHanhCount, null, 2));
-  } catch (e) {
-    console.error("Lỗi analyzeNguHanh:", e.message);
-    return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
+    const gptRes = await callOpenAI({
+      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
+      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500,
+      top_p: 0.9,
+      frequency_penalty: 0.2,
+      presence_penalty: 0.1
+    });
+    res.json({ answer: gptRes.choices[0].message.content });
+  } catch (err) {
+    console.error("GPT API error:", err.message, err.response?.data || {});
+    console.log("Chuyển sang generateResponse do lỗi OpenAI");
+    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
+    res.json({ answer });
   }
-
-  // Tính Thập Thần
-  let thapThanResults;
-  try {
-    thapThanResults = tinhThapThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed);
-    console.log("Thập Thần:", JSON.stringify(thapThanResults, null, 2));
-  } catch (e) {
-    console.error("Lỗi tinhThapThan:", e.message);
-    return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Ten Gods data" });
-  }
-
-  // Tính Dụng Thần
-  let dungThanResult;
-  try {
-    dungThanResult = tinhDungThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed.thang.split(" ")[1], nguHanhCount);
-    console.log("Dụng Thần:", JSON.stringify(dungThanResult, null, 2));
-  } catch (e) {
-    console.error("Lỗi tinhDungThan:", e.message);
-    return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Useful God data" });
-  }
-
-  // Tính Thần Sát
-  let thanSatResults;
-  try {
-    thanSatResults = tinhThanSat(tuTruParsed);
-    console.log("Thần Sát:", JSON.stringify(thanSatResults, null, 2));
-  } catch (e) {
-    console.error("Lỗi tinhThanSat:", e.message);
-    return res.status(400).json({ error: language === "vi" ? e.message : "Invalid Auspicious Stars data" });
-  }
-
-  // Tạo câu trả lời
-  const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanResult, thanSatResults, userInput, messages, language);
-  res.json({ answer });
 });
 
 // Xử lý lỗi toàn cục
