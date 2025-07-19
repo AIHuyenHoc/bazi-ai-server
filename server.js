@@ -457,7 +457,7 @@ const callOpenAI = async (payload, retries = 5, delay = 2000) => {
 
 // API luận giải Bát Tự
 app.post("/api/luan-giai-bazi", async (req, res) => {
-  console.log("Request received:", JSON.stringify(req/body, null, 2));
+  console.log("Request received:", JSON.stringify(req.body, null, 2));
   const { messages, tuTruInfo } = req.body;
   const useOpenAI = process.env.USE_OPENAI !== "false";
 
