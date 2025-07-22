@@ -272,7 +272,10 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThan, thanSa
     Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
   );
   const nhatChu = tuTru.ngay.split(" ")[0];
-  const canNguHanh = { Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ", Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy" };
+  const canNguHanh = { 
+    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ", 
+    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy" 
+  };
   const userInputLower = userInput.toLowerCase();
 
   // Xác định loại câu hỏi
@@ -316,10 +319,18 @@ ${language === "vi" ? "Câu hỏi của bạn liên quan đến các vấn đề
   if (thanSatResults.thienAtQuyNhan.length) activeThanSat.push(`Thiên Ất Quý Nhân: ${thanSatResults.thienAtQuyNhan.join(", ")} (quý nhân phù trợ, mang lại sự hỗ trợ từ người khác)`);
   if (thanSatResults.daoHoa.length) activeThanSat.push(`Đào Hoa: ${thanSatResults.daoHoa.join(", ")} (tăng sức hút và duyên dáng trong giao tiếp)`);
   if (thanSatResults.vanXuong.length) activeThanSat.push(`Văn Xương: ${thanSatResults.vanXuong.join(", ")} (hỗ trợ học vấn, sáng tạo)`);
-  if (thanSatResults.thaiCucQuyNhan.length) activeThanSat.push(`Thái Cực Quý Nhân: ${thanSatResults.thaiCucQuyNhan.join(", ")} (tăng trí tuệ, kết nối tâm linh)`);
+  if (thanSatResults.thaiCucQuyNhan.length) activeThanSat.copy(`Thái Cực Quý Nhân: ${thanSatResults.thaiCucQuyNhan.join(", ")} (tăng trí tuệ, kết nối tâm linh)`);
   if (thanSatResults.hongLoan.length) activeThanSat.push(`Hồng Loan: ${thanSatResults.hongLoan.join(", ")} (thúc đẩy tình duyên, hôn nhân)`);
   if (thanSatResults.thienDuc.length) activeThanSat.push(`Thiên Đức: ${thanSatResults.thienDuc.join(", ")} (mang phúc đức, bảo vệ)`);
   if (thanSatResults.nguyetDuc.length) activeThanSat.push(`Nguyệt Đức: ${thanSatResults.nguyetDuc.join(", ")} (tạo sự hòa hợp, ân đức)`);
+
+  // Sửa lỗi cú pháp trong xử lý Thập Thần
+  const thapThanDescriptions = Object.entries(thapThanResults)
+    .map(([elem, thapThan]) => {
+      return thapThanEffects[thapThan] ? `${elem} (${thapThan}): ${thapThanEffects[thapThan]}` : null;
+    })
+    .filter(Boolean)
+    .join(" ");
 
   // Xây dựng câu trả lời chi tiết
   let response = `
@@ -331,14 +342,14 @@ ${language === "vi" ? "Ngũ Hành:" : "Five Elements:"} ${Object.entries(tyLeNgu
 
 ${language === "vi" ? "Tính cách:" : "Personality:"}
 Bạn là hiện thân của ${canNguHanh[nhatChu]}, ${personalityDescriptions[canNguHanh[nhatChu]]} 
-${Object.entries(thapThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan]ഗ ? `${elem} (${thapThan}): ${thapThanEffects[thapThan]}` : "").filter(Boolean).join(" ")} 
+${thapThanDescriptions.length > 0 ? thapThanDescriptions : "Không có Thập Thần nổi bật trong lá số."} 
 ${thanSatResults.daoHoa.length ? "Đào Hoa hiện diện, ban tặng bạn sức hút tự nhiên, dễ dàng tạo thiện cảm trong giao tiếp." : ""} 
 
 ${language === "vi" ? "Dụng Thần:" : "Useful God:"}
 Dụng Thần ${dungThan.join(", ")} dẫn dắt vận mệnh của bạn, giúp cân bằng và phát huy tiềm năng. Hãy để ${dungThan.join(" và ")} dẫn đường, như ánh sao soi sáng hành trình.
 
 ${language === "vi" ? "Nghề nghiệp phù hợp:" : "Suitable Careers:"}
-${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Thực Thần")] ? "Thực Thần hiện diện, mang đến sự sáng tạo và tư duy phân tích xuất sắc." : ""} 
+${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Thực Thần") ? "Thực Thần hiện diện, mang đến sự sáng tạo và tư duy phân tích xuất sắc." : ""} 
 ${thanSatResults.daoHoa.length ? "Đào Hoa mang sức hút và tài giao tiếp, phù hợp với các ngành như quan hệ công chúng, marketing, hoặc tư vấn." : ""} 
 ${thanSatResults.vanXuong.length ? "Văn Xương xuất hiện, học vấn và sáng tạo là chìa khóa dẫn bạn đến thành công." : ""} 
 Dụng Thần ${dungThan.join(", ")} gợi ý bạn nên chọn nghề ${dungThan.includes("Mộc") ? "giáo dục, sáng tạo, nghệ thuật" : dungThan.includes("Hỏa") ? "truyền thông, marketing, lãnh đạo" : dungThan.includes("Thổ") ? "bất động sản, tài chính, quản lý" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, phân tích" : "giao tiếp, du lịch, tư vấn"}. 
@@ -352,29 +363,29 @@ ${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
 ${activeThanSat.length ? `Lá số được điểm tô bởi ${activeThanSat.join("; ")}, như những ánh sao nhỏ lặng lẽ nâng đỡ hành trình của bạn.` : "Không có Thần Sát nổi bật trong lá số."}
 
 ${language === "vi" ? "Lời khuyên:" : "Advice:"}
-Hãy để ${canNguHanh[nhatChu]} trong bạn như viên ngọc được mài giũa qua thử thách, luôn sáng bóng và kiên cường. Tận dụng ${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Thực Thần")] ? "sự sáng tạo từ Thực Thần" : "tài năng bẩm sinh"} và ${thanSatResults.daoHoa.length ? "sức hút từ Đào Hoa" : "nội lực của bạn"} để xây dựng những mối quan hệ ý nghĩa và chinh phục mục tiêu. Mỗi bước đi, hãy để Dụng Thần ${dungThan.join(", ")} dẫn đường, giúp bạn vững vàng như núi cao, rực rỡ như ánh vàng.
+Hãy để ${canNguHanh[nhatChu]} trong bạn như viên ngọc được mài giũa qua thử thách, luôn sáng bóng và kiên cường. Tận dụng ${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Thực Thần") ? "sự sáng tạo từ Thực Thần" : "tài năng bẩm sinh"} và ${thanSatResults.daoHoa.length ? "sức hút từ Đào Hoa" : "nội lực của bạn"} để xây dựng những mối quan hệ ý nghĩa và chinh phục mục tiêu. Mỗi bước đi, hãy để Dụng Thần ${dungThan.join(", ")} dẫn đường, giúp bạn vững vàng như núi cao, rực rỡ như ánh vàng.
 ${language === "vi" ? "Cầu chúc bạn như ngọn núi vàng quý, vận mệnh rạng ngời muôn đời!" : "May you shine like refined gold, with a destiny radiant forever!"}
 `;
 
   if (isMoney) {
     response += `
 ${language === "vi" ? "Tài lộc:" : "Wealth:"}
-Như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThan[0].toLowerCase()} để tỏa sáng, tài lộc của bạn phụ thuộc vào sự cân bằng của Chính Tài và Thiên Tài. ${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Chính Tài" || thapThanResults[k] === "Thiên Tài")] ? "Chính Tài hoặc Thiên Tài hiện diện, báo hiệu cơ hội tài chính ổn định hoặc bất ngờ." : "Tài lộc cần sự hỗ trợ từ Dụng Thần " + dungThan.join(", ") + "."} 
+Như ${canNguHanh[nhatChu].toLowerCase()} cần ${dungThan[0].toLowerCase()} để tỏa sáng, tài lộc của bạn phụ thuộc vào sự cân bằng của Chính Tài và Thiên Tài. ${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Chính Tài" || thapThanResults[k] === "Thiên Tài") ? "Chính Tài hoặc Thiên Tài hiện diện, báo hiệu cơ hội tài chính ổn định hoặc bất ngờ." : "Tài lộc cần sự hỗ trợ từ Dụng Thần " + dungThan.join(", ") + "."} 
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc như ${dungThan.includes("Thổ") ? "vàng, nâu" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, đỏ, xanh dương"}, vật phẩm như thạch anh vàng hoặc ngọc bích, và hướng ${dungThan.includes("Thổ") ? "Đông Bắc" : dungThan.includes("Kim") ? "Tây" : "Bắc"} để thu hút tài lộc.
 ${language === "vi" ? "Cầu chúc tài lộc bạn như dòng sông vàng chảy mãi, thịnh vượng muôn đời!" : "May your wealth flow like a golden river, prosperous forever!"}
 `;
   } else if (isCareer) {
     response += `
 ${language === "vi" ? "Sự nghiệp:" : "Career:"}
-Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} nâng niu, sự nghiệp của bạn cần sự hỗ trợ từ Thực Thần và Chính Quan. ${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Thực Thần" || thapThanResults[k] === "Chính Quan")] ? "Thực Thần hoặc Chính Quan hiện diện, mang đến sáng tạo và trách nhiệm trong công việc." : "Dụng Thần " + dungThan.join(", ") + " sẽ dẫn bạn đến con đường thành công."} 
-${thanSatResults.vanXuong.length ? "Văn Xương xuất hiện, học vấn và sáng tạo là chìa khóa." : activeThanSat.includes("Đào Hoa") ? "Đào Hoa hiện diện, mang sức hút và khả năng giao tiếp, phù hợp với các nghề liên quan đến đối ngoại." : ""} 
+Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} nâng niu, sự nghiệp của bạn cần sự hỗ trợ từ Thực Thần và Chính Quan. ${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Thực Thần" || thapThanResults[k] === "Chính Quan") ? "Thực Thần hoặc Chính Quan hiện diện, mang đến sáng tạo và trách nhiệm trong công việc." : "Dụng Thần " + dungThan.join(", ") + " sẽ dẫn bạn đến con đường thành công."} 
+${thanSatResults.vanXuong.length ? "Văn Xương xuất hiện, học vấn và sáng tạo là chìa khóa." : thanSatResults.daoHoa.length ? "Đào Hoa hiện diện, mang sức hút và khả năng giao tiếp, phù hợp với các nghề liên quan đến đối ngoại." : ""} 
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Phù hợp với nghề ${dungThan.includes("Mộc") ? "giáo dục, sáng tạo, nghệ thuật" : dungThan.includes("Hỏa") ? "truyền thông, marketing, lãnh đạo" : dungThan.includes("Thổ") ? "bất động sản, tài chính, quản lý" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, phân tích" : "giao tiếp, du lịch, tư vấn"}. Chọn màu sắc ${dungThan.includes("Thổ") ? "vàng, nâu" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, đỏ, xanh dương"}, vật phẩm như thạch anh vàng hoặc ngọc bích, và hướng ${dungThan.includes("Thổ") ? "Đông Bắc" : dungThan.includes("Kim") ? "Tây" : "Đông, Nam, Bắc"}.
 ${language === "vi" ? "Cầu chúc sự nghiệp bạn như ngọn núi vững vàng, rực rỡ ánh vàng!" : "May your career stand like a mountain, radiant with golden light!"}
 `;
   } else if (isHealth) {
     response += `
 ${language === "vi" ? "Sức khỏe:" : "Health:"}
-Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} che chở, sức khỏe của bạn cần sự cân bằng ngũ hành. ${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Chính Ấn")] ? "Chính Ấn mang sự bảo vệ, giúp bạn vượt qua khó khăn về sức khỏe." : "Dụng Thần " + dungThan.join(", ") + " sẽ nuôi dưỡng cơ thể bạn."} 
+Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} che chở, sức khỏe của bạn cần sự cân bằng ngũ hành. ${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Chính Ấn") ? "Chính Ấn mang sự bảo vệ, giúp bạn vượt qua khó khăn về sức khỏe." : "Dụng Thần " + dungThan.join(", ") + " sẽ nuôi dưỡng cơ thể bạn."} 
 ${thanSatResults.thienDuc.length || thanSatResults.nguyetDuc.length ? "Thiên Đức hoặc Nguyệt Đức hiện diện, mang phúc đức bảo vệ." : ""}
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc ${dungThan.includes("Thổ") ? "vàng, nâu" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, xanh dương"}, vật phẩm như ngọc bích hoặc đá thạch anh, và hướng ${dungThan.includes("Thổ") ? "Đông Bắc" : dungThan.includes("Kim") ? "Tây" : "Bắc"} để tăng cường sức khỏe.
 ${language === "vi" ? "Cầu chúc sức khỏe bạn như dòng sông trong lành, bền lâu mãi mãi!" : "May your health flow like a clear river, enduring forever!"}
@@ -383,14 +394,14 @@ ${language === "vi" ? "Cầu chúc sức khỏe bạn như dòng sông trong là
     response += `
 ${language === "vi" ? "Tình duyên & Hôn nhân:" : "Love & Marriage:"}
 Như ${canNguHanh[nhatChu].toLowerCase()} tìm thấy ${dungThan[0].toLowerCase()}, tình duyên của bạn nở hoa trong sự hòa hợp. ${thanSatResults.daoHoa.length || thanSatResults.hongLoan.length ? "Đào Hoa hoặc Hồng Loan hiện diện, mang sức hút và duyên phận." : "Dụng Thần " + dungThan.join(", ") + " sẽ dẫn bạn đến tình yêu bền vững."} 
-${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Thực Thần")] ? "Thực Thần mang sự hòa hợp và lãng mạn." : ""}
+${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Thực Thần") ? "Thực Thần mang sự hòa hợp và lãng mạn." : ""}
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc ${dungThan.includes("Hỏa") ? "đỏ, hồng" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, xanh dương"}, vật phẩm như thạch anh hồng, và hướng ${dungThan.includes("Hỏa") ? "Nam" : dungThan.includes("Kim") ? "Tây" : "Đông, Bắc"} để thu hút tình duyên.
 ${language === "vi" ? "Cầu chúc tình duyên bạn như hoa nở trên cành, mãi mãi rực rỡ!" : "May your love blossom like flowers on a branch, radiant forever!"}
 `;
   } else if (isChildren) {
     response += `
 ${language === "vi" ? "Con cái:" : "Children:"}
-Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} nâng niu, con cái là niềm vui rực rỡ trong đời bạn. ${thapThanResults[Object.keys(thapThanResults).find(k => thapThanResults[k] === "Thực Thần" || thapThanResults[k] === "Thương Quan")] ? "Thực Thần hoặc Thương Quan hiện diện, mang sự gắn kết với con cái." : "Dụng Thần " + dungThan.join(", ") + " sẽ mang phúc đức cho con cái."} 
+Như ${canNguHanh[nhatChu].toLowerCase()} được ${dungThan[0].toLowerCase()} nâng niu, con cái là niềm vui rực rỡ trong đời bạn. ${Object.keys(thapThanResults).some(k => thapThanResults[k] === "Thực Thần" || thapThanResults[k] === "Thương Quan") ? "Thực Thần hoặc Thương Quan hiện diện, mang sự gắn kết với con cái." : "Dụng Thần " + dungThan.join(", ") + " sẽ mang phúc đức cho con cái."} 
 ${thanSatResults.thaiCucQuyNhan.length ? "Thái Cực Quý Nhân hiện diện, mang trí tuệ và phúc đức cho thế hệ sau." : ""}
 ${language === "vi" ? "Đề xuất:" : "Suggestions:"} Chọn màu sắc ${dungThan.includes("Thổ") ? "vàng, nâu" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh lá, xanh dương"}, vật phẩm như ngọc bích, và hướng ${dungThan.includes("Thổ") ? "Đông Bắc" : dungThan.includes("Kim") ? "Tây" : "Đông"} để tăng phúc đức cho con cái.
 ${language === "vi" ? "Cầu chúc con cái bạn như những vì sao sáng, mang niềm vui muôn đời!" : "May your children shine like stars, bringing joy forever!"}
@@ -399,7 +410,6 @@ ${language === "vi" ? "Cầu chúc con cái bạn như những vì sao sáng, ma
 
   return response;
 };
-
 // Gọi API OpenAI
 const callOpenAI = async (payload, retries = 5, delay = 2000) => {
   if (!process.env.OPENAI_API_KEY) {
