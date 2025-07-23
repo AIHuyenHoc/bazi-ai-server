@@ -426,9 +426,16 @@ const callOpenAI = async (payload, retries = 5, delay = 2000) => {
     throw new Error("Missing OpenAI API key");
   }
 
+  // Kiểm tra payload trước khi gửi
+  if (!payload.model || !payload.messages || !Array.isArray(payload.messages) || !payload.messages.every(msg => msg.role && typeof msg.content === "string")) {
+    console.error("Payload không hợp lệ:", JSON.stringify(payload, null, 2));
+    throw new Error("Invalid payload format");
+  }
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`Thử gọi OpenAI lần ${attempt}...`);
+      console.log(`Thử gọi OpenAI lần ${attempt} với mô hình ${payload.model}...`);
+      console.log("Payload:", JSON.stringify(payload, null, 2));
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         payload,
@@ -554,15 +561,16 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
 `;
 
   try {
-    const gptRes = await callOpenAI({
-      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+    const payload = {
+      model: "gpt-3.5-turbo-0125",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
       max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500,
       top_p: 0.9,
       frequency_penalty: 0.2,
       presence_penalty: 0.1
-    });
+    };
+    const gptRes = await callOpenAI(payload);
     res.json({ answer: gptRes.choices[0].message.content });
   } catch (err) {
     console.error("GPT API error:", err.message, err.response?.data || {});
