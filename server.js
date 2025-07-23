@@ -420,17 +420,23 @@ ${language === "vi" ? "Cầu chúc con cái bạn như những vì sao sáng, ma
 };
 
 // Gọi API OpenAI
-const callOpenAI = async (payload, retries = 5, delay = 2000) => {
+const callOpenAI = async (payload, retries = 3, delay = 2000) => {
   if (!process.env.OPENAI_API_KEY) {
     console.error("Lỗi: OPENAI_API_KEY không được cấu hình trong .env");
     throw new Error("Missing OpenAI API key");
   }
 
-  // Kiểm tra payload trước khi gửi
+  // Kiểm tra và mã hóa payload
   if (!payload.model || !payload.messages || !Array.isArray(payload.messages) || !payload.messages.every(msg => msg.role && typeof msg.content === "string")) {
     console.error("Payload không hợp lệ:", JSON.stringify(payload, null, 2));
     throw new Error("Invalid payload format");
   }
+
+  // Mã hóa prompt để xử lý ký tự đặc biệt
+  payload.messages = payload.messages.map(msg => ({
+    ...msg,
+    content: encodeURIComponent(msg.content)
+  }));
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -444,16 +450,27 @@ const callOpenAI = async (payload, retries = 5, delay = 2000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
-          timeout: 20000
+          timeout: 30000 // Tăng timeout lên 30 giây
         }
       );
       console.log("Gọi OpenAI thành công:", response.data.id);
+      // Giải mã content trong response
+      response.data.choices = response.data.choices.map(choice => ({
+        ...choice,
+        message: {
+          ...choice.message,
+          content: decodeURIComponent(choice.message.content)
+        }
+      }));
       return response.data;
     } catch (err) {
       console.error(`Thử lại lần ${attempt} thất bại:`, err.message, err.response?.data || {});
+      if (err.response?.data?.error?.message) {
+        console.error("Chi tiết lỗi từ OpenAI:", err.response.data.error.message);
+      }
       if (attempt === retries) {
         console.error("Hết số lần thử, chuyển sang generateResponse");
-        throw new Error("Failed to connect to OpenAI after retries");
+        throw new Error(`Failed to connect to OpenAI after ${retries} retries: ${err.message}`);
       }
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
     }
@@ -543,29 +560,29 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.json({ answer });
   }
 
-  // Gọi OpenAI với prompt cải tiến
+  // Gọi OpenAI với prompt rút gọn
   const prompt = `
-You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"}, with poetic, heartfelt, and detailed answers. Focus on personality (based on Day Master and Ten Gods), suitable careers (based on Eating God, Proper Authority, Peach Blossom, and Useful God), and lucky colors (based on Useful God). Auspicious Stars are secondary; mention them briefly, using full names (${language === "vi" ? "Thiên Ất Quý Nhân, Đào Hoa, Văn Xương, Thái Cực Quý Nhân, Hồng Loan, Thiên Đức, Nguyệt Đức" : "Nobleman Star, Peach Blossom, Literary Star, Grand Ultimate Noble, Red Phoenix, Heavenly Virtue, Lunar Virtue"}) with correct interpretations (e.g., Lunar Virtue brings harmony and grace, not negative). Do not emphasize Auspicious Stars at the start. Analysis:
+You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"} with concise, poetic answers. Focus on personality (Day Master, Ten Gods), careers (Eating God, Proper Authority, Peach Blossom, Useful God), and lucky colors (Useful God). Briefly mention Auspicious Stars using full names (${language === "vi" ? "Thiên Ất Quý Nhân, Đào Hoa, Văn Xương, Thái Cực Quý Nhân, Hồng Loan, Thiên Đức, Nguyệt Đức" : "Nobleman Star, Peach Blossom, Literary Star, Grand Ultimate Noble, Red Phoenix, Heavenly Virtue, Lunar Virtue"}) with correct meanings. Analysis:
 Four Pillars: Hour ${tuTruParsed.gio}, Day ${tuTruParsed.ngay}, Month ${tuTruParsed.thang}, Year ${tuTruParsed.nam}
 Five Elements: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
 Ten Gods: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
-Useful God: ${dungThan.join(", ")} (Provided by client)
+Useful God: ${dungThan.join(", ")}
 Auspicious Stars: ${Object.entries(thanSatResults).filter(([_, v]) => v.value.length > 0).map(([key, v]) => `${language === "vi" ? key : thanSatResults[key].en}: ${v.value.join(", ")}`).join("; ")}
 Question: ${userInput}
-${userInput.includes("tiền bạc") || userInput.includes("money") ? language === "vi" ? "Phân tích tài lộc dựa trên Chính Tài, Thiên Tài và Dụng Thần." : "Analyze wealth based on Proper Wealth, Unexpected Wealth, and Useful God." : ""}
-${userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("sự nghiệp") || userInput.includes("career") ? language === "vi" ? "Phân tích sự nghiệp dựa trên Thực Thần, Chính Quan, Văn Xương, Đào Hoa, và Dụng Thần." : "Analyze career based on Eating God, Proper Authority, Literary Star, Peach Blossom, and Useful God." : ""}
-${userInput.includes("sức khỏe") || userInput.includes("health") ? language === "vi" ? "Phân tích sức khỏe dựa trên ngũ hành, Chính Ấn, Thiên Đức." : "Analyze health based on Five Elements, Proper Seal, Heavenly Virtue." : ""}
-${userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("love") || userInput.includes("marriage") ? language === "vi" ? "Phân tích tình duyên/hôn nhân dựa trên Đào Hoa, Hồng Loan, Thực Thần." : "Analyze love/marriage based on Peach Blossom, Red Phoenix, Eating God." : ""}
-${userInput.includes("con cái") || userInput.includes("children") ? language === "vi" ? "Phân tích con cái dựa trên Thực Thần, Thương Quan, Thái Cực Quý Nhân." : "Analyze children based on Eating God, Hurting Officer, Grand Ultimate Noble." : ""}
-${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? language === "vi" ? "Câu hỏi phức tạp, hướng dẫn liên hệ app.aihuyenhoc@gmail.com hoặc Discord." : "Complex question, guide to contact app.aihuyenhoc@gmail.com or Discord." : ""}
+${userInput.includes("tiền bạc") || userInput.includes("money") ? language === "vi" ? "Phân tích tài lộc (Chính Tài, Thiên Tài, Dụng Thần)." : "Analyze wealth (Proper Wealth, Unexpected Wealth, Useful God)." : ""}
+${userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("sự nghiệp") || userInput.includes("career") ? language === "vi" ? "Phân tích sự nghiệp (Thực Thần, Chính Quan, Văn Xương, Đào Hoa, Dụng Thần)." : "Analyze career (Eating God, Proper Authority, Literary Star, Peach Blossom, Useful God)." : ""}
+${userInput.includes("sức khỏe") || userInput.includes("health") ? language === "vi" ? "Phân tích sức khỏe (ngũ hành, Chính Ấn, Thiên Đức)." : "Analyze health (Five Elements, Proper Seal, Heavenly Virtue)." : ""}
+${userInput.includes("tình duyên") || userInput.includes("hôn nhân") || userInput.includes("love") || userInput.includes("marriage") ? language === "vi" ? "Phân tích tình duyên/hôn nhân (Đào Hoa, Hồng Loan, Thực Thần)." : "Analyze love/marriage (Peach Blossom, Red Phoenix, Eating God)." : ""}
+${userInput.includes("con cái") || userInput.includes("children") ? language === "vi" ? "Phân tích con cái (Thực Thần, Thương Quan, Thái Cực Quý Nhân)." : "Analyze children (Eating God, Hurting Officer, Grand Ultimate Noble)." : ""}
+${userInput.includes("dự đoán") || userInput.includes("tương lai") || userInput.includes("future") ? language === "vi" ? "Hướng dẫn liên hệ app.aihuyenhoc@gmail.com hoặc Discord." : "Guide to contact app.aihuyenhoc@gmail.com or Discord." : ""}
 `;
 
   try {
     const payload = {
-      model: "gpt-3.5-turbo-0125",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500,
+      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1000, // Giảm max_tokens để tránh vượt giới hạn
       top_p: 0.9,
       frequency_penalty: 0.2,
       presence_penalty: 0.1
