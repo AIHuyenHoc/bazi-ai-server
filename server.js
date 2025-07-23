@@ -222,8 +222,8 @@ const tinhThanSat = (tuTru) => {
     Nhâm: ["Hợi", "Tý"], Quý: ["Tý", "Hợi"]
   };
   const daoHoa = {
-    Tý: "Dậu", Sửu: "Ngọ", Dần: "Mão", Mão: "Tý", Thìn: "Dậu", Tỵ: "Ngọ",
-    Ngọ: "Mão", Mùi: "Tý", Thân: "Dậu", Dậu: "Ngọ", Tuất: "Mão", Hợi: "Tý"
+    Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
+    Ngọ: "Mão", Mùi: "Tý", Thân: "Sửu", Dậu: "Tý", Tuất: "Hợi", Hợi: "Tuất"
   };
   const vanXuong = {
     Giáp: ["Tỵ"], Ất: ["Ngọ"], Bính: ["Thân"], Đinh: ["Dậu"], Mậu: ["Hợi"],
@@ -505,9 +505,20 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     console.error("Thiếu tuTruInfo");
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
-  if (!dungThan || !Array.isArray(dungThan) || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+
+  // Xử lý dungThan
+  let dungThanHanh = [];
+  if (Array.isArray(dungThan)) {
+    dungThanHanh = dungThan;
+  } else if (dungThan && Array.isArray(dungThan.hanh)) {
+    dungThanHanh = dungThan.hanh;
+  } else {
     console.error("Thiếu hoặc không hợp lệ: dungThan");
     return res.status(400).json({ error: language === "vi" ? "Thiếu hoặc không hợp lệ: Dụng Thần" : "Missing or invalid: Useful God" });
+  }
+  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    console.error("Dụng Thần chứa giá trị không hợp lệ:", dungThanHanh);
+    return res.status(400).json({ error: language === "vi" ? "Dụng Thần chứa giá trị không hợp lệ" : "Useful God contains invalid values" });
   }
 
   // Lấy tin nhắn người dùng
@@ -567,19 +578,25 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   // Tạo câu trả lời
   if (!useOpenAI) {
     console.log("Sử dụng generateResponse vì USE_OPENAI=false");
-    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThan, userInput, messages, language);
+    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanHanh, userInput, messages, language);
     return res.json({ answer });
   }
 
-  // Gọi OpenAI với prompt cải tiến
+  // Gọi OpenAI với prompt tối ưu
   const prompt = `
-Bạn là bậc thầy Bát Tự, trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, chi tiết, thơ ca, chạm nội tâm. TẬP TRUNG vào tính cách (dựa trên Nhật Chủ và Thập Thần), nghề nghiệp phù hợp (dựa trên Thực Thần, Chính Quan, Đào Hoa, Dụng Thần), và màu sắc may mắn (dựa trên Dụng Thần). Thần Sát CHỈ là chi tiết phụ, đề cập NGẮN GỌN, sử dụng tên đầy đủ (ví dụ: Nguyệt Đức, KHÔNG viết tắt thành nguyetDuc), và DIỄN GIẢI ĐÚNG (Nguyệt Đức mang sự hòa hợp, phúc đức, KHÔNG phải xấu xa). KHÔNG nhấn mạnh Thần Sát ở đầu câu trả lời. Phân tích:
-Tứ Trụ: Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed.nam}
-Ngũ Hành: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
-Thập Thần: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
-Dụng Thần: ${dungThan.join(", ")}
-Thần Sát: ${Object.entries(thanSatResults).filter(([_, value]) => value.value.length > 0).map(([key, value]) => `${value.vi}: ${value.value.join(", ")}`).join("; ")}
-Câu hỏi: ${userInput}
+Bạn là bậc thầy Bát Tự, trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, chi tiết, mang tính thơ ca, chạm đến nội tâm. Tập trung vào:
+- Tính cách (dựa trên Nhật Chủ và Thập Thần).
+- Nghề nghiệp phù hợp (dựa trên Thực Thần, Chính Quan, Đào Hoa, Dụng Thần).
+- Màu sắc may mắn (dựa trên Dụng Thần).
+Thần Sát chỉ là chi tiết phụ, đề cập ngắn gọn, sử dụng tên đầy đủ (ví dụ: Nguyệt Đức, không viết tắt), và diễn giải đúng ý nghĩa (Nguyệt Đức mang sự hòa hợp, phúc đức). Không nhấn mạnh Thần Sát ở đầu câu trả lời. Phân tích:
+
+**Tứ Trụ**: Giờ ${tuTruParsed.gio}, Ngày ${tuTruParsed.ngay}, Tháng ${tuTruParsed.thang}, Năm ${tuTruParsed.nam}
+**Ngũ Hành**: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
+**Thập Thần**: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
+**Dụng Thần**: ${dungThanHanh.join(", ")}
+**Thần Sát**: ${Object.entries(thanSatResults).filter(([_, value]) => value.value.length > 0).map(([key, value]) => `${value.vi}: ${value.value.join(", ")}`).join("; ")}
+**Câu hỏi**: ${userInput}
+
 ${userInput.includes("tiền bạc") || userInput.includes("money") ? "Phân tích tài lộc dựa trên Chính Tài, Thiên Tài và Dụng Thần." : ""}
 ${userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("sự nghiệp") || userInput.includes("career") ? "Phân tích sự nghiệp dựa trên Thực Thần, Chính Quan, Văn Xương, Đào Hoa, và Dụng Thần." : ""}
 ${userInput.includes("sức khỏe") || userInput.includes("health") ? "Phân tích sức khỏe dựa trên ngũ hành, Chính Ấn, Thiên Đức." : ""}
@@ -602,7 +619,7 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
   } catch (err) {
     console.error("GPT API error:", err.message, err.response?.data || {});
     console.log("Chuyển sang generateResponse do lỗi OpenAI");
-    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThan, userInput, messages, language);
+    const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanHanh, userInput, messages, language);
     res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect to OpenAI: ${err.message}` });
   }
 });
