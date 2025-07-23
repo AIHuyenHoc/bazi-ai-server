@@ -69,7 +69,7 @@ const parseEnglishTuTru = (input) => {
 const hoaGiap = [
   "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
-  "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
+  "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sutil", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Thân", "Đinh Dậu", "Mậu Tuất", "Kỷ Hợi", "Canh Tý", "Tân Sửu", "Nhâm Dần", "Quý Mão",
   "Giáp Thìn", "Ất Tỵ", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
   "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
@@ -430,6 +430,11 @@ const checkOpenAIKey = async () => {
       timeout: 10000
     });
     console.log("API key hợp lệ, danh sách mô hình:", response.data.data.map(m => m.id));
+    const hasModel = response.data.data.some(m => m.id.includes("gpt-3.5-turbo"));
+    if (!hasModel) {
+      console.error("Mô hình gpt-3.5-turbo không khả dụng với API key này");
+      return false;
+    }
     return true;
   } catch (err) {
     console.error("Lỗi kiểm tra API key:", err.message, err.response?.data || {});
@@ -456,12 +461,6 @@ const callOpenAI = async (payload, retries = 5, delay = 3000) => {
     throw new Error("Invalid or expired OpenAI API key");
   }
 
-  // Mã hóa prompt
-  payload.messages = payload.messages.map(msg => ({
-    ...msg,
-    content: encodeURIComponent(msg.content)
-  }));
-
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`Thử gọi OpenAI lần ${attempt} với mô hình ${payload.model}...`);
@@ -474,18 +473,10 @@ const callOpenAI = async (payload, retries = 5, delay = 3000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
-          timeout: 60000 // Tăng timeout lên 60 giây
+          timeout: 120000 // Tăng timeout lên 120 giây
         }
       );
       console.log("Gọi OpenAI thành công:", response.data.id);
-      // Giải mã content trong response
-      response.data.choices = response.data.choices.map(choice => ({
-        ...choice,
-        message: {
-          ...choice.message,
-          content: decodeURIComponent(choice.message.content)
-        }
-      }));
       return response.data;
     } catch (err) {
       console.error(`Thử lại lần ${attempt} thất bại:`, {
@@ -502,6 +493,7 @@ const callOpenAI = async (payload, retries = 5, delay = 3000) => {
         throw new Error(`Failed to connect to OpenAI after ${retries} retries: ${err.message}`);
       }
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
+Sixth
     }
   }
 };
@@ -511,18 +503,25 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   console.log("Request received:", JSON.stringify(req.body, null, 2));
   const { messages, tuTruInfo, dungThan } = req.body;
   const useOpenAI = process.env.USE_OPENAI !== "false";
+  const language = messages.some(msg => /[\u00C0-\u1EF9]/.test(msg.content) || msg.content.includes("hãy") || msg.content.includes("ngày sinh")) ? "vi" : "en";
 
-  if (!messages || !tuTruInfo) {
-    console.error("Thiếu messages hoặc tuTruInfo");
-    return res.status(400).json({ error: language === "vi" ? "Thiếu messages hoặc tuTruInfo" : "Missing messages or tuTruInfo" });
+  // Kiểm tra đầu vào
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    console.error("Thiếu hoặc không hợp lệ: messages");
+    return res.status(400).json({ error: language === "vi" ? "Thiếu hoặc không hợp lệ: messages" : "Missing or invalid: messages" });
+  }
+  if (!tuTruInfo) {
+    console.error("Thiếu tuTruInfo");
+    return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
+  }
+  if (!dungThan || !Array.isArray(dungThan) || !dungThan.every(elem => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(elem))) {
+    console.error("Dụng Thần không hợp lệ:", dungThan);
+    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God" });
   }
 
   // Lấy tin nhắn người dùng
   const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content.toLowerCase() : "";
-  // Xác định ngôn ngữ dựa trên toàn bộ messages
-  const hasVietnamese = messages.some(msg => /[\u00C0-\u1EF9]/.test(msg.content) || msg.content.includes("hãy") || msg.content.includes("ngày sinh"));
-  const language = hasVietnamese ? "vi" : "en";
 
   // Parse và chuẩn hóa Tứ Trụ
   let tuTruParsed = null;
@@ -543,13 +542,6 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
   }
   console.log("Parsed Tu Tru:", JSON.stringify(tuTruParsed, null, 2));
-
-  // Kiểm tra Dụng Thần từ client
-  const validElements = ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"];
-  if (!dungThan || !Array.isArray(dungThan) || !dungThan.every(elem => validElements.includes(elem))) {
-    console.error("Dụng Thần không hợp lệ:", dungThan);
-    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God" });
-  }
   console.log("Dụng Thần từ client:", dungThan);
 
   // Phân tích ngũ hành
@@ -591,12 +583,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Gọi OpenAI với prompt rút gọn
   const prompt = `
-You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"} with concise, poetic answers. Focus on personality (Day Master, Ten Gods), careers (Eating God, Proper Authority, Peach Blossom, Useful God), and lucky colors (Useful God). Briefly mention Auspicious Stars using full names (${language === "vi" ? "Thiên Ất Quý Nhân, Đào Hoa, Văn Xương, Thái Cực Quý Nhân, Hồng Loan, Thiên Đức, Nguyệt Đức" : "Nobleman Star, Peach Blossom, Literary Star, Grand Ultimate Noble, Red Phoenix, Heavenly Virtue, Lunar Virtue"}) with correct meanings. Analysis:
+You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"} with concise, poetic answers. Focus on personality (Day Master, Ten Gods), careers, and lucky colors based on Useful God. Briefly mention Auspicious Stars with full names and meanings. Analysis:
 Four Pillars: Hour ${tuTruParsed.gio}, Day ${tuTruParsed.ngay}, Month ${tuTruParsed.thang}, Year ${tuTruParsed.nam}
 Five Elements: ${Object.entries(nguHanhCount).map(([k, v]) => `${k}: ${((v / Object.values(nguHanhCount).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%`).join(", ")}
-Ten Gods: ${Object.entries(thapThanResults).map(([elem, thapThan]) => `${elem}: ${thapThan}`).join(", ")}
 Useful God: ${dungThan.join(", ")}
-Auspicious Stars: ${Object.entries(thanSatResults).filter(([_, v]) => v.value.length > 0).map(([key, v]) => `${language === "vi" ? key : thanSatResults[key].en}: ${v.value.join(", ")}`).join("; ")}
 Question: ${userInput}
 ${userInput.includes("tiền bạc") || userInput.includes("money") ? language === "vi" ? "Phân tích tài lộc (Chính Tài, Thiên Tài, Dụng Thần)." : "Analyze wealth (Proper Wealth, Unexpected Wealth, Useful God)." : ""}
 ${userInput.includes("nghề") || userInput.includes("công việc") || userInput.includes("sự nghiệp") || userInput.includes("career") ? language === "vi" ? "Phân tích sự nghiệp (Thực Thần, Chính Quan, Văn Xương, Đào Hoa, Dụng Thần)." : "Analyze career (Eating God, Proper Authority, Literary Star, Peach Blossom, Useful God)." : ""}
@@ -607,6 +597,7 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
 `;
 
   try {
+    console.log("Prompt gửi đến OpenAI:", prompt);
     const payload = {
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -622,14 +613,24 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
     console.error("GPT API error:", err.message, err.response?.data || {});
     console.log("Chuyển sang generateResponse do lỗi OpenAI");
     const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThan, thanSatResults, userInput, messages, language);
-    res.json({ answer });
+    res.json({ 
+      answer,
+      warning: language === "vi" 
+        ? `Lỗi OpenAI API: ${err.response?.data?.error?.message || err.message}. Sử dụng phản hồi cục bộ thay thế.`
+        : `OpenAI API error: ${err.response?.data?.error?.message || err.message}. Using local response instead.`
+    });
   }
 });
 
 // Xử lý lỗi toàn cục
 app.use((err, req, res, next) => {
   console.error("Lỗi server:", err.stack);
-  res.status(500).json({ error: language === "vi" ? "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau" : "A system error occurred, please try again later" });
+  const language = req.body?.messages?.some(msg => /[\u00C0-\u1EF9]/.test(msg.content)) ? "vi" : "en";
+  res.status(500).json({ 
+    error: language === "vi" 
+      ? "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau" 
+      : "A system error occurred, please try again later" 
+  });
 });
 
 // Khởi động server
