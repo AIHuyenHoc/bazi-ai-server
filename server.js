@@ -419,20 +419,44 @@ ${language === "vi" ? "Cầu chúc con cái bạn như những vì sao sáng, ma
   return response;
 };
 
+// Kiểm tra API key
+const checkOpenAIKey = async () => {
+  try {
+    const response = await axios.get("https://api.openai.com/v1/models", {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 10000
+    });
+    console.log("API key hợp lệ, danh sách mô hình:", response.data.data.map(m => m.id));
+    return true;
+  } catch (err) {
+    console.error("Lỗi kiểm tra API key:", err.message, err.response?.data || {});
+    return false;
+  }
+};
+
 // Gọi API OpenAI
-const callOpenAI = async (payload, retries = 3, delay = 2000) => {
+const callOpenAI = async (payload, retries = 5, delay = 3000) => {
   if (!process.env.OPENAI_API_KEY) {
     console.error("Lỗi: OPENAI_API_KEY không được cấu hình trong .env");
     throw new Error("Missing OpenAI API key");
   }
 
-  // Kiểm tra và mã hóa payload
+  // Kiểm tra payload
   if (!payload.model || !payload.messages || !Array.isArray(payload.messages) || !payload.messages.every(msg => msg.role && typeof msg.content === "string")) {
     console.error("Payload không hợp lệ:", JSON.stringify(payload, null, 2));
     throw new Error("Invalid payload format");
   }
 
-  // Mã hóa prompt để xử lý ký tự đặc biệt
+  // Kiểm tra API key trước
+  const isKeyValid = await checkOpenAIKey();
+  if (!isKeyValid) {
+    throw new Error("Invalid or expired OpenAI API key");
+  }
+
+  // Mã hóa prompt
   payload.messages = payload.messages.map(msg => ({
     ...msg,
     content: encodeURIComponent(msg.content)
@@ -450,7 +474,7 @@ const callOpenAI = async (payload, retries = 3, delay = 2000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json",
           },
-          timeout: 30000 // Tăng timeout lên 30 giây
+          timeout: 60000 // Tăng timeout lên 60 giây
         }
       );
       console.log("Gọi OpenAI thành công:", response.data.id);
@@ -464,7 +488,12 @@ const callOpenAI = async (payload, retries = 3, delay = 2000) => {
       }));
       return response.data;
     } catch (err) {
-      console.error(`Thử lại lần ${attempt} thất bại:`, err.message, err.response?.data || {});
+      console.error(`Thử lại lần ${attempt} thất bại:`, {
+        message: err.message,
+        code: err.code,
+        response: err.response?.data || {},
+        status: err.response?.status
+      });
       if (err.response?.data?.error?.message) {
         console.error("Chi tiết lỗi từ OpenAI:", err.response.data.error.message);
       }
@@ -582,7 +611,7 @@ ${userInput.includes("dự đoán") || userInput.includes("tương lai") || user
       model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1000, // Giảm max_tokens để tránh vượt giới hạn
+      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1000,
       top_p: 0.9,
       frequency_penalty: 0.2,
       presence_penalty: 0.1
