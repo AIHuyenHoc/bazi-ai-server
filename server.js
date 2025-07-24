@@ -706,8 +706,9 @@ app.use((err, req, res, next) => {
 });
 
 // Khởi động server
-const port = process.env.PORT || 5000;
-const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+const port = process.env.PORT || 10000; // Use Render's default port 10000 as fallback
+const host = '0.0.0.0'; // Explicitly bind to 0.0.0.0 for Render
+const server = app.listen(port, host, () => {
+  console.log(`Server is running on host ${host} and port ${port}`);
 });
-server.setTimeout(120000);
+server.setTimeout(120000); // Keep 120-second timeout for Render
