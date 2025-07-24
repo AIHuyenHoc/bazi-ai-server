@@ -230,7 +230,7 @@ const tinhThanSat = (tuTru) => {
     Kỷ: ["Tý"], Canh: ["Dần"], Tân: ["Mão"], Nhâm: ["Tỵ"], Quý: ["Ngọ"]
   };
   const thaiCucQuyNhan = {
-    Giáp: ["Tý"], Ất: ["Tý"], Bính: ["Dần"], Đinh: ["Dần"], Mậu: ["Thìn"],
+    Giáp: ["Tý"], Ất: ["Tý"], Bính: ["Dần"], Đing: ["Dần"], Mậu: ["Thìn"],
     Kỷ: ["Thìn"], Canh: ["Ngọ"], Tân: ["Ngọ"], Nhâm: ["Thân"], Quý: ["Thân"]
   };
   const hongLoan = {
@@ -624,7 +624,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Calculate Ten Gods if requested
   let thapThanResults = {};
-  if (userInput.toLowerCase().includes("thập thần") || userInput.toLowerCase().includes("ten gods")) {
+  const isThapThan = userInput.toLowerCase().includes("thập thần") || userInput.toLowerCase().includes("ten gods");
+  if (isThapThan) {
     try {
       thapThanResults = tinhThapThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed);
       console.log("Thập Thần:", JSON.stringify(thapThanResults, null, 2));
@@ -636,7 +637,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Calculate Auspicious Stars if requested
   let thanSatResults = {};
-  if (userInput.toLowerCase().includes("thần sát") || userInput.toLowerCase().includes("auspicious stars") || userInput.toLowerCase().includes("sao")) {
+  const isThanSat = userInput.toLowerCase().includes("thần sát") || userInput.toLowerCase().includes("auspicious stars") || userInput.toLowerCase().includes("sao");
+  if (isThanSat) {
     try {
       thanSatResults = tinhThanSat(tuTruParsed);
       console.log("Thần Sát:", JSON.stringify(thanSatResults, null, 2));
