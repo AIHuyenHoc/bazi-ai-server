@@ -683,11 +683,8 @@ ${isThanSat ? `**Thần Sát**: ${JSON.stringify(thanSatResults)}` : ""}
   }
 });
 
-// Khởi động server
+// Khởi động ứng dụng Express
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server đang chạy trên cổng ${PORT}`);
+  console.log(`Ứng dụng đang chạy trên cổng ${PORT}`);
 });
-server.setTimeout(120000);
-
-
