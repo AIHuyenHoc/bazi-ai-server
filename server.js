@@ -160,7 +160,6 @@ const extractDungThan = (userInput, language) => {
     }
   }
 
-  // Nếu vẫn không tìm thấy, trả về rỗng để báo lỗi
   return dungThan.length ? dungThan : null;
 };
 
@@ -420,7 +419,7 @@ ${language === "vi" ? "Nhân cách:" : "Personality:"}
 ${language === "vi" ? `Bạn là hiện thân của ${canNguHanh[nhatChu]}, ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `You embody ${canNguHanh[nhatChu]}, ${personalityDescriptions[canNguHanh[nhatChu]].en}`}
 
 ${language === "vi" ? "Nghề nghiệp:" : "Careers:"}
-${language === "vi" ? `Với Dụng Thần ${dungThan.join(", ")}, bạn có thể thăng tiến trong các lĩnh vực như ${dungThan.includes("Thủy") ? "nghệ thuật, nghiên cứu, tư vấn" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", giáo dục, y học, thiết kế" : "giáo dục, y học, thiết kế") : dungThan.includes("Hỏa") ? "truyền thông, marketing, lãnh đạo" : dungThan.includes("Thổ") ? "bất động sản, tài chính, quản lý" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, phân tích" : ""}.` : `With Useful God ${dungThan.join(", ")}, you can excel in fields like ${dungThan.includes("Thủy") ? "arts, research, consulting" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", education, medicine, design" : "education, medicine, design") : dungThan.includes("Hỏa") ? "media, marketing, leadership" : dungThan.includes("Thổ") ? "real estate, finance, management" : dungThan.includes("Kim") ? "technology, engineering, analysis" : ""}.`}
+${language === "vi" ? `Với Dụng Thần ${dungThan.join(", ")}, bạn có thể thăng tiến trong các lĩnh vực như ${dungThan.includes("Thủy") ? "nghệ thuật, nghiên cứu, tư vấn" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", giáo dục, y học, thiết kế" : "giáo dục, y học, thiết kế") : dungThan.includes("Hỏa") ? "truyền thông, marketing, lãnh đạo" : dungThan.includes("Thổ") ? "bất động sản, tài chính, quản lý" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, phân tích" : ""}.` : `With Useful God ${dungThan.join(", ")}, you can excel in fields like ${dungThan.includes("Thủy") ? "arts, research, consulting" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", education, medicine, design" : "education, medicine, design") : dungThan.includes("Hỏa") ? "media, marketing, leadership" : dungThan.includes("Thổ") ? "real estate, finance, management" : "technology, engineering, analysis" : ""}.`}
 
 ${language === "vi" ? "Màu sắc may mắn:" : "Lucky Colors:"}
 ${language === "vi" ? `Để kích hoạt vận may, hãy ưu tiên màu sắc của Dụng Thần: ${dungThan.includes("Thủy") ? "xanh dương, đen" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", xanh lá" : "xanh lá") : dungThan.includes("Hỏa") ? (dungThan.length > 1 ? ", đỏ, hồng" : "đỏ, hồng") : dungThan.includes("Thổ") ? (dungThan.length > 1 ? ", vàng, nâu" : "vàng, nâu") : dungThan.includes("Kim") ? (dungThan.length > 1 ? ", trắng, bạc" : "trắng, bạc") : ""}. Sử dụng vật phẩm phong thủy như ${dungThan.includes("Thủy") ? "lapis lazuli, aquamarine" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", ngọc lục bảo" : "ngọc lục bảo") : dungThan.includes("Hỏa") ? (dungThan.length > 1 ? ", thạch anh hồng, ruby" : "thạch anh hồng, ruby") : dungThan.includes("Thổ") ? (dungThan.length > 1 ? ", thạch anh vàng, ngọc bích" : "thạch anh vàng, ngọc bích") : dungThan.includes("Kim") ? (dungThan.length > 1 ? ", đá mặt trăng, thạch anh trắng" : "đá mặt trăng, thạch anh trắng") : ""}.` : `To activate good fortune, prioritize Useful God colors: ${dungThan.includes("Thủy") ? "blue, black" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", green" : "green") : dungThan.includes("Hỏa") ? (dungThan.length > 1 ? ", red, pink" : "red, pink") : dungThan.includes("Thổ") ? (dungThan.length > 1 ? ", yellow, brown" : "yellow, brown") : dungThan.includes("Kim") ? (dungThan.length > 1 ? ", white, silver" : "white, silver") : ""}. Use feng shui items like ${dungThan.includes("Thủy") ? "lapis lazuli, aquamarine" : ""}${dungThan.includes("Mộc") ? (dungThan.includes("Thủy") ? ", emerald" : "emerald") : dungThan.includes("Hỏa") ? (dungThan.length > 1 ? ", rose quartz, ruby" : "rose quartz, ruby") : dungThan.includes("Thổ") ? (dungThan.length > 1 ? ", citrine, jade" : "citrine, jade") : dungThan.includes("Kim") ? (dungThan.length > 1 ? ", moonstone, white quartz" : "moonstone, white quartz") : ""}.`}
@@ -589,16 +588,11 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const lastUserMsg = messages.slice().reverse().find(m => m.role === "user");
   const userInput = lastUserMsg ? lastUserMsg.content : "";
 
-  // Trích xuất Dụng Thần từ tin nhắn
-  const dungThan = extractDungThan(userInput, language);
-  if (!dungThan) {
-    console.error("Không tìm thấy Dụng Thần trong tin nhắn");
-    return res.status(400).json({ error: language === "vi" ? "Vui lòng cung cấp Dụng Thần trong tin nhắn" : "Please provide Useful God in the message" });
-  }
-  console.log("Dụng Thần trích xuất:", dungThan);
-
-  // Parse và chuẩn hóa Tứ Trụ
+  // Trích xuất Dụng Thần từ tin nhắn hoặc tuTruInfo
+  let dungThan = extractDungThan(userInput, language);
   let tuTruParsed = null;
+
+  // Parse tuTruInfo
   try {
     tuTruParsed = JSON.parse(tuTruInfo);
     tuTruParsed = {
@@ -607,15 +601,28 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
       thang: normalizeCanChi(tuTruParsed.thang),
       nam: normalizeCanChi(tuTruParsed.nam)
     };
-  } catch {
+
+    // Sử dụng dungThan từ tuTruInfo nếu không tìm thấy trong tin nhắn
+    if (!dungThan && tuTruParsed.dungThan && tuTruParsed.dungThan.hanh) {
+      console.log("Falling back to tuTruInfo.dungThan:", tuTruParsed.dungThan.hanh);
+      dungThan = tuTruParsed.dungThan.hanh;
+    }
+  } catch (e) {
+    console.error("Error parsing tuTruInfo:", e.message);
     tuTruParsed = parseEnglishTuTru(userInput);
   }
 
+  // Kiểm tra Tứ Trụ và Dụng Thần
   if (!tuTruParsed || !tuTruParsed.nam || !tuTruParsed.thang || !tuTruParsed.ngay || !tuTruParsed.gio) {
     console.error("Tứ Trụ không hợp lệ:", tuTruInfo);
     return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
   }
+  if (!dungThan) {
+    console.error("Không tìm thấy Dụng Thần trong tin nhắn hoặc tuTruInfo");
+    return res.status(400).json({ error: language === "vi" ? "Vui lòng cung cấp Dụng Thần trong tin nhắn hoặc tuTruInfo" : "Please provide Useful God in the message or tuTruInfo" });
+  }
   console.log("Parsed Tu Tru:", JSON.stringify(tuTruParsed, null, 2));
+  console.log("Dụng Thần sử dụng:", dungThan);
 
   // Phân tích ngũ hành
   let nguHanhCount;
@@ -662,7 +669,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   // Gọi OpenAI với prompt tối ưu
   const prompt = `
-You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"}, detailed, poetic yet clear. Day Master is the Heavenly Stem of the day, not the full pillar. Use the Useful God extracted from the user's message without recalculation. Response structure:
+You are a Bazi master, responding in ${language === "vi" ? "Vietnamese" : "English"}, detailed, poetic yet clear. Day Master is the Heavenly Stem of the day, not the full pillar. Use the Useful God provided without recalculation. Response structure:
 1. Personality: Based on Day Master, describe qualities and strengths/weaknesses accurately (e.g., Giáp Mộc is creative, adaptable, not "refined" like Kim).
 2. Careers: Suggest careers based on Useful God (e.g., Thủy: arts, research, consulting; Mộc: education, medicine, design).
 3. Lucky Colors: Select only Useful God colors (Thủy: blue, black; Mộc: green; Hỏa: red, pink; Thổ: yellow, brown; Kim: white, silver) and matching feng shui items. Avoid colors that clash with Day Master.
