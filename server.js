@@ -187,7 +187,6 @@ const tinhThapThan = (nhatChu, tuTru) => {
       throw new Error("Tứ Trụ không đầy đủ");
     }
 
-    // Tính Thập Thần cho Thiên Can
     for (const can of elements) {
       if (can === nhatChu) continue;
       const nguHanh = canNguHanh[can];
@@ -197,7 +196,6 @@ const tinhThapThan = (nhatChu, tuTru) => {
       thapThanResults[can] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
 
-    // Tính Thập Thần cho Địa Chi và Tàng Can
     for (const chi of branches) {
       const nguHanh = chiNguHanh[chi];
       if (!nguHanh) continue;
@@ -255,90 +253,7 @@ const tinhThanSat = (tuTru) => {
   };
 };
 
-const personalityDescriptions = {
-  Mộc: { vi: "sáng tạo, linh hoạt, thông minh", en: "creative, adaptable, intelligent" },
-  Hỏa: { vi: "đam mê, năng động, nhiệt huyết", en: "passionate, energetic, enthusiastic" },
-  Thổ: { vi: "vững chãi, đáng tin, thực tế", en: "steadfast, reliable, practical" },
-  Kim: { vi: "tinh tế, quyết tâm, chính trực", en: "elegant, determined, upright" },
-  Thủy: { vi: "sâu sắc, trí tuệ, nhạy bén", en: "profound, intelligent, perceptive" }
-};
-
-const thapThanEffects = {
-  "Tỷ Kiên": { vi: "Tự lập, mạnh mẽ, thích cạnh tranh", en: "Independent, strong, competitive" },
-  "Kiếp Tài": { vi: "Tài năng, quyết đoán, dễ gặp cạnh tranh", en: "Talented, decisive, prone to competition" },
-  "Thực Thần": { vi: "Sáng tạo, nghệ thuật, giỏi quản lý tài chính", en: "Creative, artistic, good at financial management" },
-  "Thương Quan": { vi: "Tư duy sắc bén, dễ áp lực", en: "Sharp-minded, prone to stress" },
-  "Chính Tài": { vi: "Giỏi quản lý tài chính, ổn định", en: "Good at financial management, stable" },
-  "Thiên Tài": { vi: "Nhạy bén, sáng tạo, đầu tư mạo hiểm", en: "Perceptive, creative, risk-taking" },
-  "Chính Quan": { vi: "Trách nhiệm, uy tín, lãnh đạo", en: "Responsible, influential, leadership" },
-  "Thất Sát": { vi: "Dũng cảm, quyết liệt, áp lực cao", en: "Courageous, assertive, high pressure" },
-  "Chính Ấn": { vi: "Trí tuệ, học vấn, tư duy sâu sắc", en: "Wise, scholarly, deep thinking" },
-  "Thiên Ấn": { vi: "Sáng tạo, tư duy độc đáo", en: "Creative, unique thinking" }
-};
-
-const dungThanRecommendations = {
-  Thủy: { vi: "màu xanh dương, môi trường gần nước, ngành tư vấn, công nghệ, truyền thông", en: "blue color, water-related environment, consulting, technology, media" },
-  Mộc: { vi: "màu xanh lá, môi trường cây cối, ngành giáo dục, nghệ thuật, xuất bản", en: "green color, nature-related environment, education, arts, publishing" },
-  Hỏa: { vi: "màu đỏ, môi trường năng động, ngành marketing, sáng tạo", en: "red color, dynamic environment, marketing, creative industries" },
-  Thổ: { vi: "màu nâu, môi trường ổn định, ngành bất động sản, xây dựng", en: "brown color, stable environment, real estate, construction" },
-  Kim: { vi: "màu trắng, môi trường chính xác, ngành tài chính, kỹ thuật", en: "white color, precise environment, finance, engineering" }
-};
-
-const determineQuestionType = (userInput, language) => {
-  const normalizedInput = typeof userInput === "string" ? userInput.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-  const types = {
-    isMoney: /tien bac|tai chinh|tai loc|lam giau|money|finance|wealth/i.test(normalizedInput),
-    isCareer: /nghe|cong viec|su nghiep|career|job/i.test(normalizedInput),
-    isFame: /cong danh|fame|reputation/i.test(normalizedInput),
-    isHealth: /suc khoe|benh tat|health/i.test(normalizedInput),
-    isLove: /tinh duyen|tinh yeu|love|hon nhan|marriage/i.test(normalizedInput),
-    isFamily: /gia dao|gia dinh|family/i.test(normalizedInput),
-    isChildren: /con cai|children/i.test(normalizedInput),
-    isProperty: /tai san|dat dai|property|real estate/i.test(normalizedInput),
-    isYear: /nam \d{4}|year \d{4}|sang nam/i.test(normalizedInput),
-    isComplex: /du doan|tuong lai|future|dai van/i.test(normalizedInput),
-    isThapThan: /thap than|ten gods/i.test(normalizedInput),
-    isThanSat: /than sat|auspicious stars|sao/i.test(normalizedInput)
-  };
-  types.isGeneral = !Object.values(types).some(v => v);
-  return types;
-};
-
-const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
-  const canChi = getCanChiForYear(year);
-  if (!canChi) return { vi: "Năm không hợp lệ", en: "Invalid year" };
-  const [can, chi] = canChi.split(" ");
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
-  };
-  const chiNguHanh = {
-    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
-  };
-  const nhatChu = tuTru.ngay.split(" ")[0];
-  const thapThanMap = {
-    Kim: { Kim: ["Tỷ Kiên", "Kiếp Tài"], Thủy: ["Thực Thần", "Thương Quan"], Mộc: ["Chính Tài", "Thiên Tài"], Hỏa: ["Chính Quan", "Thất Sát"], Thổ: ["Chính Ấn", "Thiên Ấn"] },
-    Mộc: { Mộc: ["Tỷ Kiên", "Kiếp Tài"], Hỏa: ["Thực Thần", "Thương Quan"], Thổ: ["Chính Tài", "Thiên Tài"], Kim: ["Chính Quan", "Thất Sát"], Thủy: ["Chính Ấn", "Thiên Ấn"] },
-    Hỏa: { Hỏa: ["Tỷ Kiên", "Kiếp Tài"], Thổ: ["Thực Thần", "Thương Quan"], Kim: ["Chính Tài", "Thiên Tài"], Thủy: ["Chính Quan", "Thất Sát"], Mộc: ["Chính Ấn", "Thiên Ấn"] },
-    Thổ: { Thổ: ["Tỷ Kiên", "Kiếp Tài"], Kim: ["Thực Thần", "Thương Quan"], Thủy: ["Chính Tài", "Thiên Tài"], Mộc: ["Chính Quan", "Thất Sát"], Hỏa: ["Chính Ấn", "Thiên Ấn"] },
-    Thủy: { Thủy: ["Tỷ Kiên", "Kiếp Tài"], Mộc: ["Thực Thần", "Thương Quan"], Hỏa: ["Chính Tài", "Thiên Tài"], Thổ: ["Chính Quan", "Thất Sát"], Kim: ["Chính Ấn", "Thiên Ấn"] }
-  };
-  const isYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(nhatChu);
-  const isCanYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(can);
-  const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
-  const canThapThan = thapThanMap[canNguHanh[nhatChu]][canNguHanh[can]][(isYang === isCanYang) ? 0 : 1];
-  const chiThapThan = thapThanMap[canNguHanh[nhatChu]][chiNguHanh[chi]][(isYang === isChiYang) ? 0 : 1];
-
-  const nguHanhYear = { can: canNguHanh[can], chi: chiNguHanh[chi] };
-  const isFavorable = dungThan.includes(nguHanhYear.can) || dungThan.includes(nguHanhYear.chi);
-  const analysis = {
-    vi: `Năm ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Hỗ trợ Dụng Thần ${dungThan.join(", ")}, mang cơ hội.` : `Cần cân bằng với ${dungThan.join(", ")} để giảm áp lực.`}`,
-    en: `Year ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Supports Useful God ${dungThan.join(", ")}, bringing opportunities.` : `Balance with ${dungThan.join(", ")} to reduce pressure.`}`
-  };
-  return analysis;
-};
-
+// Chỉ khai báo một lần
 const personalityDescriptions = {
   Mộc: { vi: "sáng tạo, linh hoạt, thông minh", en: "creative, adaptable, intelligent" },
   Hỏa: { vi: "đam mê, năng động, nhiệt huyết", en: "passionate, energetic, enthusiastic" },
