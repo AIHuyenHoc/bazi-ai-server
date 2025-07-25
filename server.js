@@ -253,7 +253,6 @@ const tinhThanSat = (tuTru) => {
   };
 };
 
-// Chỉ khai báo một lần
 const personalityDescriptions = {
   Mộc: { vi: "sáng tạo, linh hoạt, thông minh", en: "creative, adaptable, intelligent" },
   Hỏa: { vi: "đam mê, năng động, nhiệt huyết", en: "passionate, energetic, enthusiastic" },
@@ -369,13 +368,15 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
     response += `
 ${language === "vi" ? "Luận giải Bát Tự:" : "Bazi Interpretation:"}
 
-${language === "vi" ? `**Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]})**: Bạn có tính cách ${personalityDescriptions[canNguHanh[nhatChu]].vi}, thường nhẹ nhàng, sâu sắc, nhưng đôi khi cầu toàn hoặc dễ căng thẳng dưới áp lực.` : `**Day Master ${nhatChu} (${canNguHanh[nhatChu]}):** You are ${personalityDescriptions[canNguHanh[nhatChu]].en}, often gentle and profound, but sometimes perfectionist or stressed under pressure.`}
+${language === "vi" ? `**Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]})}**: Bạn có tính cách ${personalityDescriptions[canNguHanh[nhatChu]].vi}, thường nhẹ nhàng, sâu sắc, nhưng đôi khi cầu toàn hoặc dễ căng thẳng dưới áp lực.` : `**Day Master ${nhatChu} (${canNguHanh[nhatChu]}):** You are ${personalityDescriptions[canNguHanh[nhatChu]].en}, often systematic and profound, but sometimes perfectionist or stressed under pressure.`}
 
 ${language === "vi" ? "**Tứ Trụ**: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}" : "**Four Pillars**: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}"}
 
-${language === "vi" ? "**Ngũ Hành**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")} (Thiên Can/Địa Chi: 1 điểm, Tàng Can: 0.3 điểm)" : "**Five Elements**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")} (Heavenly Stems/Earthly Branches: 1 point, Hidden Stems: 0.3 points)"}
+${language === "vi" 
+  ? `**Ngũ hành**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")} (Thiên Can/Địa Chi: 1 điểm, Tàng Can: 0.3 điểm)`
+  : `**Five Elements**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")} (Heavenly Stems/Earthly Branches: 1 point, Hidden Stems: 0.3 points)`}
 
-${language === "vi" ? "**Cách cục**: ${cachCuc}. ${isThanVuong ? "Kim mạnh, cần Dụng Thần để tiết khí." : "Kim yếu, cần Dụng Thần để hỗ trợ."}" : "**Chart Type**: ${cachCuc}. ${isThanVuong ? "Strong Metal, needs Useful God to balance." : "Weak Metal, needs Useful God for support."}"}
+${language === "vi" ? `**Cách cục**: ${cachCuc}. ${isThanVuong ? "Kim mạnh, cần Dụng Thần để tiết khí." : "Kim yếu, cần Dụng Thần để hỗ trợ."}` : `**Chart Type**: ${cachCuc}. ${isThanVuong ? "Strong Metal, needs Useful God to balance." : "Weak Metal, needs Useful God for support."}`}
 
 ${language === "vi" ? "**Sở thích**: Dụng Thần ${dungThan.join(", ")} cho thấy bạn yêu thích nghiên cứu, học hỏi (Thủy) và sáng tạo, nghệ thuật (Mộc). Các hoạt động như đọc sách, viết lách, thiết kế, hoặc gần gũi thiên nhiên (cây cối, nước) rất phù hợp." : "**Interests**: Useful God ${dungThan.join(", ")} suggests a love for research, learning (Water), and creativity, arts (Wood). Activities like reading, writing, designing, or being near nature (trees, water) suit you."}
 
@@ -421,11 +422,11 @@ ${language === "vi" ? "**Lời khuyên phong thủy**:
 
   if (isMoney) {
     const thucThan = thapThanResults["Kỷ"] || "Không nổi bật";
-    const thienTai = thapThanResults["Đinh"] || "Không nổi bật";
+    const thienTai = thapThanResults["Đinh"] || "Không có nổi bật";
     response += `
 ${language === "vi" ? "Tài lộc:" : "Wealth:"}
-${language === "vi" ? `Thực Thần (${thucThan}), Thiên Tài (${thienTai}): Bạn có khả năng kiếm tiền từ sáng tạo, nghệ thuật, đầu tư mạo hiểm. Kim mạnh (${tyLeNguHanh.Kim}) mang tài chính ổn định, nhưng cần kích hoạt ${dungThan.join(", ")} để mở rộng cơ hội. Tân Tỵ thuộc Kim và Hỏa, phù hợp với ngành trí tuệ hơn đất đai.` : `Food God (${thucThan}), Indirect Wealth (${thienTai}): You can earn through creativity, arts, or investments. Strong Metal (${tyLeNguHanh.Kim}) ensures stable finances, but activate ${dungThan.join(", ")} for opportunities. Tân Tỵ is Metal and Fire, suited for intellectual fields, not land.`}
-${language === "vi" ? `Lời khuyên: Đầu tư vào ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}; sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Invest in ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}; use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
+${language === "vi" ? `Thực Thần (${thucThan}), Thiên Tài (${thienTai}): Bạn có khả năng kiếm tiền từ sáng tạo, nghệ thuật, đầu tư mạo hiểm. Kim mạnh (${tyLeNguHanh.Kim}) mang tài chính ổn định, nhưng cần kích hoạt ${dungThan.join(", ")} để mở rộng cơ hội. Tân Tỵ thuộc Kim và Hỏa, phù hợp với ngành trí tuệ hơn đất đai." : `Food God (${thucThan}), Indirect Wealth (${thienTai}): You can earn through creativity, arts, or investments. Strong Metal (${tyLeNguHanh.Kim}) ensures financial stability, but activate ${dungThan.join(", ")} for opportunities. Tân Tỵ is Metal and Fire, suited for intellectual fields, not land.`}
+${language === "vi" ? `Lời khuyên: Đầu tư vào ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}; use color ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Invest in ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}; use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
 `;
   }
 
@@ -434,7 +435,7 @@ ${language === "vi" ? `Lời khuyên: Đầu tư vào ${dungThan.map(d => dungTh
     const chinhAn = thapThanResults["Tý"] || "Không nổi bật";
     response += `
 ${language === "vi" ? "Sự nghiệp:" : "Career:"}
-${language === "vi" ? `Tỷ Kiên (${tyKien}), Chính Ấn (${chinhAn}): Phù hợp với công việc tự lập, sáng tạo như ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}. Dụng Thần ${dungThan.join(", ")} hỗ trợ trí tuệ, giúp thăng tiến từ 2025-2035. Thiên Ất Quý Nhân mang sự hỗ trợ từ đồng nghiệp.` : `Shoulder-to-Shoulder (${tyKien}), Direct Seal (${chinhAn}): Suited for independent, creative roles like ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}. Useful God ${dungThan.join(", ")} supports intellect, with advancement from 2025-2035. Nobleman brings support.`}
+${language === "vi" ? `Tỷ Kiên (${tyKien}), Chính Ấn (${chinhAn}): Phù hợp với công việc tự lập, sáng tạo như ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}. Dụng Thần ${dungThan.join(", ")} hỗ trợ trí tuệ, giúp thăng tiến từ 2025-2035. Thiên Ất Quý Nhân hỗ trợ mang sự hỗ trợ từ đồng nghiệp." : `Shoulder-to-Shoulder (${tyKien}), Direct Seal (${chinhAn}): Suited for independent, creative roles like ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}). Useful God ${dungThan.join(", ")} supports intellect, with advancement from 2025-2035. Nobleman brings support."}
 ${language === "vi" ? `Lời khuyên: Phát triển kỹ năng lãnh đạo, tận dụng mạng lưới quan hệ, sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Develop leadership skills, leverage networks, use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
 `;
   }
@@ -442,7 +443,7 @@ ${language === "vi" ? `Lời khuyên: Phát triển kỹ năng lãnh đạo, t�
   if (isFame) {
     response += `
 ${language === "vi" ? "Công danh:" : "Fame:"}
-${language === "vi" ? `Chính Ấn và Thực Thần hỗ trợ danh tiếng trong ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}. Dụng Thần ${dungThan.join(", ")} giúp nổi bật từ 2027.` : `Direct Seal and Food God support fame in ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}. Useful God ${dungThan.join(", ")} boosts recognition from 2027.`}
+${language === "vi" ? `Chính Ấn và Thực Thần hỗ trợ danh tiếng trong ${dungThan.map(d => dungThanRecommendations[d].vi).join(" hoặc ")}). Dụng Thần ${dungThan.join(", ")} giúp nổi bật từ 2027.` : `Direct Seal and Food God support fame in ${dungThan.map(d => dungThanRecommendations[d].en).join(" or ")}). Useful God ${dungThan.join(", ")} boosts recognition from 2027.`}
 ${language === "vi" ? `Lời khuyên: Xây dựng uy tín qua học vấn và đóng góp sáng tạo, sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Build reputation through knowledge and creative contributions, use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
 `;
   }
@@ -519,8 +520,8 @@ ${language === "vi" ? `Dụng Thần: ${dungThan.join(", ")} hỗ trợ cân b�
       .map(([_, value]) => `${value[language]}: ${value.value.join(", ")}`);
     response += `
 ${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
-${activeThanSat.length > 0 ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
-`;
+${activeThanSat.length ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
+    `;
   }
 
   console.log(`Phản hồi: ${response}`);
@@ -629,23 +630,23 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
   }
 
-  let thapThanResults = {};
+  let thapThan;
   try {
-    thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
+    thapThan = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
   } catch (err) {
     console.error("Lỗi Thập Thần:", err.message);
     return res.status(400).json({ error: language === "vi" ? "Không thể tính Thập Thần" : "Cannot calculate Ten Gods" });
   }
 
-  let thanSatResults = {};
+  let thanSat;
   try {
-    thanSatResults = tinhThanSat(tuTru);
+    thanSat = tinhThanSat(tuTru);
   } catch (err) {
     console.error("Lỗi Thần Sát:", err.message);
   }
 
   if (!useOpenAI) {
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+    const answer = generateResponse(tuTru, nguHanh, thapThan, thanSat, dungThanHanh, userInput, messages, language);
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer });
   }
@@ -664,13 +665,13 @@ Bắt buộc trả lời bằng ${language === "vi" ? "tiếng Việt" : "Englis
 
 Tứ Trụ: Giờ ${tuTru.gio || "N/A"}, Ngày ${tuTru.ngay || "N/A"}, Tháng ${tuTru.thang || "N/A"}, Năm ${tuTru.nam || "N/A"}
 Ngũ Hành: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v.toFixed(1)} (${((v / Object.values(nguHanh).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%)`).join(", ") || "N/A"}
-Thập Thần: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
-Thần Sát: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}
+Thập Thần: ${Object.entries(thapThan).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
+Thần Sát: ${Object.entries(thanSat).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "None"}
 Dụng Thần: ${dungThanHanh.join(", ") || "N/A"}
 Câu hỏi: ${userInput || "N/A"}
 `;
 
-  try {
+try {
     const gptRes = await callOpenAI({
       model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
@@ -681,7 +682,7 @@ Câu hỏi: ${userInput || "N/A"}
     return res.json({ answer: gptRes.choices[0].message.content });
   } catch (err) {
     console.error("OpenAI error:", err.message);
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+    const answer = generateResponse(tuTru, nguHanh, thapThan, thanSat, dungThanHanh, userInput, messages, language);
     return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}` });
   }
 });
@@ -702,3 +703,5 @@ const server = app.listen(port, async () => {
   }
 });
 server.setTimeout(300000);
+
+module.exports = app;
