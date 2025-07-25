@@ -66,7 +66,7 @@ const hoaGiap = [
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh TỴ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
 ];
 
 const getCanChiForYear = (year) => {
@@ -297,7 +297,7 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThan, userIn
   if (isGeneral) {
     response += `
 ${language === 'vi' ? "Luận giải Bát Tự:" : "Bazi Interpretation:"}
-${language === 'vi' ? `Nhật Chủ ${nhatChu} (${canNguHanh[${nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh}[${nhatChu}]): ${personalityDescriptions[canNguHanh}[${nhatChu}].en}`}
+${language === 'vi' ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].en}`}
 Tứ Trụ: ${language === "vi" ? `Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}` : `Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}`}
 Ngũ Hành: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 ${language === "vi" ? `Dụng Thần: ${dungThan.join(", ")}` : `Useful God: ${dungThan.join(", ")}`}
@@ -313,40 +313,41 @@ ${language === "vi" ? `Tài lộc phụ thuộc Dụng Thần ${dungThan[0]}` : 
 `;
   } else if (isCareer) {
     response += `
-${language === "vi" ? "Sự nghiệp:"}
-${language === "vi" ? `Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật" : "tư nghiệp"}` : `Suitable for ${dungThan.includes("Mộc") ? "education, arts" : "consulting"}`
+${language === "vi" ? "Sự nghiệp:" : "Career:"}
+${language === "vi" ? `Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật" : "tư vấn"}` : `Suitable for ${dungThan.includes("Mộc") ? "education, arts" : "consulting"}`}
 `;
   } else if (isLove) {
     response += `
 ${language === "vi" ? "Tình duyên:" : "Love:"}
-${language === "vi" ? `Tình duyên nở hoa với Dụng Thần ${dungThan[0]}` : `Love blossoms with Useful God ${dungThan[0]}`},
-    `;
+${language === "vi" ? `Tình duyên nở hoa với Dụng Thần ${dungThan[0]}` : `Love blossoms with Useful God ${dungThan[0]}`}
+`;
   } else if (isHealth) {
     response += `
 ${language === "vi" ? "Sức khỏe:" : "Health:"}
-${language === "vi" ? `Cần cân bằng ${dungThan[0]}` : `Balance with ${dungThan[0]}`},
+${language === "vi" ? `Cần cân bằng Dụng Thần ${dungThan[0]}` : `Balance with Useful God ${dungThan[0]}`}
 `;
   } else if (isChildren) {
     response += `
-${language === "vi" ? "Con cái:" : "Children:"},
-    `;
+${language === "vi" ? "Con cái:" : "Children:"}
+${language === "vi" ? `Con cái mang niềm vui với Dụng Thần ${dungThan[0]}` : `Children bring joy with Useful God ${dungThan[0]}`}
+`;
   }
 
   if (isThapThan) {
     response += `
-${language === "thanh than" : "Ten Gods:"}
-${Object.entries(thanhThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}
-    `;
+${language === "vi" ? "Thập Thần:" : "Ten Gods:"}
+${Object.entries(thapThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}
+`;
   }
 
   if (isThanSat) {
     const activeThanSat = Object.entries(tinhThanSat(tuTru))
       .filter(([_, value]) => value.value.length)
-      .map(([key], value) => `${value}[language]}}: ${value.value.join(", ")}`);
+      .map(([key, value]) => `${value[language]}: ${value.value.join(", ")}`);
     response += `
-${language === "than" ? "than Sat Sát:" : "Auspicious Stars:"}
-${activeThanSat.length > &&0 ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
-    `;
+${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
+${activeThanSat.length > 0 ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
+`;
   }
 
   return response.trim();
@@ -443,13 +444,13 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   } catch (e) {
     tuTru = parseEnglishTuTru(userInput);
     if (!tuTru || !tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
-      return res.status(400").json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
+      return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
     }
   }
 
   let nguHanh;
   try {
-    nguHanh = analyzeNguHanh(tuTru));
+    nguHanh = analyzeNguHanh(tuTru);
   } catch (err) {
     return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
   }
@@ -486,9 +487,9 @@ Bắt buộc trả lời bằng ${language === "vi" ? "tiếng Việt" : "Englis
 - Lời khuyên: Cá nhân hóa.
 
 Tứ Trụ: Giờ ${tuTru.gio || "N/A"}, Ngày ${tuTru.ngay || "N/A"}, Tháng ${tuTru.thang || "N/A"}, Năm ${tuTru.nam || "N/A"}
-Ngũ Hành: ${Object.entries(nguHanh).map(([k], v) => `${k}: ${v}`).join(", ") || "N/A"}
-${/thap than|ten gods/i.test(userInput) ? `Thập Thần: ${Object.entries(thapThanResults).map(([k], v) => `${k}: ${v}`).join(", ") || "N/A"}` : ""}
-${/than sat|auspicious stars|sao/i.test(userInput) ? `Thần Sát: ${Object.entries(thanSatResults).map(([k], v) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}` : ""}
+Ngũ Hành: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
+${/thap than|ten gods/i.test(userInput) ? `Thập Thần: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}` : ""}
+${/than sat|auspicious stars|sao/i.test(userInput) ? `Thần Sát: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}` : ""}
 Dụng Thần: ${dungThanHanh.join(", ") || "N/A"}
 Câu hỏi: ${userInput || "N/A"}
 `;
