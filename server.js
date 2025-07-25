@@ -51,8 +51,8 @@ const parseEnglishTuTru = (input) => {
     if (!parts || parts.length !== 4) return null;
     return {
       gio: `${heavenlyStemsMap.en[parts[0][0]] || parts[0][0]} ${earthlyBranchesMap.en[parts[0][1]] || parts[0][1]}`,
-      ngay: `${heavenlyStemsMap.en][parts[1][0] || ${parts[1][0]}} ${earthlyBranchesMap.en[parts[1][1]] || parts[1][1]}`,
-      thang: `${heavenlyStemsMap.en[parts[2][0]} || ${parts[2][0]}} ${earthlyBranchesMap.en[parts[2][1]] || ${parts[2][1]}`,
+      ngay: `${heavenlyStemsMap.en[parts[1][0]] || parts[1][0]} ${earthlyBranchesMap.en[parts[1][1]] || parts[1][1]}`,
+      thang: `${heavenlyStemsMap.en[parts[2][0]] || parts[2][0]} ${earthlyBranchesMap.en[parts[2][1]] || parts[2][1]}`,
       nam: `${heavenlyStemsMap.en[parts[3][0]] || parts[3][0]} ${earthlyBranchesMap.en[parts[3][1]] || parts[3][1]}`
     };
   } catch (e) {
@@ -66,7 +66,7 @@ const hoaGiap = [
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh TỴ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
 ];
 
 const getCanChiForYear = (year) => {
@@ -89,8 +89,8 @@ const analyzeNguHanh = (tuTru) => {
   };
   const hiddenElements = {
     Tý: ["Quý"], Sửu: ["Kỷ", "Tân", "Quý"], Dần: ["Giáp", "Bính", "Mậu"], Mão: ["Ất"],
-    Thìn: ["Mậu", "Ất", "Quý"], Tỵ: ["Bính", "Canh", "Mâu"], Ngọ: ["Đinh", "Kỷ"],
-    Mùi: ["Kỷ", "Đinh", "Ất"], Thân: ["Canh", "Nhâm", "Mâu"], Dậu: ["Tân"],
+    Thìn: ["Mậu", "Ất", "Quý"], Tỵ: ["Bính", "Canh", "Mậu"], Ngọ: ["Đinh", "Kỷ"],
+    Mùi: ["Kỷ", "Đinh", "Ất"], Thân: ["Canh", "Nhâm", "Mậu"], Dậu: ["Tân"],
     Tuất: ["Mậu", "Đinh", "Tân"], Hợi: ["Nhâm", "Giáp"]
   };
 
@@ -251,12 +251,12 @@ const thapThanEffects = {
   "Kiếp Tài": { vi: "Tài năng, quyết đoán", en: "Talented, decisive" },
   "Thực Thần": { vi: "Sáng tạo, nghệ thuật", en: "Creative, artistic" },
   "Thương Quan": { vi: "Tư duy sắc bén", en: "Sharp-minded" },
-  "Chính Tài": { vi: "Giỏi quản lý tài chính", en: "Good at finance" },
-  "Thiên Tài": { vi: "Nhạy bén, cơ hội", en: "Perceptive, opportunistic" },
-  "Chính Quan": { vi: "Trách nhiệm, uy tín", en: "Responsible, reputable" },
-  "Thất Sát": { vi: "Dũng cảm, quyết liệt", en: "Courageous, intense" },
-  "Chính Ấn": { vi: "Trí tuệ, học thức", en: "Wise, scholarly" },
-  "Thiên Ấn": { vi: "Sáng tạo, trực giác", en: "Creative, intuitive" }
+  "Chính Tài": { vi: "Giỏi tài chính", en: "Good at finance" },
+  "Thiên Tài": { vi: "Nhạy bén", en: "Perceptive" },
+  "Chính Quan": { vi: "Trách nhiệm, uy tín", en: "Responsible, influential" },
+  "Thất Sát": { vi: "Dũng cảm", en: "Courageous" },
+  "Chính Ấn": { vi: "Trí tuệ", en: "Wise" },
+  "Thiên Ấn": { vi: "Sáng tạo", en: "Creative" }
 };
 
 const determineQuestionType = (userInput, language) => {
@@ -289,15 +289,15 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, dungThan, userIn
   const { isGeneral, isMoney, isCareer, isHealth, isLove, isChildren, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
 
   if (isComplex) {
-    return `${language === "vi" ? "Vui lòng gửi câu hỏi chi tiết qua app.aihuyenhoc@gmail.com" : "Please send detailed questions to app.aihuyenhoc@gmail.com"}`;
+    return `${language === "vi" ? "Vui lòng gửi câu hỏi qua app.aihuyenhoc@gmail.com" : "Please send questions to app.aihuyenhoc@gmail.com"}`;
   }
 
   let response = "";
 
   if (isGeneral) {
     response += `
-${language === "vi" ? "Luận giải Bát Tự:" : "Bazi Interpretation:"}
-${language === "vi" ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].en}`}
+${language === 'vi' ? "Luận giải Bát Tự:" : "Bazi Interpretation:"}
+${language === 'vi' ? `Nhật Chủ ${nhatChu} (${canNguHanh[${nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh}[${nhatChu}]): ${personalityDescriptions[canNguHanh}[${nhatChu}].en}`}
 Tứ Trụ: ${language === "vi" ? `Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}` : `Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}`}
 Ngũ Hành: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
 ${language === "vi" ? `Dụng Thần: ${dungThan.join(", ")}` : `Useful God: ${dungThan.join(", ")}`}
@@ -313,41 +313,40 @@ ${language === "vi" ? `Tài lộc phụ thuộc Dụng Thần ${dungThan[0]}` : 
 `;
   } else if (isCareer) {
     response += `
-${language === "vi" ? "Sự nghiệp:" : "Career:"}
-${language === "vi" ? `Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật" : "tư vấn"}` : `Suitable for ${dungThan.includes("Mộc") ? "education, arts" : "consulting"}`}
+${language === "vi" ? "Sự nghiệp:"}
+${language === "vi" ? `Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật" : "tư nghiệp"}` : `Suitable for ${dungThan.includes("Mộc") ? "education, arts" : "consulting"}`
 `;
   } else if (isLove) {
     response += `
 ${language === "vi" ? "Tình duyên:" : "Love:"}
-${language === "vi" ? `Tình duyên nở hoa với Dụng Thần ${dungThan[0]}` : `Love blossoms with Useful God ${dungThan[0]}`}
-`;
+${language === "vi" ? `Tình duyên nở hoa với Dụng Thần ${dungThan[0]}` : `Love blossoms with Useful God ${dungThan[0]}`},
+    `;
   } else if (isHealth) {
     response += `
 ${language === "vi" ? "Sức khỏe:" : "Health:"}
-${language === "vi" ? `Cần cân bằng Dụng Thần ${dungThan[0]}` : `Balance with Useful God ${dungThan[0]}`}
+${language === "vi" ? `Cần cân bằng ${dungThan[0]}` : `Balance with ${dungThan[0]}`},
 `;
   } else if (isChildren) {
     response += `
-${language === "vi" ? "Con cái:" : "Children:"}
-${language === "vi" ? `Con cái mang niềm vui với Dụng Thần ${dungThan[0]}` : `Children bring joy with Useful God ${dungThan[0]}`}
-`;
+${language === "vi" ? "Con cái:" : "Children:"},
+    `;
   }
 
   if (isThapThan) {
     response += `
-${language === "vi" ? "Thập Thần:" : "Ten Gods:"}
-${Object.entries(thapThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}
-`;
+${language === "thanh than" : "Ten Gods:"}
+${Object.entries(thanhThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}
+    `;
   }
 
   if (isThanSat) {
     const activeThanSat = Object.entries(tinhThanSat(tuTru))
       .filter(([_, value]) => value.value.length)
-      .map(([key, value]) => `${value[language]}: ${value.value.join(", ")}`);
+      .map(([key], value) => `${value}[language]}}: ${value.value.join(", ")}`);
     response += `
-${language === "vi" ? "Thần Sát:" : "Auspicious Stars:"}
-${activeThanSat.length > 0 ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
-`;
+${language === "than" ? "than Sat Sát:" : "Auspicious Stars:"}
+${activeThanSat.length > &&0 ? activeThanSat.join("\n") : language === "vi" ? "Không có Thần Sát nổi bật" : "No prominent stars"}
+    `;
   }
 
   return response.trim();
@@ -389,7 +388,7 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`Thử OpenAI lần ${attempt}`);
+      console.log(`Thử ${attempt}`);
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         payload,
@@ -422,44 +421,44 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   if (!tuTruInfo || typeof tuTruInfo !== "string") {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
-  let dungThanHanh = Array.isArray(dungThan) ? dungThan : Array.isArray(dungThan?.hanh) ? dungThan.hanh : [];
+  let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
   if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ" : "Invalid Useful God" : "Invalid Useful God" });
+    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ" : "Invalid Useful God" });
   }
 
-  const userInput = messages.slice().reverse().find(m => m.role === "user")?.content || "";
+  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
 
-  let tuTruParsed;
+  let tuTru;
   try {
-    tuTruParsed = JSON.parse(tuTruInfo);
-    tuTruParsed = {
-      gio: normalizeCanChi(tuTruParsed.gio),
-      ngay: normalizeCanChi(tuTruParsed.ngay),
-      thang: normalizeCanChi(tuTruParsed.thang),
-      nam: normalizeCanChi(tuTruParsed.nam),
+    tuTru = JSON.parse(tuTruInfo);
+    tuTru = {
+      gio: normalizeCanChi(tuTru.gio),
+      ngay: normalizeCanChi(tuTru.ngay),
+      thang: normalizeCanChi(tuTru.thang),
+      nam: normalizeCanChi(tuTru.nam)
     };
-    if (!tuTruParsed.gio || !tuTruParsed.ngay || !tuTruParsed.thang || !tuTruParsed.nam) {
+    if (!tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
       throw new Error("Tứ Trụ không đầy đủ");
     }
   } catch (e) {
-    tuTruParsed = parseEnglishTuTru(userInput);
-    if (!tuTruParsed || !tuTruParsed.gio || !tuTruParsed.ngay || !tuTruParsed.thang || !tuTruParsed.nam) {
-      return res.status(400).json({ error: language === "vi" ? "Tứu Trụ không hợp lệ" : "Invalid Four Pillars" });
+    tuTru = parseEnglishTuTru(userInput);
+    if (!tuTru || !tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
+      return res.status(400").json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
     }
   }
 
   let nguHanh;
   try {
-    nguHanh = analyzeNguHanh(tuTruParsed);
-  } catch (e) {
+    nguHanh = analyzeNguHanh(tuTru));
+  } catch (err) {
     return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
   }
 
   let thapThanResults = {};
-  if (/thập thần|ten gods/i.test(userInput)) {
+  if (/thap than|ten gods/i.test(userInput)) {
     try {
-      thapThanResults = tinhThapThan(tuTruParsed.ngay.split(" ")[0], tuTruParsed);
-    } catch (e) {
+      thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
+    } catch (err) {
       return res.status(400).json({ error: language === "vi" ? "Dữ liệu Thập Thần không hợp lệ" : "Invalid Ten Gods" });
     }
   }
@@ -467,56 +466,62 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   let thanSatResults = {};
   if (/than sat|auspicious stars|sao/i.test(userInput)) {
     try {
-      thanSatResults = tinhThanSat(tuTruParsed);
-    } catch (e) {
+      thanSatResults = tinhThanSat(tuTru);
+    } catch (err) {
       return res.status(400).json({ error: language === "vi" ? "Dữ liệu Thần Sát không hợp lệ" : "Invalid Stars" });
     }
   }
 
   if (!useOpenAI) {
-    const answer = generateResponse(tuTruParsed, nguHanh, thapThanResults, dungThanHanh, userInput, messages, language);
-    console.log(`Xử lý mất ${Date.now() - startTime}ms`);
+    const answer = generateResponse(tuTru, nguHanh, thapThanResults, dungThanHanh, userInput, messages, language);
+    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer });
   }
 
   const prompt = `
-Bắt buộc trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}, ngắn gọn, chính xác, mang phong cách dễ hiểu. Nhật Chủ là Thiên Can của ngày sinh. Cấu trúc:
-- Tính cách: Dựa trên Nhật Chủ ${tuTruParsed.ngay?.split(" ")[0]}.
+Bắt buộc trả lời bằng ${language === "vi" ? "tiếng Việt" : "English"}. Nhật Chủ là Thiên Can ngày sinh. Cấu trúc:
+- Tính cách: Dựa trên Nhật Chủ ${tuTru.ngay?.split(" ")[0] || "Unknown"}.
 - Nghề nghiệp: Dựa trên Dụng Thần ${dungThanHanh.join(", ")}.
 - Màu sắc: Dựa trên Dụng Thần.
 - Lời khuyên: Cá nhân hóa.
 
-Tứ Trụ: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}
-Ngũ Hành: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
-${/thapThan|ten gods/i.test(userInput) ? `Thập Thần: ${Object.entries(thapThanResults).map(([k, v]) => `${k: ${v}`).join(", ")}` : "")}
-${/than sat|auspicious|sao/i.test(userInput) ? `Thần Sát: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]: ${v.value.join(", ")"}`).join("; ")}` : "")}
-Dụng Thần: ${dungThanHanh.join(", ")}
-Câu hỏi: ${userInput}
+Tứ Trụ: Giờ ${tuTru.gio || "N/A"}, Ngày ${tuTru.ngay || "N/A"}, Tháng ${tuTru.thang || "N/A"}, Năm ${tuTru.nam || "N/A"}
+Ngũ Hành: ${Object.entries(nguHanh).map(([k], v) => `${k}: ${v}`).join(", ") || "N/A"}
+${/thap than|ten gods/i.test(userInput) ? `Thập Thần: ${Object.entries(thapThanResults).map(([k], v) => `${k}: ${v}`).join(", ") || "N/A"}` : ""}
+${/than sat|auspicious stars|sao/i.test(userInput) ? `Thần Sát: ${Object.entries(thanSatResults).map(([k], v) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}` : ""}
+Dụng Thần: ${dungThanHanh.join(", ") || "N/A"}
+Câu hỏi: ${userInput || "N/A"}
 `;
 
   try {
     const gptRes = await callOpenAI({
-      model: process.env.OPENAI_MODEL || "Grok",
+      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
-      max_tokens: 300,
+      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500
     });
-    console.log(`Xử lý mất ${Date.now() - startTime}ms`);
+    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer: gptRes.choices[0].message.content });
   } catch (err) {
     console.error("OpenAI error:", err.message);
-    const answer = generateResponse(tuTruParsed, nguHanh, thapThanResults, dungThanHanh, userInput, messages, language);
-    return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect to OpenAI: ${err.message}` });
+    const answer = generateResponse(tuTru, nguHanh, thapThanResults, dungThanHanh, userInput, messages, language);
+    return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}` });
   }
 });
 
-app.use((err, res, req, next) => {
-  console.error("Lỗi server:", err.message);
-  res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống" : "System error" });
+app.use((err, req, res, next) => {
+  console.error("Lỗi hệ thống:", err.stack);
+  res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
 });
 
 const port = process.env.PORT || 5000;
-const server = app.listen(port, () => {
+const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
+  try {
+    const isKeyValid = await checkOpenAIKey();
+    console.log(`OpenAI API key valid: ${isKeyValid}`);
+  } catch (err) {
+    console.error("Lỗi kiểm tra OpenAI API key:", err.message);
+  }
 });
 server.setTimeout(300000);
