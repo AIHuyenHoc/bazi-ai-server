@@ -676,7 +676,7 @@ ${userInput.toLowerCase().includes("thần sát") || userInput.toLowerCase().inc
     console.log("Chuyển sang generateResponse do lỗi OpenAI");
     const answer = generateResponse(tuTruParsed, nguHanhCount, thapThanResults, dungThanHanh, userInput, messages, language);
     console.log(`Xử lý yêu cầu mất ${Date.now() - startTime}ms`);
-    return res.json({ answer, warning: language === "vi` ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect to OpenAI: ${err.message}` });
+    return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect to OpenAI: ${err.message}` });
   }
 });
 
