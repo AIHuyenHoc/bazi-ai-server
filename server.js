@@ -262,7 +262,7 @@ const thapThanEffects = {
 const determineQuestionType = (userInput, language) => {
   const normalizedInput = typeof userInput === "string" ? userInput.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
   const types = {
-    isMoney: /tien bac|tai chinh|tai loc|money|finance|wealth/i.test(normalizedInput),
+    isMoney: /tien bac|tai chinh|tai loc|lam giau|money|finance|wealth/i.test(normalizedInput),
     isCareer: /nghe|cong viec|su nghiep|career|job/i.test(normalizedInput),
     isFame: /cong danh|fame|reputation/i.test(normalizedInput),
     isHealth: /suc khoe|benh tat|health/i.test(normalizedInput),
@@ -317,12 +317,16 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
-    Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
+    Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}% (${v.toFixed(1)})`])
   );
   const nhatChu = tuTru.ngay.split(" ")[0];
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
+  };
+  const chiNguHanh = {
+    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
   };
 
   const { isGeneral, isMoney, isCareer, isFame, isHealth, isLove, isFamily, isChildren, isProperty, isYear, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
@@ -336,21 +340,23 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
   if (isGeneral) {
     response += `
 ${language === "vi" ? "Luận giải Bát Tự:" : "Bazi Interpretation:"}
-${language === "vi" ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].en}`}
+${language === "vi" ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].vi}.` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${personalityDescriptions[canNguHanh[nhatChu]].en}.`}
 Tứ Trụ: ${language === "vi" ? `Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}` : `Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}`}
-Ngũ Hành: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}
+Ngũ Hành (điểm và tỷ lệ): ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")} (tính từ Thiên Can, Địa Chi, Tàng Can; Thiên Can/Địa Chi: 1 điểm, Tàng Can: 0.3 điểm)
 ${language === "vi" ? `Dụng Thần: ${dungThan.join(", ")}` : `Useful God: ${dungThan.join(", ")}`}
-${language === "vi" ? `Nghề nghiệp: Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật, truyền thông" : "tư vấn, giao tiếp, nghiên cứu"}` : `Career: Suitable for ${dungThan.includes("Mộc") ? "education, arts, media" : "consulting, communication, research"}`}
+${language === "vi" ? `Nghề nghiệp: Phù hợp ${dungThan.includes("Mộc") ? "giáo dục, nghệ thuật, truyền thông" : "tư vấn, giao tiếp, nghiên cứu"}.` : `Career: Suitable for ${dungThan.includes("Mộc") ? "education, arts, media" : "consulting, communication, research"}.`}
+${language === "vi" ? `Thiên Ất Quý Nhân: Hỗ trợ từ đồng nghiệp, người thân.` : `Nobleman Star: Support from colleagues, family.`}
 ${language === "vi" ? `Đề xuất: Màu sắc ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"} để kích hoạt vận may.` : `Recommendation: Use ${dungThan.includes("Mộc") ? "green" : "blue"} to enhance luck.`}
 `;
   }
 
   if (isMoney) {
     const thucThan = thapThanResults["Kỷ"] || "Không nổi bật";
+    const thienTai = thapThanResults["Đinh"] || "Không nổi bật";
     response += `
 ${language === "vi" ? "Tài lộc:" : "Wealth:"}
-${language === "vi" ? `Thực Thần (${thucThan}): Bạn có khả năng kiếm tiền từ sáng tạo hoặc đầu tư. Kim mạnh mang lại tài chính ổn định, nhưng cần kích hoạt ${dungThan[0]} để tăng cơ hội. Năm 2026 hỗ trợ tài lộc qua các dự án sáng tạo.` : `Food God (${thucThan}): You can earn through creativity or investments. Strong Metal ensures stable finances, but activate ${dungThan[0]} for opportunities. 2026 boosts wealth via creative projects.`}
-${language === "vi" ? `Lời khuyên: Đầu tư vào giáo dục, công nghệ, hoặc nghệ thuật; sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Invest in education, tech, or arts; use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
+${language === "vi" ? `Thực Thần (${thucThan}), Thiên Tài (${thienTai}): Bạn có khả năng kiếm tiền từ sáng tạo, nghệ thuật, đầu tư mạo hiểm. Kim mạnh (37.5%) mang tài chính ổn định, nhưng cần kích hoạt ${dungThan[0]} để mở rộng cơ hội. Tân Tỵ thuộc Kim và Hỏa, phù hợp với ngành trí tuệ hơn đất đai.` : `Food God (${thucThan}), Indirect Wealth (${thienTai}): You can earn through creativity, arts, or investments. Strong Metal (37.5%) ensures stable finances, but activate ${dungThan[0]} for opportunities. Tân Tỵ is Metal and Fire, suited for intellectual fields, not land.`}
+${language === "vi" ? `Lời khuyên: Đầu tư vào giáo dục, công nghệ, nghệ thuật; sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"}.` : `Advice: Invest in education, tech, arts; use ${dungThan.includes("Mộc") ? "green" : "blue"}.`}
 `;
   }
 
@@ -359,7 +365,7 @@ ${language === "vi" ? `Lời khuyên: Đầu tư vào giáo dục, công nghệ,
     const chinhAn = thapThanResults["Tý"] || "Không nổi bật";
     response += `
 ${language === "vi" ? "Sự nghiệp:" : "Career:"}
-${language === "vi" ? `Tỷ Kiên (${tyKien}), Chính Ấn (${chinhAn}): Phù hợp với công việc tự lập, sáng tạo như nghệ thuật, truyền thông, hoặc nghiên cứu. Dụng Thần ${dungThan[0]} hỗ trợ trí tuệ, giúp thăng tiến từ 2025-2035. Thiên Ất Quý Nhân mang quý nhân.` : `Shoulder-to-Shoulder (${tyKien}), Direct Seal (${chinhAn}): Suited for independent, creative roles like arts, media, or research. Useful God ${dungThan[0]} supports intellect, with advancement from 2025-2035. Nobleman brings support.`}
+${language === "vi" ? `Tỷ Kiên (${tyKien}), Chính Ấn (${chinhAn}): Phù hợp với công việc tự lập, sáng tạo như nghệ thuật, truyền thông, nghiên cứu. Dụng Thần ${dungThan[0]} hỗ trợ trí tuệ, giúp thăng tiến từ 2025-2035. Thiên Ất Quý Nhân mang sự hỗ trợ từ đồng nghiệp.` : `Shoulder-to-Shoulder (${tyKien}), Direct Seal (${chinhAn}): Suited for independent, creative roles like arts, media, research. Useful God ${dungThan[0]} supports intellect, with advancement from 2025-2035. Nobleman brings support.`}
 ${language === "vi" ? `Lời khuyên: Phát triển kỹ năng lãnh đạo, tận dụng mạng lưới quan hệ.` : `Advice: Develop leadership skills, leverage networks.`}
 `;
   }
@@ -375,7 +381,7 @@ ${language === "vi" ? `Lời khuyên: Xây dựng uy tín qua học vấn và đ
   if (isHealth) {
     response += `
 ${language === "vi" ? "Sức khỏe:" : "Health:"}
-${language === "vi" ? `Kim mạnh, Thủy yếu, cần cân bằng ${dungThan[0]} để duy trì sức khỏe tinh thần. Chú ý hệ thần kinh và cảm xúc.` : `Strong Metal, weak Water, balance ${dungThan[0]} for mental health. Focus on nervous system and emotions.`}
+${language === "vi" ? `Kim mạnh (37.5%), Thủy yếu (15.4%), cần cân bằng ${dungThan[0]} để duy trì sức khỏe tinh thần. Chú ý hệ thần kinh và cảm xúc.` : `Strong Metal (37.5%), weak Water (15.4%), balance ${dungThan[0]} for mental health. Focus on nervous system and emotions.`}
 ${language === "vi" ? `Lời khuyên: Tập thiền, yoga; sử dụng màu xanh dương để thư giãn.` : `Advice: Practice meditation, yoga; use blue for relaxation.`}
 `;
   }
@@ -385,7 +391,7 @@ ${language === "vi" ? `Lời khuyên: Tập thiền, yoga; sử dụng màu xanh
     const daoHoa = thanSatResults["Đào Hoa"].value.length ? "Có Đào Hoa" : "Không có Đào Hoa";
     response += `
 ${language === "vi" ? "Tình duyên:" : "Love:"}
-${language === "vi" ? `Thiên Tài (${thienTai}): Hợp với người sáng tạo, nhạy bén. ${daoHoa}. Dụng Thần ${dungThan[0]} giúp ổn định từ 2026. Thiên Ất Quý Nhân hỗ trợ gặp người phù hợp.` : `Indirect Wealth (${thienTai}): Suited to creative, perceptive partners. ${daoHoa}. Useful God ${dungThan[0]} stabilizes love from 2026. Nobleman aids compatibility.`}
+${language === "vi" ? `Thiên Tài (${thienTai}): Hợp với người sáng tạo, nhạy bén (nếu là nam) hoặc cần kích hoạt Mộc để ổn định (nếu là nữ). ${daoHoa}. Dụng Thần ${dungThan[0]} giúp hòa hợp từ 2026. Thiên Ất Quý Nhân hỗ trợ hóa giải mâu thuẫn.` : `Indirect Wealth (${thienTai}): Suited to creative, perceptive partners (if male) or activate Wood for stability (if female). ${daoHoa}. Useful God ${dungThan[0]} stabilizes love from 2026. Nobleman aids conflict resolution.`}
 ${language === "vi" ? `Lời khuyên: Giao tiếp chân thành, mặc màu ${dungThan.includes("Mộc") ? "xanh lá" : "xanh dương"} để tăng sức hút.` : `Advice: Communicate honestly, wear ${dungThan.includes("Mộc") ? "green" : "blue"} to enhance charm.`}
 `;
   }
@@ -412,7 +418,7 @@ ${language === "vi" ? `Lời khuyên: Khuyến khích con cái sáng tạo, dàn
     const thucThan = thapThanResults["Kỷ"] || "Không nổi bật";
     response += `
 ${language === "vi" ? "Tài sản, đất đai:" : "Property, Real Estate:"}
-${language === "vi" ? `Thực Thần (${thucThan}): Tích lũy tài sản cố định tốt, đặc biệt bất động sản. Dụng Thần ${dungThan[0]} mang cơ hội từ 2026-2030.` : `Food God (${thucThan}): Strong accumulation of fixed assets, especially property. Useful God ${dungThan[0]} brings opportunities from 2026-2030.`}
+${language === "vi" ? `Thực Thần (${thucThan}): Tích lũy tài sản cố định tốt, nhưng cần ${dungThan[0]} để tìm cơ hội. Kim mạnh hỗ trợ đầu tư ổn định.` : `Food God (${thucThan}): Strong accumulation of fixed assets, but ${dungThan[0]} needed for opportunities. Strong Metal supports stable investments.`}
 ${language === "vi" ? `Lời khuyên: Nghiên cứu thị trường, hợp tác với người có kinh nghiệm.` : `Advice: Research markets, collaborate with experts.`}
 `;
   }
@@ -578,9 +584,11 @@ Bắt buộc trả lời bằng ${language === "vi" ? "tiếng Việt" : "Englis
 - Sử dụng Tứ Trụ, Ngũ Hành, Thập Thần, Thần Sát, Dụng Thần.
 - Lời khuyên cụ thể, tránh chung chung.
 - Nếu hỏi về năm cụ thể, phân tích lưu niên dựa trên Thiên Can, Địa Chi.
+- Xác định chính xác ngũ hành của Can Chi (Thiên Can: Giáp, Ất - Mộc; Bính, Đinh - Hỏa; Mậu, Kỷ - Thổ; Canh, Tân - Kim; Nhâm, Quý - Thủy. Địa Chi: Tý, Hợi - Thủy; Sửu, Thìn, Mùi, Tuất - Thổ; Dần, Mão - Mộc; Tỵ, Ngọ - Hỏa; Thân, Dậu - Kim).
+- Thiên Ất Quý Nhân là sao hỗ trợ, không gây khó khăn.
 
 Tứ Trụ: Giờ ${tuTru.gio || "N/A"}, Ngày ${tuTru.ngay || "N/A"}, Tháng ${tuTru.thang || "N/A"}, Năm ${tuTru.nam || "N/A"}
-Ngũ Hành: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
+Ngũ Hành: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v.toFixed(1)} (${((v / Object.values(nguHanh).reduce((a, b) => a + b, 0)) * 100).toFixed(2)}%)`).join(", ") || "N/A"}
 Thập Thần: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
 Thần Sát: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}
 Dụng Thần: ${dungThanHanh.join(", ") || "N/A"}
