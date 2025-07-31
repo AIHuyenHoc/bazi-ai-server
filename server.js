@@ -7,10 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
+// Can Chi and Ngũ Hành mappings
 const canChiNguHanhInfo = `
 Ngũ hành 10 Thiên Can:
 - Giáp, Ất: Mộc
@@ -30,11 +32,13 @@ const heavenlyStemsMap = {
   en: { Jia: "Giáp", Yi: "Ất", Bing: "Bính", Ding: "Đinh", Wu: "Mậu", Ji: "Kỷ", Geng: "Canh", Xin: "Tân", Ren: "Nhâm", Gui: "Quý" },
   vi: { Giáp: "Giáp", Ất: "Ất", Bính: "Bính", Đinh: "Đinh", Mậu: "Mậu", Kỷ: "Kỷ", Canh: "Canh", Tân: "Tân", Nhâm: "Nhâm", Quý: "Quý" }
 };
+
 const earthlyBranchesMap = {
   en: { Rat: "Tý", Ox: "Sửu", Tiger: "Dần", Rabbit: "Mão", Dragon: "Thìn", Snake: "Tỵ", Horse: "Ngọ", Goat: "Mùi", Monkey: "Thân", Rooster: "Dậu", Dog: "Tuất", Pig: "Hợi" },
   vi: { Tý: "Tý", Sửu: "Sửu", Dần: "Dần", Mão: "Mão", Thìn: "Thìn", Tỵ: "Tỵ", Ngọ: "Ngọ", Mùi: "Mùi", Thân: "Thân", Dậu: "Dậu", Tuất: "Tuất", Hợi: "Hợi" }
 };
 
+// Normalize Can Chi input
 const normalizeCanChi = (input) => {
   if (!input || typeof input !== "string") return null;
   const parts = input.trim().split(" ");
@@ -45,6 +49,7 @@ const normalizeCanChi = (input) => {
   return `${can} ${chi}`;
 };
 
+// Parse English Four Pillars
 const parseEnglishTuTru = (input) => {
   try {
     const parts = input.match(/(\w+\s+\w+)\s*(?:hour|day|month|year)/gi)?.map(part => part.trim().split(" "));
@@ -61,14 +66,17 @@ const parseEnglishTuTru = (input) => {
   }
 };
 
+// Hoa Giáp cycle for year calculation
 const hoaGiap = [
   "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi",
+  "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu"
 ];
 
+// Get Can Chi for a given year
 const getCanChiForYear = (year) => {
   if (!Number.isInteger(year) || year < 1900 || year > 2100) return null;
   const baseYear = 1984;
@@ -77,6 +85,7 @@ const getCanChiForYear = (year) => {
   return hoaGiap[adjustedIndex] || null;
 };
 
+// Analyze Five Elements
 const analyzeNguHanh = (tuTru) => {
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   const canNguHanh = {
@@ -126,10 +135,11 @@ const analyzeNguHanh = (tuTru) => {
     return nguHanhCount;
   } catch (e) {
     console.error("Lỗi phân tích ngũ hành:", e.message);
-    throw new Error("Không thể phân tích ngũ hành");
+    throw new Error(`Phân tích ngũ hành thất bại: ${e.message}`);
   }
 };
 
+// Determine Thân Vượng/Nhược
 const determineThanVuongNhac = (nguHanhCount, nhatChu) => {
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -141,6 +151,7 @@ const determineThanVuongNhac = (nguHanhCount, nhatChu) => {
   return nhatChuStrength > 0.35 ? "Vượng" : nhatChuStrength < 0.2 ? "Nhược" : "Bình hòa";
 };
 
+// Determine Useful God (Dụng Thần)
 const determineDungThan = (nguHanhCount, nhatChu) => {
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -148,7 +159,6 @@ const determineDungThan = (nguHanhCount, nhatChu) => {
   };
   const nhatChuHanh = canNguHanh[nhatChu];
   const thanVuongNhac = determineThanVuongNhac(nguHanhCount, nhatChu);
-  const sortedElements = Object.entries(nguHanhCount).sort((a, b) => a[1] - b[1]);
   const balanceMap = {
     Mộc: { Vượng: ["Hỏa", "Thổ"], Nhược: ["Mộc", "Thủy"], "Bình hòa": ["Mộc", "Hỏa"] },
     Hỏa: { Vượng: ["Thổ", "Kim"], Nhược: ["Hỏa", "Mộc"], "Bình hòa": ["Hỏa", "Thổ"] },
@@ -156,9 +166,15 @@ const determineDungThan = (nguHanhCount, nhatChu) => {
     Kim: { Vượng: ["Hỏa", "Thổ"], Nhược: ["Kim", "Thủy"], "Bình hòa": ["Kim", "Hỏa"] },
     Thủy: { Vượng: ["Mộc", "Kim"], Nhược: ["Thủy", "Kim"], "Bình hòa": ["Thủy", "Mộc"] }
   };
-  return balanceMap[nhatChuHanh][thanVuongNhac] || [sortedElements[0][0], sortedElements[1][0]];
+  try {
+    return balanceMap[nhatChuHanh][thanVuongNhac] || ["Hỏa", "Thổ"];
+  } catch (e) {
+    console.error("Lỗi xác định Dụng Thần:", e.message);
+    throw new Error("Không thể xác định Dụng Thần");
+  }
 };
 
+// Calculate Ten Gods (Thập Thần)
 const tinhThapThan = (nhatChu, tuTru) => {
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -231,10 +247,11 @@ const tinhThapThan = (nhatChu, tuTru) => {
     return thapThanResults;
   } catch (e) {
     console.error("Lỗi tính Thập Thần:", e.message);
-    throw new Error("Không thể tính Thập Thần");
+    return { error: `Không thể tính Thập Thần: ${e.message}` };
   }
 };
 
+// Calculate Auspicious Stars (Thần Sát)
 const tinhThanSat = (tuTru) => {
   const thienAtQuyNhan = {
     Giáp: ["Sửu", "Mùi"], Ất: ["Tý", "Hợi"], Bính: ["Dần", "Mão"], Đinh: ["Sửu", "Hợi"],
@@ -267,6 +284,7 @@ const tinhThanSat = (tuTru) => {
   };
 };
 
+// Day Master and Ten Gods descriptions
 const dayMasterDescriptions = {
   Mộc: {
     vi: "Như cây xanh vươn cao đón nắng, bạn tràn đầy sức sống, sáng tạo, và linh hoạt. Bạn yêu thích khám phá và không ngại thử thách, nhưng đôi khi cần thời gian để ổn định cảm xúc.",
@@ -274,19 +292,19 @@ const dayMasterDescriptions = {
   },
   Hỏa: {
     vi: "Như ngọn lửa rực rỡ soi sáng màn đêm, bạn bừng cháy với đam mê và nhiệt huyết, dễ truyền cảm hứng nhưng cần kiểm soát sự bốc đồng.",
-    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness"
+    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness."
   },
   Thổ: {
     vi: "Như ngọn núi vững chãi giữa đất trời, bạn đáng tin cậy, kiên định và thực tế, nhưng đôi khi cần mở lòng để đón nhận thay đổi.",
-    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly"
+    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly."
   },
   Kim: {
     vi: "Như thanh kiếm sắc bén lấp lánh ánh kim, bạn tinh tế, quyết tâm và chính trực, nhưng cần cân bằng giữa lý trí và cảm xúc.",
-    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion"
+    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion."
   },
   Thủy: {
     vi: "Như dòng sông sâu thẳm chảy không ngừng, bạn thông thái, nhạy bén và sâu sắc, nhưng đôi khi cần kiểm soát dòng cảm xúc mạnh mẽ.",
-    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions"
+    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions."
   }
 };
 
@@ -303,6 +321,7 @@ const thapThanEffects = {
   "Thiên Ấn": { vi: "Sáng tạo, tư duy độc đáo, trực giác mạnh, phù hợp với nghệ thuật", en: "Creative, unique thinking, strong intuition, suited for artistic pursuits" }
 };
 
+// Determine question type
 const determineQuestionType = (userInput, language) => {
   const normalizedInput = typeof userInput === "string" ? userInput.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
   const keywords = {
@@ -372,6 +391,7 @@ const determineQuestionType = (userInput, language) => {
   return types;
 };
 
+// Analyze specific year
 const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
   const canChi = getCanChiForYear(year);
   if (!canChi) return { vi: "Năm không hợp lệ", en: "Invalid year" };
@@ -400,13 +420,13 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
 
   const nguHanhYear = { can: canNguHanh[can], chi: chiNguHanh[chi] };
   const isFavorable = dungThan.includes(nguHanhYear.can) || dungThan.includes(nguHanhYear.chi);
-  const analysis = {
+  return {
     vi: `Năm ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Hỗ trợ Dụng Thần ${dungThan.join(", ")}, mang cơ hội trong sự nghiệp và mối quan hệ.` : `Cần cân bằng với ${dungThan.join(", ")} để giảm áp lực và tận dụng cơ hội.`}`,
     en: `Year ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Supports Useful God ${dungThan.join(", ")}, bringing opportunities in career and relationships.` : `Balance with ${dungThan.join(", ")} to reduce pressure and seize opportunities.`}`
   };
-  return analysis;
 };
 
+// Generate response
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
@@ -524,6 +544,7 @@ ${language === "vi" ? `Thần Sát:\n${activeThanSat.length > 0 ? activeThanSat.
   return response.trim();
 };
 
+// Check OpenAI status
 const checkOpenAIStatus = async () => {
   try {
     const response = await axios.get("https://status.openai.com/api/v2/status.json", { timeout: 10000 });
@@ -534,6 +555,7 @@ const checkOpenAIStatus = async () => {
   }
 };
 
+// Check OpenAI API key
 const checkOpenAIKey = async () => {
   try {
     const response = await axios.get("https://api.openai.com/v1/models", {
@@ -547,6 +569,7 @@ const checkOpenAIKey = async () => {
   }
 };
 
+// Call OpenAI with retry logic
 const callOpenAI = async (payload, retries = 3, delay = 5000) => {
   console.log(`Bắt đầu OpenAI: ${new Date().toISOString()}`);
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OpenAI API key");
@@ -581,18 +604,19 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
   }
 };
 
+// Main Bazi analysis endpoint
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const startTime = Date.now();
   const { messages, tuTruInfo, dungThan, language = "vi" } = req.body;
-  const useOpenAI = process.env.USE_OPENAI !== "false";
 
+  // Validate input
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: language === "vi" ? "Thiếu messages" : "Missing messages" });
   }
   if (!tuTruInfo || typeof tuTruInfo !== "string") {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
-  let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
+
   let tuTru;
   try {
     tuTru = JSON.parse(tuTruInfo);
@@ -606,24 +630,25 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
       throw new Error("Tứ Trụ không đầy đủ");
     }
   } catch (e) {
-    tuTru = parseEnglishTuTru(userInput);
-    if (!tuTru || !tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
-      return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
-    }
+    console.error("Lỗi parse tuTruInfo:", e.message);
+    return res.status(400).json({ error: language === "vi" ? `Tứ Trụ không hợp lệ: ${e.message}` : `Invalid Four Pillars: ${e.message}` });
   }
 
   let nguHanh;
   try {
     nguHanh = analyzeNguHanh(tuTru);
   } catch (err) {
-    return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
+    console.error("Lỗi phân tích Ngũ Hành:", err.message);
+    return res.status(400).json({ error: language === "vi" ? `Lỗi Ngũ Hành: ${err.message}` : `Five Elements error: ${err.message}` });
   }
 
+  let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
   if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
     try {
       dungThanHanh = determineDungThan(nguHanh, tuTru.ngay?.split(" ")[0]);
     } catch (e) {
-      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
+      console.error("Lỗi xác định Dụng Thần:", e.message);
+      return res.status(400).json({ error: language === "vi" ? `Không thể xác định Dụng Thần: ${e.message}` : `Cannot determine Useful God: ${e.message}` });
     }
   }
 
@@ -631,23 +656,22 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   try {
     thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
   } catch (err) {
-    console.error("Lỗi Thập Thần:", err.message);
+    console.error("Lỗi tính Thập Thần:", err.message);
+    thapThanResults = { warning: `Không thể tính Thập Thần: ${err.message}` };
   }
 
   let thanSatResults = {};
   try {
     thanSatResults = tinhThanSat(tuTru);
   } catch (err) {
-    console.error("Lỗi Thần Sát:", err.message);
+    console.error("Lỗi tính Thần Sát:", err.message);
+    thanSatResults = { warning: `Không thể tính Thần Sát: ${err.message}` };
   }
 
-  if (!useOpenAI) {
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
-    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer });
-  }
-
+  const useOpenAI = process.env.USE_OPENAI !== "false";
   const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
+
+  // OpenAI prompt
   const prompt = `
 You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood.
 
@@ -689,26 +713,37 @@ Provide a response that feels personal, avoids generic phrases, and inspires the
 `;
 
   try {
-    const gptRes = await callOpenAI({
-      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
-    });
-    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer: gptRes.choices[0].message.content });
+    if (useOpenAI) {
+      const gptRes = await callOpenAI({
+        model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.4,
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
+      });
+      console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
+      return res.json({ answer: gptRes.choices[0].message.content });
+    } else {
+      const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+      console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
+      return res.json({ answer });
+    }
   } catch (err) {
-    console.error("OpenAI error:", err.message);
+    console.error("Lỗi OpenAI hoặc xử lý:", err.message);
     const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
-    return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}` });
+    return res.status(200).json({
+      answer,
+      warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}`
+    });
   }
 });
 
+// Global error handler
 app.use((err, req, res, next) => {
   console.error("Lỗi hệ thống:", err.stack);
-  res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
+  res.status(500).json({ error: req.body.language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
 });
 
+// Start server
 const port = process.env.PORT || 5000;
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
