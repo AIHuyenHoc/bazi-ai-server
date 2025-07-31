@@ -5,7 +5,8 @@ require("dotenv").config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Tăng giới hạn payload lên 10MB
+app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -288,7 +289,7 @@ const tinhThanSat = (tuTru) => {
 const dayMasterDescriptions = {
   Mộc: {
     vi: "Như cây xanh vươn cao đón nắng, bạn tràn đầy sức sống, sáng tạo, và linh hoạt. Bạn yêu thích khám phá và không ngại thử thách, nhưng đôi khi cần thời gian để ổn định cảm xúc.",
-    en: "Like a tree reaching for sunlight, you are vibrant, creative, and adaptable. You thrive on exploration and challenges but may need moments to ground your emotions."
+    en: "Like a tree reaching for sunlight, you are vibrant, creative, and adaptable. You thrive on exploration and challenges but may need moments to ground your emotions"
   },
   Hỏa: {
     vi: "Như ngọn lửa rực rỡ soi sáng màn đêm, bạn bừng cháy với đam mê và nhiệt huyết, dễ truyền cảm hứng nhưng cần kiểm soát sự bốc đồng.",
@@ -617,6 +618,13 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
 
+  // Kiểm tra kích thước payload
+  const payloadSize = Buffer.byteLength(JSON.stringify(req.body), "utf8");
+  if (payloadSize > 10 * 1024 * 1024) { // 10MB
+    console.error(`Payload quá lớn: ${payloadSize} bytes`);
+    return res.status(413).json({ error: language === "vi" ? "Yêu cầu quá lớn, vui lòng giảm dữ liệu" : "Request entity too large, please reduce data size" });
+  }
+
   let tuTru;
   try {
     tuTru = JSON.parse(tuTruInfo);
@@ -740,7 +748,10 @@ Provide a response that feels personal, avoids generic phrases, and inspires the
 // Global error handler
 app.use((err, req, res, next) => {
   console.error("Lỗi hệ thống:", err.stack);
-  res.status(500).json({ error: req.body.language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
+  if (err.status === 413 || err.type === "entity.too.large") {
+    return res.status(413).json({ error: req.body.language === "vi" ? "Yêu cầu quá lớn, vui lòng giảm dữ liệu" : "Request entity too large, please reduce data size" });
+  }
+  return res.status(500).json({ error: req.body.language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
 });
 
 // Start server
