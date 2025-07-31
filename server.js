@@ -207,8 +207,10 @@ const tinhThanSat = (tuTru) => {
     Nhâm: ["Hợi", "Tý"], Quý: ["Tý", "Hợi"]
   };
   const daoHoa = {
-    Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
-    Ngọ: "Mão", Mùi: "Dần", Thân: "Sửu", Dậu: "Tý", Tuất: "Hợi", Hợi: "Tuất"
+    "Thân": "Dậu", "Tý": "Dậu", "Thìn": "Dậu",
+    "Tỵ": "Ngọ", "Dậu": "Ngọ", "Sửu": "Ngọ",
+    "Dần": "Mão", "Ngọ": "Mão", "Tuất": "Mão",
+    "Hợi": "Tý", "Mão": "Tý", "Mùi": "Tý"
   };
   const hongLoan = {
     Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
@@ -216,19 +218,20 @@ const tinhThanSat = (tuTru) => {
   };
 
   const nhatChu = tuTru.ngay?.split(" ")[0];
+  const dayBranch = tuTru.ngay?.split(" ")[1];
   const branches = [
     tuTru.nam?.split(" ")[1], tuTru.thang?.split(" ")[1],
     tuTru.ngay?.split(" ")[1], tuTru.gio?.split(" ")[1]
-  ].filter(Boolean);
+    ].filter(Boolean);
 
-  if (!nhatChu || !branches.length) {
+  if (!nhatChu || !dayBranch || !branches.length) {
     throw new Error("Invalid nhatChu or branches");
   }
 
   return {
     "Thiên Ất Quý Nhân": { vi: "Thiên Ất Quý Nhân", en: "Nobleman Star", value: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [] },
-    "Đào Hoa": { vi: "Đào Hoa", en: "Peach Blossom", value: branches.includes(daoHoa[tuTru.ngay?.split(" ")[1]]) ? [daoHoa[tuTru.ngay?.split(" ")[1]]] : [] },
-    "Hồng Loan": { vi: "Hồng Loan", en: "Red Phoenix", value: branches.includes(hongLoan[tuTru.ngay?.split(" ")[1]]) ? [hongLoan[tuTru.ngay?.split(" ")[1]]] : [] }
+    "Đào Hoa": { vi: "Đào Hoa", en: "Peach Blossom", value: branches.includes(daoHoa[dayBranch]) ? [daoHoa[dayBranch]] : [] },
+    "Hồng Loan": { vi: "Hồng Loan", en: "Red Phoenix", value: branches.includes(hongLoan[dayBranch]) ? [hongLoan[dayBranch]] : [] }
   };
 };
 
@@ -389,10 +392,17 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
     Object.entries(nguHanhCount).map(([k, v]) => [k, v.toFixed(1)])
   );
   const nhatChu = tuTru.ngay.split(" ")[0];
+  const dayBranch = tuTru.ngay.split(" ")[1];
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
   };
+
+  const daoHoaDirection = {
+    Tý: "Bắc", Ngọ: "Nam", Mão: "Đông", Dậu: "Tây"
+  };
+  const daoHoa = thanSatResults["Đào Hoa"].value[0];
+  const loveAdvice = daoHoa ? `Để tăng cường vận may tình duyên, hãy đặt một bình hoa ở góc ${daoHoaDirection[daoHoa] || "phù hợp"} của phòng ngủ, tượng trưng cho Đào Hoa.` : "";
 
   const { isGeneral, isMoney, isCareer, isFame, isHealth, isLove, isFamily, isChildren, isProperty, isDanger, isYear, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
 
@@ -443,10 +453,10 @@ ${language === "vi" ? `${weakestElement} yếu, cần bổ sung ${dungThan[0]} �
 
   if (isLove) {
     const thienTai = thapThanResults["Đinh"] || thapThanResults["Bính"] || "Không nổi bật";
-    const daoHoa = thanSatResults["Đào Hoa"].value.length ? "Có Đào Hoa" : "Không có Đào Hoa";
+    const daoHoaText = thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa";
     response += `
 Tình duyên và Mối quan hệ:
-${language === "vi" ? `Thiên Tài (${thienTai}): Hợp với người ${dungThan.includes("Mộc") ? "sáng tạo, linh hoạt" : dungThan.includes("Hỏa") ? "đam mê, năng động" : dungThan.includes("Thổ") ? "ổn định, thực tế" : dungThan.includes("Kim") ? "tinh tế, chính trực" : "thông thái, sâu sắc"}. ${daoHoa}. Dụng Thần ${dungThan[0]} giúp ổn định tình cảm từ 2026.\nLời khuyên: Giao tiếp chân thành, mặc màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} để tăng sức hút.` : `Indirect Wealth (${thienTai}): Compatible with ${dungThan.includes("Mộc") ? "creative, adaptable" : dungThan.includes("Hỏa") ? "passionate, energetic" : dungThan.includes("Thổ") ? "stable, practical" : dungThan.includes("Kim") ? "refined, upright" : "wise, profound"} partners. ${daoHoa}. Useful God ${dungThan[0]} stabilizes relationships from 2026.\nAdvice: Communicate sincerely, wear ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} to enhance charm.`}
+${language === "vi" ? `Thiên Tài (${thienTai}): Hợp với người ${dungThan.includes("Mộc") ? "sáng tạo, linh hoạt" : dungThan.includes("Hỏa") ? "đam mê, năng động" : dungThan.includes("Thổ") ? "ổn định, thực tế" : dungThan.includes("Kim") ? "tinh tế, chính trực" : "thông thái, sâu sắc"}. ${daoHoaText}. Dụng Thần ${dungThan[0]} giúp ổn định tình cảm từ 2026.\nLời khuyên: Giao tiếp chân thành, mặc màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} để tăng sức hút. ${loveAdvice}` : `Indirect Wealth (${thienTai}): Compatible with ${dungThan.includes("Mộc") ? "creative, adaptable" : dungThan.includes("Hỏa") ? "passionate, energetic" : dungThan.includes("Thổ") ? "stable, practical" : dungThan.includes("Kim") ? "refined, upright" : "wise, profound"} partners. ${daoHoaText}. Useful God ${dungThan[0]} stabilizes relationships from 2026.\nAdvice: Communicate sincerely, wear ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} to enhance charm. ${loveAdvice.replace("tình duyên", "love luck").replace("phòng ngủ", "bedroom")}`}
 `;
   }
 
@@ -643,9 +653,9 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood.
 
 Instructions:
-- Personality: Describe the Day Master (Nhật Chủ) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses.
+- Personality: Describe the Day Master (Nhật Chủ, based solely on the Heavenly Stem) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses.
 - Career: Use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success.
-- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and ways to improve relationships.
+- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and ways to improve relationships. For love-related queries, include: "To enhance love luck, place a vase in the bedroom corner corresponding to your Đào Hoa: Tý (North), Ngọ (South), Mão (East), Dậu (West)."
 - Passions: Infer hobbies or interests based on Five Elements and Ten Gods (e.g., creativity for Thực Thần, exploration for Mộc). Suggest activities to nurture their soul.
 - Future Outlook: If a specific year is mentioned, analyze its Heavenly Stem and Earthly Branch, linking to Useful Gods for opportunities or challenges. Provide a 2026-2030 outlook if no year is specified.
 - Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth.
@@ -669,13 +679,13 @@ Example Responses (adapt to the user's data, one for each Day Master):
 - Kỷ (Thổ): Như cánh đồng phì nhiêu, bạn thực tế, chu đáo, nhưng cần linh hoạt hơn. Thực Thần hợp với nông nghiệp, giáo dục. Hợp với người năng động (Hỏa). Thích nấu ăn, làm gốm. Năm 2026, dùng màu đỏ để tăng cơ hội; đeo thạch anh vàng.
 - Canh (Kim): Như thanh kiếm sắc bén, bạn quyết đoán, chính trực, nhưng cần mềm dẻo hơn. Tỷ Kiên hợp với kỹ thuật, công nghệ. Hợp với người sâu sắc (Thủy). Thích chế tác, thể thao. Năm 2026, dùng màu xanh dương, sapphire để cân bằng.
 - Tân (Kim): Như viên ngọc quý, bạn tinh tế, thông minh, nhưng cần tránh cầu toàn. Thương Quan hợp với tài chính, thiết kế. Hợp với người sáng tạo (Mộc). Thích viết lách, thủ công. Năm 2026, dùng màu xanh lá để tăng may mắn; đeo bạc.
-- Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thực Thần mạnh, hợp với truyền thông, tư vấn. Đào Hoa tại Mùi, hợp với người ổn định (Thổ). Thích viết lách, du lịch gần nước. Năm 2026, dùng màu trắng, sapphire để cân bằng.
+- Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thực Thần mạnh, hợp với truyền thông, tư vấn. Đào Hoa tại Dậu, hợp với người ổn định (Thổ). Thích viết lách, du lịch gần nước. Năm 2026, dùng màu trắng, sapphire để cân bằng. Để tăng vận may tình duyên, đặt bình hoa ở góc Tây phòng ngủ.
 - Quý (Thủy): Như giọt sương buổi sớm, bạn dịu dàng, trực giác mạnh, nhưng cần kiên định. Thiên Tài hợp với thương mại, sáng tạo. Hợp với người năng động (Hỏa). Thích thiền, nghệ thuật. Năm 2026, dùng màu đỏ, ruby để tăng sức hút.
 
 Response Structure (in ${language === "vi" ? "Vietnamese" : "English"}):
 1. Nhật Chủ và Tính Cách: Deep insights into their inner world.
 2. Sự Nghiệp và Định Hướng: Specific career paths and advice.
-3. Tình Duyên và Mối Quan Hệ: Insights and recommendations.
+3. Tình Duyên và Mối Quan Hệ: Insights and recommendations, including vase placement for love queries.
 4. Sở Thích và Đam Mê: Suggested hobbies and activities.
 5. Dự Đoán Tương Lai: Year-specific or general 2026-2030 forecast.
 6. Lời Khuyên: Practical tips (colors, items, activities) for balance and growth.
