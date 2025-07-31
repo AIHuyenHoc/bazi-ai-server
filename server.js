@@ -245,19 +245,19 @@ const dayMasterDescriptions = {
   },
   Hỏa: {
     vi: "Như ngọn lửa rực rỡ soi sáng màn đêm, bạn bừng cháy với đam mê và nhiệt huyết, dễ truyền cảm hứng nhưng cần kiểm soát sự bốc đồng.",
-    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness"
+    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness."
   },
   Thổ: {
     vi: "Như ngọn núi vững chãi giữa đất trời, bạn đáng tin cậy, kiên định và thực tế, nhưng đôi khi cần mở lòng để đón nhận thay đổi.",
-    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly"
+    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly."
   },
   Kim: {
     vi: "Như thanh kiếm sắc bén lấp lánh ánh kim, bạn tinh tế, quyết tâm và chính trực, nhưng cần cân bằng giữa lý trí và cảm xúc.",
-    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion"
+    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion."
   },
   Thủy: {
     vi: "Như dòng sông sâu thẳm chảy không ngừng, bạn thông thái, nhạy bén và sâu sắc, nhưng đôi khi cần kiểm soát dòng cảm xúc mạnh mẽ.",
-    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions"
+    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions."
   }
 };
 
@@ -500,7 +500,7 @@ ${language === "vi" ? `**Thập Thần:**\n${Object.entries(thapThanResults).map
       .filter(([_, value]) => value.value.length)
       .map(([_, value]) => `${value[language]}: ${value.value.join(", ")}`);
     response += `
-${language === "vi" ? `**Thần Sát:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `**Auspicious Stars:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"}`}
+${language === "vi" ? `**Thần Sát:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `**Auspicious Stars:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"} `}
 `;
   }
 
@@ -653,6 +653,18 @@ You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in
 - **Day Master Descriptions**: ${JSON.stringify(dayMasterDescriptions)}
 - **Ten Gods Effects**: ${JSON.stringify(thapThanEffects)}
 
+**Example Responses** (adapt to the user's data, one for each Day Master):
+- **Giáp (Mộc):** Như cây đại thụ vươn cao, bạn sáng tạo, năng động, nhưng cần kiên nhẫn khi đối mặt thử thách. Thực Thần mạnh, phù hợp với giáo dục, thiết kế. Đào Hoa tại Mùi, hợp với người ổn định (Thổ). Thích khám phá thiên nhiên, thử đi bộ đường dài. Năm 2026 (Hỏa), cơ hội trong nghệ thuật; dùng màu xanh lá, ngọc bích để cân bằng.
+- **Ất (Mộc):** Như cỏ mềm đung đưa, bạn linh hoạt, nhạy cảm, nhưng cần tránh do dự. Thương Quan mạnh, hợp với viết lách, nghệ thuật. Hợp với người đam mê (Hỏa). Thích vẽ, làm vườn. Năm 2026, dùng màu đỏ để tăng vận may; đeo ngọc bích để ổn định.
+- **Bính (Hỏa):** Như mặt trời rực rỡ, bạn nhiệt huyết, truyền cảm hứng, nhưng cần kiểm soát bốc đồng. Thực Thần hỗ trợ truyền thông, quảng cáo. Hợp với người sáng tạo (Mộc). Thích diễn xuất, kể chuyện. Năm 2026 (Hỏa), cơ hội lớn; dùng màu đỏ, ruby để tăng năng lượng.
+- **Đinh (Hỏa):** Như ngọn nến lung linh, bạn ấm áp, tinh tế, nhưng cần tránh căng thẳng. Thương Quan hợp với nghệ thuật, media. Hợp với người thực tế (Thổ). Thích nhiếp ảnh, âm nhạc. Năm 2026, dùng màu nâu để cân bằng; đeo thạch anh hồng.
+- **Mậu (Thổ):** Như ngọn núi vững chãi, bạn đáng tin, kiên định, nhưng cần cởi mở hơn. Chính Tài hợp với bất động sản, quản lý. Hợp với người chính trực (Kim). Thích xây dựng, sưu tập. Năm 2026, dùng màu trắng, bạc để thăng tiến.
+- **Kỷ (Thổ):** Như cánh đồng phì nhiêu, bạn thực tế, chu đáo, nhưng cần linh hoạt hơn. Thực Thần hợp với nông nghiệp, giáo dục. Hợp với người năng động (Hỏa). Thích nấu ăn, làm gốm. Năm 2026, dùng màu đỏ để tăng cơ hội; đeo thạch anh vàng.
+- **Canh (Kim):** Như thanh kiếm sắc bén, bạn quyết đoán, chính trực, nhưng cần mềm dẻo hơn. Tỷ Kiên hợp với kỹ thuật, công nghệ. Hợp với người sâu sắc (Thủy). Thích chế tác, thể thao. Năm 2026, dùng màu xanh dương, sapphire để cân bằng.
+- **Tân (Kim):** Như viên ngọc quý, bạn tinh tế, thông minh, nhưng cần tránh cầu toàn. Thương Quan hợp với tài chính, thiết kế. Hợp với người sáng tạo (Mộc). Thích viết lách, thủ công. Năm 2026, dùng màu xanh lá để tăng may mắn; đeo bạc.
+- **Nhâm (Thủy):** Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thực Thần mạnh, hợp với truyền thông, tư vấn. Đào Hoa tại Mùi, hợp với người ổn định (Thổ). Thích viết lách, du lịch gần nước. Năm 2026, dùng màu trắng, sapphire để cân bằng.
+- **Quý (Thủy):** Như giọt sương buổi sớm, bạn dịu dàng, trực giác mạnh, nhưng cần kiên định. Thiên Tài hợp với thương mại, sáng tạo. Hợp với người năng động (Hỏa). Thích thiền, nghệ thuật. Năm 2026, dùng màu đỏ, ruby để tăng sức hút.
+
 **Response Structure** (in ${language === "vi" ? "Vietnamese" : "English"}):
 1. **Nhật Chủ và Tính Cách** (Day Master and Personality): Deep insights into their inner world.
 2. **Sự Nghiệp và Định Hướng** (Career and Direction): Specific career paths and advice.
@@ -661,15 +673,7 @@ You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in
 5. **Dự Đoán Tương Lai** (Future Outlook): Year-specific or general 2026-2030 forecast.
 6. **Lời Khuyên** (Advice): Practical tips (colors, items, activities) for balance and growth.
 
-**Example Response** (for reference, adapt to the user's data):
-- **Nhật Chủ Nhâm (Thủy):** Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thiền hoặc đi bộ gần nước giúp bạn cân bằng.
-- **Sự Nghiệp:** Thực Thần mạnh, phù hợp với truyền thông, thiết kế. Dụng Thần Kim khuyến khích rèn kỷ luật. Năm 2026, cơ hội trong công nghệ xanh.
-- **Tình Duyên:** Đào Hoa tại Mùi, bạn quyến rũ, hợp với người ổn định (Thổ). Mặc màu trắng để tăng sức hút.
-- **Sở Thích:** Thích viết lách, nghệ thuật. Thử vẽ hoặc viết blog để nuôi dưỡng tâm hồn.
-- **Dự Đoán:** 2026 (Bính Ngọ): Hỏa mạnh, dùng màu trắng (Kim) để cân bằng.
-- **Lời Khuyên:** Đeo vòng sapphire, tham gia cộng đồng sáng tạo để phát triển.
-
-Provide a response that feels personal, avoids generic phrases, and inspires the user to embrace their strengths and grow.
+Provide a response that feels personal, avoids generic phrases, and inspires the user to embrace their strengths and grow. Match the tone and depth of the examples above, tailored to the provided Bazi data.
 `;
 
   try {
