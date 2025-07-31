@@ -311,19 +311,19 @@ const determineQuestionType = (userInput, language) => {
       en: ["property", "real estate", "land", "house", "asset", "ownership", "buying", "selling", "resources", "investment"]
     },
     isDanger: {
-      vi: ["tai nan", "nguy hiem", "rủi ro", "an toan", "tai hoa", "hoan nan", "kho khan", "de phong", "phong tranh", "bao ve"],
+      vi: ["tai nan", "nguy hiem", "rui ro", "an toan", "tai hoa", "hoan nan", "kho khan", "de phong", "phong tranh", "bao ve"],
       en: ["accident", "danger", "risk", "safety", "hazard", "trouble", "crisis", "caution", "prevention", "protection"]
     },
     isYear: {
-      vi: ["nam", "sang nam", "tương lai", "nam toi", "nam sau", "luu nien", "van menh", "tram nam", "thoi gian", "nien"],
+      vi: ["nam", "sang nam", "tuong lai", "nam toi", "nam sau", "luu nien", "van menh", "tram nam", "thoi gian", "nien"],
       en: ["year", "next year", "future", "coming year", "forecast", "annual", "destiny", "time", "period", "cycle"]
     },
     isComplex: {
-      vi: ["du doan", "tuong lai", "van menh", "dai van", "toan bo", "tong quan", "chi tiet", "tat ca", "toan dien", "trọn đời"],
+      vi: ["du doan", "tuong lai", "van menh", "dai van", "toan bo", "tong quan", "chi tiet", "tat ca", "toan dien", "tron doi"],
       en: ["predict", "future", "destiny", "life path", "overall", "general", "detailed", "complete", "comprehensive", "lifetime"]
     },
     isThapThan: {
-      vi: ["thap than", "mười thần", "than tai", "ty kien", "thuc than", "thien tai", "chinh quan", "thien an", "chinh an", "that sat"],
+      vi: ["thap than", "mười than", "than tai", "ty kien", "thuc than", "thien tai", "chinh quan", "thien an", "chinh an", "that sat"],
       en: ["ten gods", "ten deities", "shoulder", "wealth", "food god", "indirect wealth", "direct officer", "seal", "indirect seal", "seven killings"]
     },
     isThanSat: {
@@ -382,7 +382,6 @@ const determineDungThan = (nguHanhCount) => {
   const sortedElements = Object.entries(nguHanhCount).sort((a, b) => a[1] - b[1]);
   const weakest = sortedElements[0][0];
   const secondWeakest = sortedElements[1][0];
-  const strongest = sortedElements[sortedElements.length - 1][0];
   const balanceMap = {
     Mộc: ["Mộc", "Hỏa"], Hỏa: ["Hỏa", "Mộc"], Thổ: ["Thổ", "Kim"],
     Kim: ["Kim", "Thủy"], Thủy: ["Thủy", "Mộc"]
@@ -414,9 +413,7 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
 ${language === "vi" ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].en}`}
 ${language === "vi" ? `Tứ Trụ: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}` : `Four Pillars: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}`}
 ${language === "vi" ? "Ngũ Hành:" : "Five Elements:"}
-${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v == 1 ? "mạnh" : v == 0 ? "yếu" : "trung bình") : (v == 1 ? "strong" : v == 0 ? "weakಸ
-
-System: weak" : "balanced"})`).join("\n")}`}
+${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v == 1 ? "mạnh" : v == 0 ? "yếu" : "trung bình") : (v == 1 ? "strong" : v == 0 ? "weak" : "balanced")})`).join("\n")}
 ${language === "vi" ? `Dụng Thần: ${dungThan.join(", ")}` : `Useful God: ${dungThan.join(", ")}`}
 ${language === "vi" ? `Đề xuất: Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để kích hoạt vận may.` : `Recommendation: Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck.`}
 `;
@@ -607,7 +604,11 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   }
   let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
   if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    dungThanHanh = determineDungThan(analyzeNguHanh(JSON.parse(tuTruInfo)));
+    try {
+      dungThanHanh = determineDungThan(analyzeNguHanh(JSON.parse(tuTruInfo)));
+    } catch (e) {
+      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
+    }
   }
 
   const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
