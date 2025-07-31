@@ -210,10 +210,10 @@ const tinhThanSat = (tuTru) => {
     Nhâm: ["Hợi", "Tý"], Quý: ["Tý", "Hợi"]
   };
   const daoHoa = {
-    "Thân": "Dậu", "Tý": "Dậu", "Thìn": "Dậu",
-    "Tỵ": "Ngọ", "Dậu": "Ngọ", "Sửu": "Ngọ",
-    "Dần": "Dậu", "Ngọ": "Mão", "Tuất": "Mão",
-    "Hợi": "Tý", "Mão": "Tý", "Mùi": "Tý"
+    Thân: "Dậu", Tý: "Dậu", Thìn: "Dậu",
+    Tỵ: "Ngọ", Dậu: "Ngọ", Sửu: "Ngọ",
+    Dần: "Dậu", Ngọ: "Mão", Tuất: "Mão",
+    Hợi: "Tý", Mão: "Tý", Mùi: "Tý"
   };
   const hongLoan = {
     Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
@@ -339,7 +339,7 @@ const determineQuestionType = (userInput, language) => {
     const notMatch = not.some(keyword => normalizedInput.includes(keyword));
     types[type] = (viMatch || enMatch) && !notMatch;
   }
-  types.isGeneral = !Object.values(types).some(v => v) && !normalizedInput.includes("su nghiep") && !normalizedInput.includes("career") && !normalizedInput.includes("tien tai") && !normalizedInput.includes("tai loc") && !normalizedInput.includes("tinh duyen") && !normalizedInput.includes("love");
+  types.isGeneral = !Object.values(types).some(v => v);
   return types;
 };
 
@@ -405,7 +405,7 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
     Tý: "Bắc", Ngọ: "Nam", Mão: "Đông", Dậu: "Tây"
   };
   const daoHoa = thanSatResults["Đào Hoa"].value[0];
-  const loveAdvice = daoHoa ? `Để tăng cường vận may tình duyên, hãy đặt một bình hoa ở góc ${daoHoaDirection[daoHoa] || "phù hợp"} của phòng ngủ, tượng trưng cho Đào Hoa.` : "";
+  const loveAdvice = daoHoa ? `Để tăng cường vận may tình duyên, hãy đặt một bình hoa ở góc ${daoHoaDirection[daoHoa] || "phù hợp"} của phòng ngủ, tượng trưng cho Đào Hoa.` : "Không có Đào Hoa trong lá số, nhưng bạn có thể tăng sức hút bằng cách sử dụng màu sắc và vật phẩm hợp với Dụng Thần.";
 
   const { isGeneral, isMoney, isCareer, isFame, isHealth, isLove, isFamily, isChildren, isProperty, isDanger, isYear, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
 
@@ -421,8 +421,8 @@ Nhật Chủ và Tính Cách:
 ${language === "vi" ? `${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}\nTứ Trụ: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}\nNgũ Hành:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\nDụng Thần: ${dungThan.join(", ")}\nĐề xuất: Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để tăng cường vận may và cân bằng năng lượng.` : `${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].en}\nFour Pillars: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}\nFive Elements:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\nUseful God: ${dungThan.join(", ")}\nRecommendation: Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck and balance energy.`}
 `;
   } else {
-    if (isMoney && !isCareer && !isLove) {
-      const chinhTai = thapThanResults["Bính"] || thapThanResults["Đinh"] || "Không nổi bật";
+    if (isMoney) {
+      const chinhTai = thapThanResults["Giáp"] || thapThanResults["Ất"] || "Không nổi bật";
       response += `
 Tài lộc:
 ${language === "vi" ? `Thiên Tài/Chính Tài (${chinhTai}): Bạn có khả năng kiếm tiền từ ý tưởng sáng tạo và quản lý tài chính tốt. Dụng Thần ${dungThan[0]} hỗ trợ tài lộc bền vững. Năm 2026 mang cơ hội qua các dự án liên quan đến ${dungThan.includes("Thủy") ? "thương mại, truyền thông" : dungThan.includes("Hỏa") ? "nghệ thuật, marketing" : dungThan.includes("Thổ") ? "bất động sản, nông nghiệp" : dungThan.includes("Kim") ? "công nghệ, tài chính" : "vận tải"}.\nLời khuyên: Tập trung vào đầu tư sáng tạo, sử dụng màu ${dungThan.includes("Thủy") ? "xanh dương" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "đen"} và vật phẩm như ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "thạch anh vàng" : dungThan.includes("Kim") ? "bạc" : "thủy tinh"}.` : `Indirect/Direct Wealth (${chinhTai}): You excel in earning through creative ideas and financial management. Useful God ${dungThan[0]} supports sustainable wealth. 2026 brings opportunities via ${dungThan.includes("Thủy") ? "trade, media" : dungThan.includes("Hỏa") ? "arts, marketing" : dungThan.includes("Thổ") ? "real estate, agriculture" : dungThan.includes("Kim") ? "tech, finance" : "transport"} projects.\nAdvice: Focus on creative investments, use ${dungThan.includes("Thủy") ? "blue" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "black"} and items like ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "citrine" : dungThan.includes("Kim") ? "silver" : "glass"}.`}
@@ -431,10 +431,9 @@ ${language === "vi" ? `Thiên Tài/Chính Tài (${chinhTai}): Bạn có khả n�
 
     if (isCareer) {
       const tyKien = thapThanResults["Canh"] || thapThanResults["Tân"] || "Không nổi bật";
-      const chinhAn = thapThanResults["Tý"] || thapThanResults["Hợi"] || "Không nổi bật";
       response += `
 Sự nghiệp và Định hướng:
-${language === "vi" ? `Tỷ Kiên (${tyKien}), Chính Ấn (${chinhAn}): Bạn có tố chất lãnh đạo, tư duy logic và sáng tạo, phù hợp với các ngành như ${dungThan.includes("Mộc") ? "giáo dục, thiết kế, công nghệ xanh" : dungThan.includes("Hỏa") ? "truyền thông, nghệ thuật, quảng cáo" : dungThan.includes("Thổ") ? "xây dựng, bất động sản" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, tài chính" : "thương mại, tư vấn"}. Dụng Thần ${dungThan[0]} hỗ trợ bạn phát triển dài hạn và xây dựng mạng lưới quan hệ.\nLời khuyên: Tận dụng khả năng diễn đạt và sáng tạo, tham gia các khóa học liên quan đến ${dungThan.includes("Mộc") ? "sáng tạo, công nghệ" : dungThan.includes("Hỏa") ? "truyền thông, marketing" : dungThan.includes("Thổ") ? "quản lý dự án" : dungThan.includes("Kim") ? "kỹ thuật, tài chính" : "giao tiếp, thương mại"} và sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} để tăng năng lượng tích cực.` : `Shoulder-to-Shoulder (${tyKien}), Direct Seal (${chinhAn}): You possess leadership qualities, logical thinking, and creativity, suited for fields like ${dungThan.includes("Mộc") ? "education, design, green tech" : dungThan.includes("Hỏa") ? "media, arts, advertising" : dungThan.includes("Thổ") ? "construction, real estate" : dungThan.includes("Kim") ? "tech, engineering, finance" : "trade, consulting"}. Useful God ${dungThan[0]} supports long-term growth and networking.\nAdvice: Leverage your expressive and creative skills, take courses in ${dungThan.includes("Mộc") ? "creativity, technology" : dungThan.includes("Hỏa") ? "media, marketing" : dungThan.includes("Thổ") ? "project management" : dungThan.includes("Kim") ? "engineering, finance" : "communication, trade"}, and use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} to boost positive energy.`}
+${language === "vi" ? `Tỷ Kiên (${tyKien}): Bạn có tố chất lãnh đạo, tư duy logic và sáng tạo, phù hợp với các ngành như ${dungThan.includes("Mộc") ? "giáo dục, thiết kế, công nghệ xanh" : dungThan.includes("Hỏa") ? "truyền thông, nghệ thuật, quảng cáo" : dungThan.includes("Thổ") ? "xây dựng, bất động sản" : dungThan.includes("Kim") ? "công nghệ, kỹ thuật, tài chính" : "thương mại, tư vấn"}. Dụng Thần ${dungThan[0]} hỗ trợ bạn phát triển dài hạn và xây dựng mạng lưới quan hệ.\nLời khuyên: Tận dụng khả năng diễn đạt và sáng tạo, tham gia các khóa học liên quan đến ${dungThan.includes("Mộc") ? "sáng tạo, công nghệ" : dungThan.includes("Hỏa") ? "truyền thông, marketing" : dungThan.includes("Thổ") ? "quản lý dự án" : dungThan.includes("Kim") ? "kỹ thuật, tài chính" : "giao tiếp, thương mại"} và sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} để tăng năng lượng tích cực.` : `Shoulder-to-Shoulder (${tyKien}): You possess leadership qualities, logical thinking, and creativity, suited for fields like ${dungThan.includes("Mộc") ? "education, design, green tech" : dungThan.includes("Hỏa") ? "media, arts, advertising" : dungThan.includes("Thổ") ? "construction, real estate" : dungThan.includes("Kim") ? "tech, engineering, finance" : "trade, consulting"}. Useful God ${dungThan[0]} supports long-term growth and networking.\nAdvice: Leverage your expressive and creative skills, take courses in ${dungThan.includes("Mộc") ? "creativity, technology" : dungThan.includes("Hỏa") ? "media, marketing" : dungThan.includes("Thổ") ? "project management" : dungThan.includes("Kim") ? "engineering, finance" : "communication, trade"}, and use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} to boost positive energy.`}
 `;
     }
 
@@ -454,7 +453,7 @@ ${language === "vi" ? `${weakestElement} yếu, cần bổ sung ${dungThan[0]} �
     }
 
     if (isLove) {
-      const thienTai = thapThanResults["Đinh"] || thapThanResults["Bính"] || "Không nổi bật";
+      const thienTai = thapThanResults["Giáp"] || thapThanResults["Ất"] || "Không nổi bật";
       const daoHoaText = thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa";
       response += `
 Tình duyên và Mối quan hệ:
@@ -463,7 +462,7 @@ ${language === "vi" ? `Thiên Tài (${thienTai}): Hợp với người ${dungTha
     }
 
     if (isFamily) {
-      const chinhAn = thapThanResults["Tý"] || thapThanResults["Hợi"] || "Không nổi bật";
+      const chinhAn = thapThanResults["Nhâm"] || thapThanResults["Quý"] || "Không nổi bật";
       response += `
 Gia đạo:
 ${language === "vi" ? `Chính Ấn (${chinhAn}): Gia đạo ổn định nhờ ${dungThan[0]}. Thiên Ất Quý Nhân hỗ trợ hòa hợp gia đình.\nLời khuyên: Dành thời gian cho gia đình, sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} để tăng hòa khí.` : `Direct Seal (${chinhAn}): Family harmony supported by ${dungThan[0]}. Nobleman Star aids family unity.\nAdvice: Spend time with family, use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} for harmony.`}
@@ -471,7 +470,7 @@ ${language === "vi" ? `Chính Ấn (${chinhAn}): Gia đạo ổn định nhờ $
     }
 
     if (isChildren) {
-      const thucThan = thapThanResults["Kỷ"] || thapThanResults["Mậu"] || "Không nổi bật";
+      const thucThan = thapThanResults["Nhâm"] || thapThanResults["Quý"] || "Không nổi bật";
       response += `
 Con cái:
 ${language === "vi" ? `Thực Thần (${thucThan}): Con cái thông minh, sáng tạo, được hỗ trợ bởi ${dungThan[0]}. Cơ hội tốt từ 2025-2030.\nLời khuyên: Khuyến khích con cái phát triển ${dungThan.includes("Mộc") ? "sáng tạo" : dungThan.includes("Hỏa") ? "đam mê" : dungThan.includes("Thổ") ? "tính kiên định" : dungThan.includes("Kim") ? "tính chính trực" : "trí tuệ"}.` : `Food God (${thucThan}): Intelligent, creative children, supported by ${dungThan[0]}. Good prospects from 2025-2030.\nAdvice: Encourage children to develop ${dungThan.includes("Mộc") ? "creativity" : dungThan.includes("Hỏa") ? "passion" : dungThan.includes("Thổ") ? "resilience" : dungThan.includes("Kim") ? "integrity" : "wisdom"}.`}
@@ -479,7 +478,7 @@ ${language === "vi" ? `Thực Thần (${thucThan}): Con cái thông minh, sáng 
     }
 
     if (isProperty) {
-      const chinhTai = thapThanResults["Kỷ"] || thapThanResults["Mậu"] || "Không nổi bật";
+      const chinhTai = thapThanResults["Giáp"] || thapThanResults["Ất"] || "Không nổi bật";
       response += `
 Tài sản, đất đai:
 ${language === "vi" ? `Chính Tài (${chinhTai}): Tích lũy tài sản cố định tốt nhờ ${dungThan[0]}. Cơ hội đầu tư bất động sản từ 2026-2030.\nLời khuyên: Nghiên cứu kỹ thị trường, hợp tác với chuyên gia ${dungThan.includes("Mộc") ? "môi trường" : dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : dungThan.includes("Kim") ? "tài chính" : "vận tải"}.` : `Direct Wealth (${chinhTai}): Strong asset accumulation with ${dungThan[0]}. Real estate opportunities from 2026-2030.\nAdvice: Research markets thoroughly, collaborate with ${dungThan.includes("Mộc") ? "environmental" : dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : dungThan.includes("Kim") ? "finance" : "transport"} experts.`}
@@ -487,7 +486,7 @@ ${language === "vi" ? `Chính Tài (${chinhTai}): Tích lũy tài sản cố đ�
     }
 
     if (isDanger) {
-      const thucThan = thapThanResults["Kỷ"] || thapThanResults["Mậu"] || "Không nổi bật";
+      const thucThan = thapThanResults["Nhâm"] || thapThanResults["Quý"] || "Không nổi bật";
       response += `
 Rủi ro, tai nạn:
 ${language === "vi" ? `Thực Thần (${thucThan}): ${dungThan[0]} mạnh giúp giảm thiểu rủi ro. Tránh các hoạt động mạo hiểm nếu ${dungThan[0]} yếu.\nLời khuyên: Tăng cường an toàn, sử dụng màu ${dungThan.includes("Mộc") ? "xanh lá" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "xanh dương"} và vật phẩm ${dungThan.includes("Mộc") ? "ngọc bích" : dungThan.includes("Hỏa") ? "đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng" : dungThan.includes("Kim") ? "bạc" : "sapphire"} để bảo vệ.` : `Food God (${thucThan}): Strong ${dungThan[0]} minimizes risks. Avoid reckless activities if ${dungThan[0]} is weak.\nAdvice: Enhance safety, use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"} and items like ${dungThan.includes("Mộc") ? "jade" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "citrine" : dungThan.includes("Kim") ? "silver" : "sapphire"} for protection.`}
@@ -657,7 +656,7 @@ Instructions:
 - Day Master (Nhật Chủ): Use only the Heavenly Stem of the day pillar (e.g., Canh for Canh Thân) to determine the Day Master, not the Earthly Branch.
 - Money/Wealth: For money-related questions, focus strictly on Ten Gods like Chính Tài (Direct Wealth) and Thiên Tài (Indirect Wealth). Provide specific advice on financial opportunities, investment areas, and wealth accumulation, using Useful Gods for balance. Do not include career, love, or other unrelated analyses unless explicitly requested.
 - Career: For career questions, use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success.
-- Relationships: For love-related questions, analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Include: "To enhance love luck, place a vase in the bedroom corner corresponding to your Đào Hoa: Tý (North), Ngọ (South), Mão (East), Dậu (West)."
+- Relationships: For love-related questions, analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Include: "To enhance love luck, place a vase in the bedroom corner corresponding to your Đào Hoa: Tý (North), Ngọ (South), Mão (East), Dậu (West)" only if Đào Hoa is present in the chart.
 - Other Specific Questions: Tailor the response to the specific question type (e.g., health, fame) using relevant Ten Gods and Useful Gods, avoiding general analysis unless explicitly requested.
 - General Analysis: Only provide a full Bazi analysis (personality, career, relationships, passions, future) if the user explicitly asks for a general Bazi reading or no specific question type is detected.
 - Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth.
@@ -673,9 +672,9 @@ Bazi Data:
 - Ten Gods Effects: ${JSON.stringify(thapThanEffects)}
 
 Example Responses (adapt to the user's data and question):
-- Money (Canh, Kim): Như thanh kiếm sắc bén, bạn nhạy bén và quyết đoán trong tài chính. Thiên Tài (Hỏa) giúp bạn kiếm tiền qua ý tưởng sáng tạo. Dụng Thần Thủy hỗ trợ tài lộc bền vững. Năm 2026 (Hỏa) mang cơ hội trong kinh doanh sáng tạo. Sử dụng màu xanh dương, sapphire để tăng vận may tài chính.
+- Money (Canh, Kim): Như thanh kiếm sắc bén, bạn nhạy bén và quyết đoán trong tài chính. Thiên Tài (Mộc) giúp bạn kiếm tiền qua ý tưởng sáng tạo. Dụng Thần Thủy hỗ trợ tài lộc bền vững. Năm 2026 mang cơ hội trong kinh doanh sáng tạo. Sử dụng màu xanh dương, sapphire để tăng vận may tài chính.
 - Career (Canh, Kim): Bạn có tố chất lãnh đạo và tư duy logic, phù hợp với công nghệ, tài chính nhờ Tỷ Kiên mạnh. Dụng Thần Thủy hỗ trợ mạng lưới quan hệ. Năm 2026 mang cơ hội thăng tiến. Dùng màu xanh dương, tham gia khóa học kỹ thuật để phát triển.
-- Love (Canh, Kim): Bạn hợp với người sáng tạo, linh hoạt (Mộc). Đào Hoa tại Dậu tăng sức hút. Dụng Thần Thủy giúp ổn định tình cảm từ 2026. Đặt bình hoa ở góc Tây phòng ngủ để tăng vận may tình duyên.
+- Love (Canh, Kim): Bạn hợp với người sáng tạo, linh hoạt (Mộc). Đào Hoa tại Dậu tăng sức hút nếu có. Dụng Thần Thủy giúp ổn định tình cảm từ 2026. Nếu có Đào Hoa, đặt bình hoa ở góc Tây phòng ngủ để tăng vận may tình duyên.
 
 Provide a response that feels personal, avoids generic phrases, and directly addresses the user's question. Match the tone and depth of the examples above, tailored to the provided Bazi data and question.
 `;
@@ -713,11 +712,5 @@ app.use((err, req, res, next) => {
 const port = process.env.PORT || 5000;
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
-  try {
- const isKeyValid = await checkOpenAIKey();
-    console.log(`OpenAI API key valid: ${isKeyValid}`);
-  } catch (err) {
-    console.error("Lỗi kiểm tra OpenAI API key:", err.message);
-  }
 });
 server.setTimeout(300000);
