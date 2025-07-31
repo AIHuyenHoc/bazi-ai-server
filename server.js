@@ -7,8 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Biến đếm số lượng câu trả lời trong phiên
-let responseCount = 0;
+// Biến đếm số lần trả lời
+let responseCounter = 0;
 
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
@@ -280,12 +280,11 @@ const determineQuestionType = (userInput, language) => {
     isMoney: {
       vi: ["tien tai", "tai loc", "tien bac", "tai chinh", "lam giau", "kinh doanh", "dau tu", "thu nhap", "cua cai", "loi nhuan", "von"],
       en: ["wealth", "money", "finance", "riches", "investment", "business", "income", "profit", "capital", "earnings"],
-      not: ["tai nan", "accident", "su nghiep", "career", "tinh duyen", "love", "tinh yeu", "marriage"]
+      not: ["tai nan", "accident", "su nghiep", "career", "tinh duyen", "love", "nghe nghiep", "tinh yeu"]
     },
     isCareer: {
       vi: ["nghe", "cong viec", "su nghiep", "viec lam", "chuc vu", "thang chuc", "nghe nghiep", "lam viec", "co hoi viec", "chuyen mon"],
-      en: ["career", "job", "work", "profession", "employment", "promotion", "occupation", "business", "opportunity", "skill"],
-      not: ["tien tai", "tai loc", "tien bac", "tai chinh"]
+      en: ["career", "job", "work", "profession", "employment", "promotion", "occupation", "business", "opportunity", "skill"]
     },
     isFame: {
       vi: ["cong danh", "danh tieng", "ten tuoi", "uy tin", "thanh tuu", "noi tieng", "danh vong", "thanh cong", "truyen thong", "quang cao"],
@@ -422,11 +421,11 @@ Nhật Chủ và Tính Cách:
 ${language === "vi" ? `${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}\nTứ Trụ: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}\nNgũ Hành:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\nDụng Thần: ${dungThan.join(", ")}\nĐề xuất: Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để tăng cường vận may và cân bằng năng lượng.` : `${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].en}\nFour Pillars: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}\nFive Elements:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\nUseful God: ${dungThan.join(", ")}\nRecommendation: Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck and balance energy.`}
 `;
   } else {
-    if (isMoney) {
+    if (isMoney && !isCareer && !isLove) {
       const chinhTai = thapThanResults["Bính"] || thapThanResults["Đinh"] || "Không nổi bật";
       response += `
 Tài lộc:
-${language === "vi" ? `Thiên Tài/Chính Tài (${chinhTai}): Bạn có khả năng kiếm tiền từ ý tưởng sáng tạo và quản lý tài chính tốt. Dụng Thần ${dungThan[0]} hỗ trợ tài lộc bền vững. Năm 2026 mang cơ hội qua các dự án liên quan đến ${dungThan.includes("Thủy") ? "thương mại, truyền thông" : dungThan.includes("Hỏa") ? "nghệ thuật, marketing" : dungThan.includes("Thổ") ? "bất động sản, nông nghiệp" : dungThan.includes("Kim") ? "công nghệ, tài chính" : "vận tải"}.\nLời khuyên: Tập trung vào đầu tư sáng tạo, sử dụng màu ${dungThan.includes("Thủy") ? "xanh dương" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "đen"} và vật phẩm như ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "thạch anh vàng" : dungThan.includes("Kim") ? "bạc" : "thủy tinh"} để thu hút vận may.` : `Indirect/Direct Wealth (${chinhTai}): You excel in earning through creative ideas and financial management. Useful God ${dungThan[0]} supports sustainable wealth. 2026 brings opportunities via ${dungThan.includes("Thủy") ? "trade, media" : dungThan.includes("Hỏa") ? "arts, marketing" : dungThan.includes("Thổ") ? "real estate, agriculture" : dungThan.includes("Kim") ? "tech, finance" : "transport"} projects.\nAdvice: Focus on creative investments, use ${dungThan.includes("Thủy") ? "blue" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "black"} and items like ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "citrine" : dungThan.includes("Kim") ? "silver" : "glass"} to attract prosperity.`}
+${language === "vi" ? `Thiên Tài/Chính Tài (${chinhTai}): Bạn có khả năng kiếm tiền từ ý tưởng sáng tạo và quản lý tài chính tốt. Dụng Thần ${dungThan[0]} hỗ trợ tài lộc bền vững. Năm 2026 mang cơ hội qua các dự án liên quan đến ${dungThan.includes("Thủy") ? "thương mại, truyền thông" : dungThan.includes("Hỏa") ? "nghệ thuật, marketing" : dungThan.includes("Thổ") ? "bất động sản, nông nghiệp" : dungThan.includes("Kim") ? "công nghệ, tài chính" : "vận tải"}.\nLời khuyên: Tập trung vào đầu tư sáng tạo, sử dụng màu ${dungThan.includes("Thủy") ? "xanh dương" : dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : dungThan.includes("Kim") ? "trắng" : "đen"} và vật phẩm như ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "thạch anh vàng" : dungThan.includes("Kim") ? "bạc" : "thủy tinh"}.` : `Indirect/Direct Wealth (${chinhTai}): You excel in earning through creative ideas and financial management. Useful God ${dungThan[0]} supports sustainable wealth. 2026 brings opportunities via ${dungThan.includes("Thủy") ? "trade, media" : dungThan.includes("Hỏa") ? "arts, marketing" : dungThan.includes("Thổ") ? "real estate, agriculture" : dungThan.includes("Kim") ? "tech, finance" : "transport"} projects.\nAdvice: Focus on creative investments, use ${dungThan.includes("Thủy") ? "blue" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "black"} and items like ${dungThan.includes("Thủy") ? "sapphire" : dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "citrine" : dungThan.includes("Kim") ? "silver" : "glass"}.`}
 `;
     }
 
@@ -480,7 +479,7 @@ ${language === "vi" ? `Thực Thần (${thucThan}): Con cái thông minh, sáng 
     }
 
     if (isProperty) {
-      const chinhTai = thapThanResults["Bính"] || thapThanResults["Đinh"] || "Không nổi bật";
+      const chinhTai = thapThanResults["Kỷ"] || thapThanResults["Mậu"] || "Không nổi bật";
       response += `
 Tài sản, đất đai:
 ${language === "vi" ? `Chính Tài (${chinhTai}): Tích lũy tài sản cố định tốt nhờ ${dungThan[0]}. Cơ hội đầu tư bất động sản từ 2026-2030.\nLời khuyên: Nghiên cứu kỹ thị trường, hợp tác với chuyên gia ${dungThan.includes("Mộc") ? "môi trường" : dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : dungThan.includes("Kim") ? "tài chính" : "vận tải"}.` : `Direct Wealth (${chinhTai}): Strong asset accumulation with ${dungThan[0]}. Real estate opportunities from 2026-2030.\nAdvice: Research markets thoroughly, collaborate with ${dungThan.includes("Mộc") ? "environmental" : dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : dungThan.includes("Kim") ? "finance" : "transport"} experts.`}
@@ -523,12 +522,6 @@ Thần Sát:
 ${language === "vi" ? `${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"} `}
 `;
     }
-  }
-
-  // Tăng biến đếm và thêm thông báo liên hệ sau mỗi 3 câu trả lời
-  responseCount = (responseCount + 1) % 3;
-  if (responseCount === 0) {
-    response += `\n\n${language === "vi" ? "Nếu như bạn muốn có một bản báo cáo lá số bát tự chi tiết xin hãy liên hệ app.aihuyenhoc@gmail.com để nhận được tư vấn phù hợp với nhu cầu." : "If you would like a detailed Bazi chart report, please contact app.aihuyenhoc@gmail.com for personalized consultation."}`;
   }
 
   return response.trim();
@@ -653,24 +646,21 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     console.error("Lỗi Thần Sát:", err.message);
   }
 
+  let answer;
   if (!useOpenAI) {
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
-    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer });
-  }
-
-  const prompt = `
+    answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+  } else {
+    const prompt = `
 You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, or other specific areas based on their question. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with relevant sections based on the user's question (e.g., career, relationships). Use a warm, humanized tone to make the user feel understood.
 
 Instructions:
-- Day Master (Nhật Chủ): Use only the Heavenly Stem of the day pillar (e.g., Canh as Kim) to determine the Day Master, not the Earthly Branch.
-- Money/Wealth: For money-related questions, focus on Ten Gods like Chính Tài (Direct Wealth) and Thiên Tài (Indirect Wealth). Provide specific advice on financial opportunities, investment areas, and wealth accumulation, using Useful Gods for balance. Do not include career or love analysis unless explicitly requested.
+- Day Master (Nhật Chủ): Use only the Heavenly Stem of the day pillar (e.g., Canh for Canh Thân) to determine the Day Master, not the Earthly Branch.
+- Money/Wealth: For money-related questions, focus strictly on Ten Gods like Chính Tài (Direct Wealth) and Thiên Tài (Indirect Wealth). Provide specific advice on financial opportunities, investment areas, and wealth accumulation, using Useful Gods for balance. Do not include career, love, or other unrelated analyses unless explicitly requested.
 - Career: For career questions, use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success.
-- Relationships: For love-related questions, analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and include: "To enhance love luck, place a vase in the bedroom corner corresponding to your Đào Hoa: Tý (North), Ngọ (South), Mão (East), Dậu (West)."
-- Other Specific Questions: Tailor the response to the specific question type (e.g., fame, health) using relevant Ten Gods and Useful Gods, avoiding general analysis unless explicitly requested.
+- Relationships: For love-related questions, analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Include: "To enhance love luck, place a vase in the bedroom corner corresponding to your Đào Hoa: Tý (North), Ngọ (South), Mão (East), Dậu (West)."
+- Other Specific Questions: Tailor the response to the specific question type (e.g., health, fame) using relevant Ten Gods and Useful Gods, avoiding general analysis unless explicitly requested.
 - General Analysis: Only provide a full Bazi analysis (personality, career, relationships, passions, future) if the user explicitly asks for a general Bazi reading or no specific question type is detected.
 - Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth.
-- After every 3 responses, append: "${language === "vi" ? "Nếu như bạn muốn có một bản báo cáo lá số bát tự chi tiết xin hãy liên hệ app.aihuyenhoc@gmail.com để nhận được tư vấn phù hợp với nhu cầu." : "If you would like a detailed Bazi chart report, please contact app.aihuyenhoc@gmail.com for personalized consultation."}"
 
 Bazi Data:
 - Four Pillars: Hour ${tuTru.gio || "N/A"}, Day ${tuTru.ngay || "N/A"}, Month ${tuTru.thang || "N/A"}, Year ${tuTru.nam || "N/A"}
@@ -683,27 +673,51 @@ Bazi Data:
 - Ten Gods Effects: ${JSON.stringify(thapThanEffects)}
 
 Example Responses (adapt to the user's data and question):
-- Money (Canh, Kim): Như thanh kiếm sắc bén, bạn tinh tế và nhạy bén trong tài chính. Thiên Tài (Hỏa) mang lại cơ hội kiếm tiền từ ý tưởng sáng tạo. Dụng Thần Thủy giúp cân bằng và phát triển tài lộc bền vững. Năm 2026 (Hỏa) lý tưởng cho đầu tư vào truyền thông, marketing. Sử dụng màu xanh dương, sapphire để thu hút vận may.
-- Career (Canh, Kim): Tỷ Kiên mạnh cho thấy bạn có tố chất lãnh đạo, phù hợp với công nghệ, tài chính. Dụng Thần Thủy hỗ trợ mạng lưới quan hệ. Năm 2026, tận dụng cơ hội trong các dự án kỹ thuật. Sử dụng màu trắng, bạc để tăng năng lượng tích cực.
-- Love (Canh, Kim): Bạn hợp với người đam mê, năng động (Hỏa). Đào Hoa tại Dậu tăng sức hút. Dụng Thần Thủy giúp ổn định tình cảm từ 2026. Đặt bình hoa ở góc Tây phòng ngủ để tăng vận may tình duyên.
+- Money (Canh, Kim): Như thanh kiếm sắc bén, bạn nhạy bén và quyết đoán trong tài chính. Thiên Tài (Hỏa) giúp bạn kiếm tiền qua ý tưởng sáng tạo. Dụng Thần Thủy hỗ trợ tài lộc bền vững. Năm 2026 (Hỏa) mang cơ hội trong kinh doanh sáng tạo. Sử dụng màu xanh dương, sapphire để tăng vận may tài chính.
+- Career (Canh, Kim): Bạn có tố chất lãnh đạo và tư duy logic, phù hợp với công nghệ, tài chính nhờ Tỷ Kiên mạnh. Dụng Thần Thủy hỗ trợ mạng lưới quan hệ. Năm 2026 mang cơ hội thăng tiến. Dùng màu xanh dương, tham gia khóa học kỹ thuật để phát triển.
+- Love (Canh, Kim): Bạn hợp với người sáng tạo, linh hoạt (Mộc). Đào Hoa tại Dậu tăng sức hút. Dụng Thần Thủy giúp ổn định tình cảm từ 2026. Đặt bình hoa ở góc Tây phòng ngủ để tăng vận may tình duyên.
 
 Provide a response that feels personal, avoids generic phrases, and directly addresses the user's question. Match the tone and depth of the examples above, tailored to the provided Bazi data and question.
 `;
 
-  try {
-    const gptRes = await callOpenAI({
-      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
-    });
-    // Tăng biến đếm và thêm thông báo liên hệ sau mỗi 3 câu trả lời
-    responseCount = (responseCount + 1) % 3;
-    let answer = gptRes.choices[0].message.content;
-    if (responseCount === 0) {
-      answer += `\n\n${language === "vi" ? "Nếu như bạn muốn có một bản báo cáo lá số bát tự chi tiết xin hãy liên hệ app.aihuyenhoc@gmail.com để nhận được tư vấn phù hợp với nhu cầu." : "If you would like a detailed Bazi chart report, please contact app.aihuyenhoc@gmail.com for personalized consultation."}`;
+    try {
+      const gptRes = await callOpenAI({
+        model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.4,
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
+      });
+      answer = gptRes.choices[0].message.content;
+    } catch (err) {
+      console.error("OpenAI error:", err.message);
+      answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+      answer += `\n${language === "vi" ? `Cảnh báo: Không thể kết nối với OpenAI: ${err.message}` : `Warning: Failed to connect with OpenAI: ${err.message}`}`;
     }
-    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer });
+  }
+
+  // Tăng bộ đếm và thêm thông báo sau mỗi 3 câu trả lời
+  responseCounter++;
+  if (responseCounter % 3 === 0) {
+    answer += `\n${language === "vi" ? "Nếu như bạn muốn có một bản báo cáo lá số bát tự chi tiết xin hãy liên hệ app.aihuyenhoc@gmail.com để nhận được tư vấn phù hợp với nhu cầu." : "For a detailed Bazi chart report, please contact app.aihuyenhoc@gmail.com for personalized consultation."}`;
+  }
+
+  console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
+  return res.json({ answer });
+});
+
+app.use((err, req, res, next) => {
+  console.error("Lỗi hệ thống:", err.stack);
+  res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
+});
+
+const port = process.env.PORT || 5000;
+const server = app.listen(port, async () => {
+  console.log(`Server running on port ${port}`);
+  try {
+ const isKeyValid = await checkOpenAIKey();
+    console.log(`OpenAI API key valid: ${isKeyValid}`);
   } catch (err) {
-    console.error("OpenAI error:", err.message);
+    console.error("Lỗi kiểm tra OpenAI API key:", err.message);
+  }
+});
+server.setTimeout(300000);
