@@ -3,23 +3,41 @@ try {
   var rateLimit = require('express-rate-limit');
   var cors = require('cors');
   var helmet = require('helmet');
-  var NodeCache = require('node-cache');
-  var dotenv = require('dotenv');
 } catch (error) {
-  console.error('Error: Missing required modules. Please run:');
-  console.error('npm install express express-rate-limit cors helmet node-cache dotenv');
+  console.error('Critical error: Core modules (express, express-rate-limit, cors, helmet) are missing.');
+  console.error('Please run: npm install express express-rate-limit cors helmet');
+  console.error('Deployment cannot proceed without these modules.');
   process.exit(1);
 }
 
-// Load environment variables
-dotenv.config();
+// Optional modules with fallbacks
+let NodeCache;
+try {
+  NodeCache = require('node-cache');
+} catch (error) {
+  console.warn('Warning: node-cache module is missing. Caching disabled.');
+  console.warn('Run: npm install node-cache (optional for performance)');
+}
+
+let dotenv;
+try {
+  dotenv = require('dotenv');
+  dotenv.config();
+} catch (error) {
+  console.warn('Warning: dotenv module is missing. Using default environment variables.');
+  console.warn('Run: npm install dotenv (optional for configuration)');
+}
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize cache (TTL: 1 hour)
-const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+// Initialize cache if available (TTL: 1 hour)
+const cache = NodeCache ? new NodeCache({ stdTTL: 3600, checkperiod: 600 }) : {
+  get: () => null,
+  set: () => true,
+  getStats: () => ({ hits: 0, misses: 0, keys: 0 })
+};
 
 // Middleware
 app.use(helmet()); // Security headers
