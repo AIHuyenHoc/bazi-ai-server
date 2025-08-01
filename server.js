@@ -546,13 +546,21 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json"
           },
-          timeout: 60000
+          timeout: 120000 // Tăng timeout lên 120 giây
         }
       );
       console.log(`Hoàn thành OpenAI: ${new Date().toISOString()}`);
       return response.data;
     } catch (err) {
       console.error(`Thử ${attempt} thất bại: ${err.message}`);
+      if (err.code === 'ECONNREFUSED') {
+        console.error("Lỗi kết nối mạng đến OpenAI");
+        throw new Error("Không thể kết nối đến OpenAI: Kiểm tra mạng hoặc tường lửa");
+      }
+      if (err.code === 'ETIMEDOUT') {
+        console.error("Hết thời gian kết nối đến OpenAI");
+        throw new Error("Hết thời gian kết nối đến OpenAI: Kiểm tra mạng hoặc thử lại");
+      }
       if (err.response?.status === 400) {
         console.error("Chi tiết lỗi 400:", err.response?.data?.error);
         throw new Error(`Bad Request: ${err.response?.data?.error?.message || "Invalid payload"}`);
