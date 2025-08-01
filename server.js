@@ -1,15 +1,13 @@
 try {
   var express = require('express');
   var rateLimit = require('express-rate-limit');
-  var winston = require('winston');
   var cors = require('cors');
   var helmet = require('helmet');
   var NodeCache = require('node-cache');
-  var axios = require('axios');
   var dotenv = require('dotenv');
 } catch (error) {
   console.error('Error: Missing required modules. Please run:');
-  console.error('npm install express express-rate-limit winston cors helmet node-cache axios dotenv');
+  console.error('npm install express express-rate-limit cors helmet node-cache dotenv');
   process.exit(1);
 }
 
@@ -22,26 +20,6 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize cache (TTL: 1 hour)
 const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
-
-// Logger configuration (console fallback for Render)
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console({ format: winston.format.simple() })
-  ]
-});
-
-// Attempt to add file transports if writable
-try {
-  logger.add(new winston.transports.File({ filename: 'logs/error.log', level: 'error' }));
-  logger.add(new winston.transports.File({ filename: 'logs/combined.log' }));
-} catch (error) {
-  logger.warn('File logging disabled due to permissions. Using console only.', { error: error.message });
-}
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -243,7 +221,7 @@ function validateCanChi({ gio, ngay, thang, nam }) {
   const inputs = [gio, ngay, thang, nam];
   for (const input of inputs) {
     if (!input || !validCanChi.includes(input)) {
-      logger.warn('Invalid Can Chi input', { input });
+      console.error(`Invalid Can Chi: ${input}`);
       return false;
     }
   }
@@ -253,7 +231,7 @@ function validateCanChi({ gio, ngay, thang, nam }) {
 // Calculate Can Chi for a given year
 function getCanChiForYear(year) {
   if (!Number.isInteger(year) || year < 1900 || year > 2100) {
-    logger.error('Invalid year provided', { year });
+    console.error('Invalid year provided', { year });
     return null;
   }
   const baseYear = 1984; // Reference year for Giáp Tý
@@ -296,7 +274,7 @@ function analyzeNguHanh(tuTru) {
     if (total === 0) throw new Error('Không tìm thấy ngũ hành hợp lệ');
     return nguHanhCount;
   } catch (e) {
-    logger.error('Error analyzing Ngũ Hành', { error: e.message, tuTru });
+    console.error('Error analyzing Ngũ Hành:', e.message, { tuTru });
     throw new Error('Không thể phân tích ngũ hành do dữ liệu Tứ Trụ không hợp lệ');
   }
 }
@@ -304,7 +282,7 @@ function analyzeNguHanh(tuTru) {
 // Calculate Thập Thần
 function tinhThapThan(nhatChu, tuTru) {
   if (!nhatChu || !canNguHanh[nhatChu]) {
-    logger.error('Invalid Nhật Chủ', { nhatChu });
+    console.error('Invalid Nhật Chủ:', { nhatChu });
     throw new Error('Nhật Chủ không hợp lệ');
   }
 
@@ -343,7 +321,7 @@ function tinhThapThan(nhatChu, tuTru) {
 
     return thapThanResults;
   } catch (e) {
-    logger.error('Error calculating Thập Thần', { error: e.message, nhatChu, tuTru });
+    console.error('Error calculating Thập Thần:', e.message, { nhatChu, tuTru });
     throw new Error('Không thể tính Thập Thần do dữ liệu Tứ Trụ không hợp lệ');
   }
 }
@@ -357,7 +335,7 @@ function tinhThanSat(tuTru) {
   ].filter(Boolean);
 
   if (!nhatChu || branches.length < 4) {
-    logger.error('Invalid Nhật Chủ or branches', { nhatChu, branches });
+    console.error('Invalid Nhật Chủ or branches:', { nhatChu, branches });
     throw new Error('Nhật Chủ hoặc chi không hợp lệ');
   }
 
@@ -535,40 +513,13 @@ function generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userIn
   return response;
 }
 
-// Retry logic for external API calls
-async function callExternalBaziAPI(data, retries = 3, delay = 1000) {
-  try {
-    if (!process.env.XAI_BAZI_API || !process.env.XAI_API_KEY) {
-      logger.warn('External API not configured, using internal logic');
-      return null;
-    }
-    const response = await axios.post(
-      process.env.XAI_BAZI_API,
-      data,
-      {
-        headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` },
-        timeout: 10000
-      }
-    );
-    return response.data;
-  } catch (error) {
-    if (retries > 0 && error.code !== 'ECONNABORTED') {
-      logger.warn('Retrying API call', { retriesLeft: retries, error: error.message });
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return callExternalBaziAPI(data, retries - 1, delay * 2);
-    }
-    logger.error('External API call failed, using internal logic', { error: error.message });
-    return null;
-  }
-}
-
 // Main Bát Tự endpoint
 app.post('/api/bazi', async (req, res) => {
   try {
     const { gio, ngay, thang, nam, userInput = '', language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input', { body: req.body });
+      console.error('Invalid Can Chi input:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ. Vui lòng kiểm tra giờ, ngày, tháng, năm.',
@@ -577,12 +528,12 @@ app.post('/api/bazi', async (req, res) => {
       });
     }
 
-    logger.info('Processing Bát Tự request', { gio, ngay, thang, nam, userInput, language });
+    console.log('Processing Bát Tự request:', { gio, ngay, thang, nam, userInput, language });
 
     const cacheKey = `${gio}:${ngay}:${thang}:${nam}:${userInput}:${language}`;
     const cachedResult = cache.get(cacheKey);
     if (cachedResult) {
-      logger.info('Returning cached Bát Tự result', { cacheKey });
+      console.log('Returning cached Bát Tự result:', { cacheKey });
       return res.json(cachedResult);
     }
 
@@ -596,7 +547,7 @@ app.post('/api/bazi', async (req, res) => {
     cache.set(cacheKey, response);
     res.json(response);
   } catch (error) {
-    logger.error('Bát Tự endpoint error', { error: error.message, stack: error.stack });
+    console.error('Bát Tự endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi tính toán Bát Tự, vui lòng thử lại sau.',
@@ -612,7 +563,7 @@ app.post('/api/bazi/career', async (req, res) => {
     const { gio, ngay, thang, nam, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input for career', { body: req.body });
+      console.error('Invalid Can Chi input for career:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ.',
@@ -630,7 +581,7 @@ app.post('/api/bazi/career', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    logger.error('Career endpoint error', { error: error.message, stack: error.stack });
+    console.error('Career endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi phân tích sự nghiệp, vui lòng thử lại sau.',
@@ -646,7 +597,7 @@ app.post('/api/bazi/marriage', async (req, res) => {
     const { gio, ngay, thang, nam, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input for marriage', { body: req.body });
+      console.error('Invalid Can Chi input for marriage:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ.',
@@ -664,7 +615,7 @@ app.post('/api/bazi/marriage', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    logger.error('Marriage endpoint error', { error: error.message, stack: error.stack });
+    console.error('Marriage endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi phân tích hôn nhân, vui lòng thử lại sau.',
@@ -680,7 +631,7 @@ app.post('/api/bazi/yearly', async (req, res) => {
     const { gio, ngay, thang, nam, targetYear, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input for yearly', { body: req.body });
+      console.error('Invalid Can Chi input for yearly:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ.',
@@ -690,7 +641,7 @@ app.post('/api/bazi/yearly', async (req, res) => {
     }
 
     if (!targetYear || isNaN(targetYear)) {
-      logger.warn('Invalid target year', { body: req.body });
+      console.error('Invalid target year:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Năm dự đoán không hợp lệ.',
@@ -710,7 +661,7 @@ app.post('/api/bazi/yearly', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    logger.error('Yearly prediction endpoint error', { error: error.message, stack: error.stack });
+    console.error('Yearly prediction endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi dự đoán năm, vui lòng thử lại sau.',
@@ -726,7 +677,7 @@ app.post('/api/bazi/health', async (req, res) => {
     const { gio, ngay, thang, nam, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input for health', { body: req.body });
+      console.error('Invalid Can Chi input for health:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ.',
@@ -744,7 +695,7 @@ app.post('/api/bazi/health', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    logger.error('Health endpoint error', { error: error.message, stack: error.stack });
+    console.error('Health endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi phân tích sức khỏe, vui lòng thử lại sau.',
@@ -760,7 +711,7 @@ app.post('/api/bazi/children', async (req, res) => {
     const { gio, ngay, thang, nam, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
-      logger.warn('Invalid Can Chi input for children', { body: req.body });
+      console.error('Invalid Can Chi input for children:', { body: req.body });
       return res.status(400).json({
         error: {
           vi: 'Dữ liệu Can Chi không hợp lệ.',
@@ -778,7 +729,7 @@ app.post('/api/bazi/children', async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    logger.error('Children endpoint error', { error: error.message, stack: error.stack });
+    console.error('Children endpoint error:', error.message, { stack: error.stack });
     res.status(500).json({
       error: {
         vi: 'Lỗi phân tích con cái, vui lòng thử lại sau.',
@@ -802,14 +753,14 @@ app.get('/health', (req, res) => {
 
 // Error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  console.error('Uncaught Exception:', error.message, { stack: error.stack });
   process.exit(1);
 });
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info('Environment:', {
+  console.log(`Server running on port ${PORT}`);
+  console.log('Environment:', {
     nodeVersion: process.version,
     port: PORT,
     corsOrigin: process.env.CORS_ORIGIN || '*'
