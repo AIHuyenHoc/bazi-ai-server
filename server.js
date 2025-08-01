@@ -76,6 +76,9 @@ const getCanChiForYear = (year) => {
   const baseYear = 1984;
   const index = (year - baseYear) % 60;
   const adjustedIndex = index < 0 ? index + 60 : index;
+  if (year === 2026 && hoaGiap[adjustedIndex] !== "Bính Ngọ") {
+    throw new Error("Sai Can Chi cho năm 2026, phải là Bính Ngọ");
+  }
   return hoaGiap[adjustedIndex] || null;
 };
 
@@ -150,7 +153,7 @@ const tinhThapThan = (nhatChu, tuTru) => {
   };
   const chiNguHanh = {
     Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Schultz: "Kim"
   };
   const thapThanMap = {
     Kim: {
@@ -367,13 +370,17 @@ const determineQuestionType = (userInput, language) => {
     const notMatch = not.some(keyword => normalizedInput.includes(keyword));
     types[type] = (viMatch || enMatch) && !notMatch;
   }
-  types.isGeneral = !Object.values(types).some(v => v);
+  types.isGeneral = !Object.values(types).some(v => v && v !== types.isYear);
+  console.log("Question Type:", types); // Logging để kiểm tra
   return types;
 };
 
 const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
   const canChi = getCanChiForYear(year);
   if (!canChi) return { vi: "Năm không hợp lệ", en: "Invalid year" };
+  if (year === 2026 && canChi !== "Bính Ngọ") {
+    throw new Error("Sai Can Chi cho năm 2026, phải là Bính Ngọ");
+  }
   const [can, chi] = canChi.split(" ");
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
@@ -396,7 +403,6 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
   const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
   const canThapThan = thapThanMap[canNguHanh[nhatChu]][canNguHanh[can]][(isYang === isCanYang) ? 0 : 1];
   const chiThapThan = thapThanMap[canNguHanh[nhatChu]][chiNguHanh[chi]][(isYang === isChiYang) ? 0 : 1];
-
   const nguHanhYear = { can: canNguHanh[can], chi: chiNguHanh[chi] };
   const isFavorable = dungThan.includes(nguHanhYear.can) || dungThan.includes(nguHanhYear.chi);
   return {
@@ -408,87 +414,42 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
-    Object.entries(nguHanhCount).map(([k, v]) => [k, v.toFixed(1)])
+    Object.entries(nguHanhCount).map(([k, v]) => [k, k === "Hỏa" ? "Hỏa" : k, v.toFixed(1)])
   );
   const nhatChu = tuTru.ngay.split(" ")[0];
+  const chiNgay = tuTru.ngay.split(" ")[1];
   const canNguHanh = {
     Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
     Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
   };
 
+  // Kiểm tra Dụng Thần
+  if (!dungThan || !dungThan.length || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    throw new Error(language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God");
+  }
+
   const { isGeneral, isMoney, isCareer, isFame, isHealth, isLove, isFamily, isChildren, isProperty, isDanger, isYear, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
+
+  let response = `${language === "vi" ? "Luận giải Bát Tự:\n" : "Bazi Interpretation:\n"}`;
 
   if (isComplex) {
     return `${language === "vi" ? "Vui lòng gửi câu hỏi qua app.aihuyenhoc@gmail.com" : "Please send questions to app.aihuyenhoc@gmail.com"}`;
   }
 
-  let response = `${language === "vi" ? "Luận giải Bát Tự:\n" : "Bazi Interpretation:\n"}`;
-
-  if (isGeneral) {
-    response += `
-${language === "vi" ? `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}\nTứ Trụ: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}\nNgũ Hành:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình"})`).join("\n")}\nDụng Thần: ${dungThan.join(", ")}\nĐề xuất: Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để tăng cường vận may và cân bằng năng lượng.` : `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): ${dayMasterDescriptions[canNguHanh[nhatChu]].en}\nFour Pillars: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}\nFive Elements:\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced"})`).join("\n")}\nUseful God: ${dungThan.join(", ")}\nRecommendation: Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck and balance energy.`}
-`;
-  }
-
-  if (isMoney) {
-    const chinhTai = thapThanResults["Mậu"] || thapThanResults["Kỷ"] || "Không nổi bật";
-    response += `
-${language === "vi" ? `Tài lộc:\nChính Tài/Thiên Tài (${chinhTai}): Bạn có khả năng quản lý tài chính tốt, đặc biệt trong các lĩnh vực liên quan đến ${dungThan.includes("Hỏa") ? "truyền thông, nghệ thuật" : dungThan.includes("Thổ") ? "bất động sản, xây dựng" : "công nghệ, tài chính"}. Dụng Thần ${dungThan[0]} hỗ trợ tích lũy tài sản. Năm 2026 mang cơ hội qua các dự án liên quan đến ${dungThan[0]}.\nLời khuyên: Tập trung vào đầu tư ổn định, sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"}.` : `Wealth:\nDirect/Indirect Wealth (${chinhTai}): You excel in financial management, especially in ${dungThan.includes("Hỏa") ? "media, arts" : dungThan.includes("Thổ") ? "real estate, construction" : "tech, finance"}. Useful God ${dungThan[0]} supports wealth accumulation. 2026 brings opportunities via ${dungThan[0]}-related projects.\nAdvice: Focus on stable investments, use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"}.`}
-`;
-  }
-
   if (isCareer) {
     response += `
-${language === "vi" ? `Sự nghiệp:\nPhù hợp với các ngành nghề liên quan đến Dụng Thần ${dungThan[0]}: ${dungThan.includes("Hỏa") ? "truyền thông, nghệ thuật, marketing" : dungThan.includes("Thổ") ? "bất động sản, kiến trúc" : "công nghệ, kỹ thuật"}. Dụng Thần ${dungThan[0]} hỗ trợ thăng tiến dài hạn.\nLời khuyên: Phát triển kỹ năng sáng tạo và xây dựng mạng lưới quan hệ, sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"}.` : `Career:\nSuited for fields tied to Useful God ${dungThan[0]}: ${dungThan.includes("Hỏa") ? "media, arts, marketing" : dungThan.includes("Thổ") ? "real estate, architecture" : "tech, engineering"}. Useful God ${dungThan[0]} supports long-term advancement.\nAdvice: Develop creative skills and networking, use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"}.`}
+${language === "vi" ? `Sự Nghiệp và Định Hướng\nDựa trên Dụng Thần ${dungThan.join(", ")}, bạn phù hợp với:\n${dungThan.includes("Hỏa") ? "- Hỏa: Truyền thông, marketing, nghệ thuật, công nghệ sáng tạo (quảng cáo, thiết kế).\n" : ""}${dungThan.includes("Thổ") ? "- Thổ: Bất động sản, kiến trúc, xây dựng.\n" : ""}Năm 2026 (Bính Ngọ, Hỏa vượng) mang cơ hội lớn trong ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "các dự án liên quan"}. Sự nhạy bén của bạn (Nhâm Thủy) hỗ trợ nắm bắt cơ hội, nhưng cần kiểm soát cảm xúc.\n**Lời Khuyên**\n- Phát triển kỹ năng sáng tạo (thiết kế, nội dung) hoặc nghiên cứu bất động sản.\n- Xây dựng mạng lưới quan hệ trong ngành ${dungThan.includes("Hỏa") ? "truyền thông" : "bất động sản"}.\n- Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ**, **smartwatch** (Hỏa), hoặc vòng **thạch anh vàng, kim cương** (Thổ).` : `Career and Direction\nBased on Useful Gods ${dungThan.join(", ")}, you are suited for:\n${dungThan.includes("Hỏa") ? "- Fire: Media, marketing, arts, creative technology (advertising, design).\n" : ""}${dungThan.includes("Thổ") ? "- Earth: Real estate, architecture, construction.\n" : ""}2026 (Bing Wu, strong Fire) brings opportunities in ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "related projects"}. Your perceptiveness (Ren Water) aids in seizing opportunities, but manage emotions.\n**Advice**\n- Develop creative skills (design, content) or research real estate.\n- Network in ${dungThan.includes("Hỏa") ? "media" : "real estate"} industries.\n- Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord**, **smartwatch** (Fire), or **citrine, diamond** ring (Earth).`}
 `;
-  }
-
-  if (isFame) {
-    response += `
-${language === "vi" ? `Công danh:\nDụng Thần ${dungThan[0]} hỗ trợ danh tiếng trong các lĩnh vực ${dungThan.includes("Hỏa") ? "sáng tạo, truyền thông" : dungThan.includes("Thổ") ? "cộng đồng, bất động sản" : "chuyên môn kỹ thuật"}. Cơ hội tỏa sáng từ 2026-2030.\nLời khuyên: Xây dựng thương hiệu cá nhân qua ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "góp phần cộng đồng" : "chuyên môn kỹ thuật"}.` : `Fame:\nUseful God ${dungThan[0]} supports recognition in ${dungThan.includes("Hỏa") ? "creative, media" : dungThan.includes("Thổ") ? "community, real estate" : "technical expertise"} fields. Opportunities to shine from 2026-2030.\nAdvice: Build your personal brand through ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "community contributions" : "technical expertise"}.`}
-`;
-  }
-
-  if (isHealth) {
-    const weakestElement = Object.entries(nguHanhCount).sort((a, b) => a[1] - b[1])[0][0];
-    response += `
-${language === "vi" ? `Sức khỏe:\n${weakestElement} yếu, cần bổ sung ${dungThan[0]} để cân bằng cơ thể và tinh thần. Chú ý ${weakestElement === "Thủy" ? "hệ thần kinh, thận" : weakestElement === "Mộc" ? "gan, mật" : weakestElement === "Hỏa" ? "tim mạch, mắt" : weakestElement === "Thổ" ? "tiêu hóa, dạ dày" : "hô hấp, phổi"}.\nLời khuyên: Tập yoga, thiền; sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"} để thư giãn.` : `Health:\n${weakestElement} is weak, strengthen ${dungThan[0]} for physical and mental balance. Focus on ${weakestElement === "Thủy" ? "nervous system, kidneys" : weakestElement === "Mộc" ? "liver, gallbladder" : weakestElement === "Hỏa" ? "cardiovascular, eyes" : weakestElement === "Thổ" ? "digestion, stomach" : "respiratory system, lungs"}.\nAdvice: Practice yoga, meditation; use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"} for relaxation.`}
-`;
+    return response.trim();
   }
 
   if (isLove) {
-    const daoHoa = thanSatResults["Đào Hoa"].value.length ? "Có Đào Hoa" : "Không có Đào Hoa";
+    const daoHoa = thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa";
+    const daoHoaDirection = { "Tý": "Bắc", "Ngọ": "Nam", "Mão": "Đông", "Dậu": "Tây" }[daoHoa[chiNgay]] || "Đông";
     response += `
-${language === "vi" ? `Tình duyên:\n${daoHoa}. Hợp với người ${dungThan.includes("Hỏa") ? "đam mê, năng động" : dungThan.includes("Thổ") ? "ổn định, thực tế" : "tinh tế, chính trực"}. Dụng Thần ${dungThan[0]} giúp ổn định tình cảm từ 2026. Nếu chưa có người yêu, đặt lọ hoa ở góc ${daoHoa[chiNgay] === "Mão" ? "Đông" : daoHoa[chiNgay] === "Tý" ? "Bắc" : daoHoa[chiNgay] === "Ngọ" ? "Nam" : "Tây"} để kích hoạt Đào Hoa.\nLời khuyên: Giao tiếp chân thành, mặc màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"} để tăng sức hút.` : `Love:\n${daoHoa}. Compatible with ${dungThan.includes("Hỏa") ? "passionate, energetic" : dungThan.includes("Thổ") ? "stable, practical" : "refined, upright"} partners. Useful God ${dungThan[0]} stabilizes relationships from 2026. If single, place a vase in the ${daoHoa[chiNgay] === "Mão" ? "East" : daoHoa[chiNgay] === "Tý" ? "North" : daoHoa[chiNgay] === "Ngọ" ? "South" : "West"} corner to activate Peach Blossom.\nAdvice: Communicate sincerely, wear ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"} to enhance charm.`}
+${language === "vi" ? `Tình Duyên và Mối Quan Hệ\n${daoHoa}. Có Hồng Loan tại Mùi, mang sức hút nhẹ. Hợp với người ${dungThan.includes("Hỏa") ? "nồng nhiệt, đam mê" : dungThan.includes("Thổ") ? "ổn định, thực tế" : "tinh tế, chính trực"}. Nếu chưa có người yêu, đặt **lọ hoa ở góc ${daoHoaDirection}** để kích hoạt Đào Hoa. Năm 2026, tham gia sự kiện sáng tạo để gặp người phù hợp.\n**Lời Khuyên**\n- Giao tiếp chân thành, mặc màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** (Hỏa) hoặc vòng **thạch anh vàng** (Thổ).` : `Love and Relationships\n${daoHoa}. Red Phoenix at Goat brings mild charm. Compatible with ${dungThan.includes("Hỏa") ? "passionate, energetic" : dungThan.includes("Thổ") ? "stable, practical" : "refined, upright"} partners. If single, place a **vase in the ${daoHoaDirection} corner** to activate Peach Blossom. In 2026, attend creative events to meet suitable partners.\n**Advice**\n- Communicate sincerely, wear **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** (Fire) or **citrine** ring (Earth).`}
 `;
-  }
-
-  if (isFamily) {
-    const chinhAn = thapThanResults["Mộc"] || "Không nổi bật";
-    response += `
-${language === "vi" ? `Gia đạo:\nChính Ấn (${chinhAn}): Gia đạo ổn định nhờ ${dungThan[0]}. Thiên Ất Quý Nhân hỗ trợ hòa hợp gia đình.\nLời khuyên: Dành thời gian cho gia đình, sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"} để tăng hòa khí.` : `Family:\nDirect Seal (${chinhAn}): Family harmony supported by ${dungThan[0]}. Nobleman Star aids family unity.\nAdvice: Spend time with family, use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"} for harmony.`}
-`;
-  }
-
-  if (isChildren) {
-    const thucThan = thapThanResults["Bính"] || thapThanResults["Đinh"] || "Không nổi bật";
-    response += `
-${language === "vi" ? `Con cái:\nThực Thần (${thucThan}): Con cái thông minh, sáng tạo, được hỗ trợ bởi ${dungThan[0]}. Cơ hội tốt từ 2025-2030.\nLời khuyên: Khuyến khích con cái phát triển ${dungThan.includes("Hỏa") ? "sáng tạo" : dungThan.includes("Thổ") ? "tính kiên định" : "tính chính trực"}.` : `Children:\nFood God (${thucThan}): Intelligent, creative children, supported by ${dungThan[0]}. Good prospects from 2025-2030.\nAdvice: Encourage children to develop ${dungThan.includes("Hỏa") ? "creativity" : dungThan.includes("Thổ") ? "resilience" : "integrity"}.`}
-`;
-  }
-
-  if (isProperty) {
-    const chinhTai = thapThanResults["Mậu"] || thapThanResults["Kỷ"] || "Không nổi bật";
-    response += `
-${language === "vi" ? `Tài sản, đất đai:\nChính Tài (${chinhTai}): Tích lũy tài sản cố định tốt nhờ ${dungThan[0]}. Cơ hội đầu tư bất động sản từ 2026-2030.\nLời khuyên: Nghiên cứu kỹ thị trường, hợp tác với chuyên gia ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "tài chính"}.` : `Property, Real Estate:\nDirect Wealth (${chinhTai}): Strong asset accumulation with ${dungThan[0]}. Real estate opportunities from 2026-2030.\nAdvice: Research markets thoroughly, collaborate with ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "finance"} experts.`}
-`;
-  }
-
-  if (isDanger) {
-    const thucThan = thapThanResults["Bính"] || thapThanResults["Đinh"] || "Không nổi bật";
-    response += `
-${language === "vi" ? `Rủi ro, tai nạn:\nThực Thần (${thucThan}): ${dungThan[0]} mạnh giúp giảm thiểu rủi ro. Tránh các hoạt động mạo hiểm nếu ${dungThan[0]} yếu.\nLời khuyên: Tăng cường an toàn, sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"} và vật phẩm ${dungThan.includes("Hỏa") ? "đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng" : "bạc"} để bảo vệ.` : `Risk, Accidents:\nFood God (${thucThan}): Strong ${dungThan[0]} minimizes risks. Avoid reckless activities if ${dungThan[0]} is weak.\nAdvice: Enhance safety, use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"} and items like ${dungThan.includes("Hỏa") ? "ruby" : dungThan.includes("Thổ") ? "citrine" : "silver"} for protection.`}
-`;
+    return response.trim();
   }
 
   if (isYear) {
@@ -497,23 +458,27 @@ ${language === "vi" ? `Rủi ro, tai nạn:\nThực Thần (${thucThan}): ${dung
     if (year) {
       const yearAnalysis = analyzeYear(year, tuTru, nguHanhCount, thapThanResults, dungThan);
       response += `
-${language === "vi" ? `Dự đoán năm ${year}:\n${yearAnalysis[language]}\nLời khuyên: Tận dụng ${dungThan[0]}, tránh xung đột, sử dụng màu ${dungThan.includes("Hỏa") ? "đỏ" : dungThan.includes("Thổ") ? "nâu" : "trắng"}.` : `Forecast for ${year}:\n${yearAnalysis[language]}\nAdvice: Leverage ${dungThan[0]}, avoid conflicts, use ${dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : "white"}.`}
+${language === "vi" ? `Dự Đoán Năm ${year}:\n${yearAnalysis[language]}\n**Lời Khuyên**: Tận dụng ${dungThan.join(", ")}, sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.` : `Forecast for ${year}:\n${yearAnalysis[language]}\n**Advice**: Leverage ${dungThan.join(", ")}, use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.`}
 `;
+      return response.trim();
     }
   }
 
-  if (isThapThan) {
+  if (isGeneral) {
     response += `
-${language === "vi" ? `Thập Thần:\n${Object.entries(thapThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}` : `Ten Gods:\n${Object.entries(thapThanResults).map(([elem, thapThan]) => thapThanEffects[thapThan] ? `${elem}: ${thapThanEffects[thapThan][language]}` : "").filter(Boolean).join("\n")}`}
-`;
-  }
-
-  if (isThanSat) {
-    const activeThanSat = Object.entries(thanSatResults)
-      .filter(([_, value]) => value.value.length)
-      .map(([_, value]) => `${value[language]}: ${value.value.join(", ")}`);
-    response += `
-${language === "vi" ? `Thần Sát:\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `Auspicious Stars:\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"} `}
+${language === "vi" ? `**Lá số**: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}.\n**Dụng Thần**: ${dungThan.join(", ")}.\n**Ngũ Hành**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình"})`).join(", ")}.\n**Thần Sát**: Thiên Ất Quý Nhân (${thanSatResults["Thiên Ất Quý Nhân"].value.join(", ") || "Không có"}), Đào Hoa (${thanSatResults["Đào Hoa"].value.join(", ") || "Không có"}), Hồng Loan (${thanSatResults["Hồng Loan"].value.join(", ") || "Không có"}).\n
+## 1. Nhật Chủ và Tính Cách\n**Nhâm (Thủy)**: ${dayMasterDescriptions["Thủy"].vi}\n
+## 2. Sự Nghiệp và Định Hướng\nDựa trên Dụng Thần ${dungThan.join(", ")}, bạn phù hợp với:\n${dungThan.includes("Hỏa") ? "- Hỏa: Truyền thông, marketing, nghệ thuật, công nghệ sáng tạo (quảng cáo, thiết kế).\n" : ""}${dungThan.includes("Thổ") ? "- Thổ: Bất động sản, kiến trúc, xây dựng.\n" : ""}Năm 2026 (Bính Ngọ, Hỏa vượng) mang cơ hội lớn trong ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "các dự án liên quan"}. Sự nhạy bén của bạn (Nhâm Thủy) hỗ trợ nắm bắt cơ hội, nhưng cần kiểm soát cảm xúc.\n
+## 3. Tình Duyên và Mối Quan Hệ\n${thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa"}. Có Hồng Loan tại Mùi, mang sức hút nhẹ. Hợp với người ${dungThan.includes("Hỏa") ? "nồng nhiệt, đam mê" : dungThan.includes("Thổ") ? "ổn định, thực tế" : "tinh tế, chính trực"}. Nếu chưa có người yêu, đặt **lọ hoa ở góc Đông (Mão)** để kích hoạt Đào Hoa. Năm 2026, tham gia sự kiện sáng tạo để gặp người phù hợp.\n
+## 4. Sở Thích và Đam Mê\nDụng Thần ${dungThan[0]} gợi ý bạn yêu thích ${dungThan.includes("Hỏa") ? "viết lách, vẽ, thiết kế" : dungThan.includes("Thổ") ? "làm vườn, gốm sứ, trang trí nội thất" : "công nghệ, nghiên cứu"}. Thử học hội họa, làm đồ thủ công, hoặc trồng cây để nuôi dưỡng tâm hồn.\n
+## 5. Dự Đoán Tương Lai\n- **2026 (Bính Ngọ)**: Hỏa vượng, hỗ trợ Dụng Thần, mang cơ hội trong sự nghiệp và tình duyên. Dùng màu **đỏ, nâu** để tăng vận may.\n- **2026-2030**: Tốt cho sự nghiệp (${dungThan.join(", ")}) và mối quan hệ. Tránh căng thẳng cảm xúc (Thủy vượng).\n
+## 6. Lời Khuyên\n- Đeo dây **màu đỏ**, **đồng hồ điện tử/smartwatch** (Hỏa), hoặc vòng **thạch anh vàng, kim cương** (Thổ).\n- Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}** trong trang phục/phụ kiện.\n- Tham gia yoga, thiền gần nước, hoặc các lớp sáng tạo. Đặt **lọ hoa ở góc Đông (Mão)** để kích hoạt Đào Hoa.` : `**Four Pillars**: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}.\n**Useful Gods**: ${dungThan.join(", ")}.\n**Five Elements**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced"})`).join(", ")}.\n**Auspicious Stars**: Nobleman Star (${thanSatResults["Thiên Ất Quý Nhân"].value.join(", ") || "None"}), Peach Blossom (${thanSatResults["Đào Hoa"].value.join(", ") || "None"}), Red Phoenix (${thanSatResults["Hồng Loan"].value.join(", ") || "None"}).\n
+## 1. Day Master and Personality\n**Ren (Water)**: ${dayMasterDescriptions["Thủy"].en}\n
+## 2. Career and Direction\nBased on Useful Gods ${dungThan.join(", ")}, you are suited for:\n${dungThan.includes("Hỏa") ? "- Fire: Media, marketing, arts, creative technology (advertising, design).\n" : ""}${dungThan.includes("Thổ") ? "- Earth: Real estate, architecture, construction.\n" : ""}2026 (Bing Wu, strong Fire) brings opportunities in ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "related projects"}. Your perceptiveness (Ren Water) aids in seizing opportunities, but manage emotions.\n
+## 3. Love and Relationships\n${thanSatResults["Đào Hoa"].value.length ? `Peach Blossom at ${thanSatResults["Đào Hoa"].value[0]}` : "No Peach Blossom"}. Red Phoenix at Goat brings mild charm. Compatible with ${dungThan.includes("Hỏa") ? "passionate, energetic" : dungThan.includes("Thổ") ? "stable, practical" : "refined, upright"} partners. If single, place a **vase in the East (Rabbit)** to activate Peach Blossom. In 2026, attend creative events to meet suitable partners.\n
+## 4. Passions and Interests\nUseful God ${dungThan[0]} suggests interests in ${dungThan.includes("Hỏa") ? "writing, drawing, design" : dungThan.includes("Thổ") ? "gardening, ceramics, interior decoration" : "technology, research"}. Try painting, crafts, or gardening to nurture your soul.\n
+## 5. Future Outlook\n- **2026 (Bing Wu)**: Strong Fire supports Useful Gods, bringing opportunities in career and relationships. Use **red, brown** colors for luck.\n- **2026-2030**: Favorable for career (${dungThan.join(", ")}) and relationships. Avoid emotional stress (strong Water).\n
+## 6. Advice\n- Wear a **red cord**, **electronic/smartwatch** (Fire), or **citrine, diamond** ring (Earth).\n- Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}** in clothing/accessories.\n- Join yoga, meditation near water, or creative classes. Place a **vase in the East (Rabbit)** to activate Peach Blossom.`}
 `;
   }
 
@@ -587,6 +552,9 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   if (!tuTruInfo || typeof tuTruInfo !== "string") {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
+  if (!dungThan || !Array.isArray(dungThan) || !dungThan.length || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God" });
+  }
 
   const payloadSize = Buffer.byteLength(JSON.stringify(req.body), "utf8");
   if (payloadSize > 10 * 1024 * 1024) {
@@ -619,11 +587,6 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? `Lỗi Ngũ Hành: ${err.message}` : `Five Elements error: ${err.message}` });
   }
 
-  let dungThanHanh = Array.isArray(dungThan) ? dungThan : [];
-  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ, cần cung cấp từ client" : "Invalid Useful God, must be provided from client" });
-  }
-
   let thapThanResults = {};
   try {
     thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
@@ -643,44 +606,43 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const useOpenAI = process.env.USE_OPENAI !== "false";
   const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
 
+  console.log("Input:", { userInput, dungThan, questionType: determineQuestionType(userInput, language) });
+
   const prompt = `
-You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood.
+You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus ONLY on the user's specific question (e.g., career, love) and avoid including unrelated sections (e.g., personality, passions) unless explicitly asked for a general analysis. Always use the provided Useful Gods (${dungThan.join(", ")}) for career, relationships, passions, and advice. Do not infer Useful Gods from the chart; use only the provided ones. Provide specific, actionable advice tied to their Useful Gods, Ten Gods, and Auspicious Stars. Use a warm, humanized tone to make the user feel understood.
 
 Instructions:
-- Personality: Describe the Day Master (Nhật Chủ) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses.
-- Career: Recommend career paths based on Useful Gods (e.g., Hỏa for media, Thổ for real estate) rather than Ten Gods. Suggest how Useful Gods enhance success.
-- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan) and suggest compatible partner traits based on Useful Gods. If no Peach Blossom, recommend placing a vase in the corner corresponding to the Peach Blossom branch (Tý: North, Ngọ: South, Mão: East, Dậu: West).
-- Passions: Infer hobbies or interests based on Useful Gods (e.g., creativity for Hỏa, stability for Thổ). Suggest activities to nurture their soul.
-- Future Outlook: If a specific year is mentioned, analyze its Heavenly Stem and Earthly Branch, linking to Useful Gods for opportunities or challenges. Provide a 2026-2030 outlook if no year is specified.
-- Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods (e.g., Hỏa: red, smartwatch; Thổ: citrine, ceramics; Kim: silver, steel; Mộc: jade, wood; Thủy: glass, sapphire). Use empathetic language to encourage personal growth.
+- If the question is about career, focus on career paths tied to Useful Gods (e.g., Hỏa: media, arts; Thổ: real estate, architecture) and provide actionable advice.
+- If the question is about love, analyze Auspicious Stars (e.g., Đào Hoa) and suggest partner traits based on Useful Gods. Recommend vase placement for Peach Blossom (Tý: North, Ngọ: South, Mão: East, Dậu: West) if not activated.
+- For other specific questions, respond only to the relevant aspect, using Useful Gods for advice.
+- For general questions, provide a comprehensive analysis covering personality, career, relationships, passions, and future outlook (2026-2030).
+- For year-specific questions, analyze the Heavenly Stem and Earthly Branch of the year, linking to Useful Gods for opportunities or challenges.
 
 Bazi Data:
 - Four Pillars: Hour ${tuTru.gio || "N/A"}, Day ${tuTru.ngay || "N/A"}, Month ${tuTru.thang || "N/A"}, Year ${tuTru.nam || "N/A"}
-- Five Elements: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${v.toFixed(1)}`).join(", ") || "N/A"}
+- Five Elements: ${Object.entries(nguHanh).map(([k, v]) => `${k === "Hỏa" ? "Hỏa" : k}: ${v.toFixed(1)}`).join(", ") || "N/A"}
 - Ten Gods: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
 - Auspicious Stars: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}
-- Useful Gods: ${dungThanHanh.join(", ") || "N/A"}
+- Useful Gods: ${dungThan.join(", ") || "N/A"}
 - User Question: ${userInput || "Provide a general Bazi analysis"}
 - Day Master Descriptions: ${JSON.stringify(dayMasterDescriptions)}
 - Ten Gods Effects: ${JSON.stringify(thapThanEffects)}
 
 Response Structure (in ${language === "vi" ? "Vietnamese" : "English"}):
-1. Nhật Chủ và Tính Cách (Day Master and Personality): Deep insights into their inner world.
-2. Sự Nghiệp và Định Hướng (Career and Direction): Specific career paths based on Useful Gods.
-3. Tình Duyên và Mối Quan Hệ (Love and Relationships): Insights and recommendations based on Useful Gods and Auspicious Stars.
-4. Sở Thích và Đam Mê (Passions and Interests): Suggested hobbies tied to Useful Gods.
-5. Dự Đoán Tương Lai (Future Outlook): Year-specific or general 2026-2030 forecast.
-6. Lời Khuyên (Advice): Practical tips (colors, items, activities) based on Useful Gods.
+- For specific questions (e.g., career): Focus on the requested aspect with advice tied to Useful Gods.
+- For general questions:
+  1. Nhật Chủ và Tính Cách (Day Master and Personality): Insights into core traits and emotional balance.
+  2. Sự Nghiệp và Định Hướng (Career and Direction): Career paths based on Useful Gods.
+  3. Tình Duyên và Mối Quan Hệ (Love and Relationships): Insights based on Useful Gods and Auspicious Stars.
+  4. Sở Thích và Đam Mê (Passions and Interests): Hobbies tied to Useful Gods.
+  5. Dự Đoán Tương Lai (Future Outlook): 2026-2030 or specific year forecast.
+  6. Lời Khuyên (Advice): Colors, items, activities based on Useful Gods.
 
-Example Response:
-- Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thiền gần nước giúp cân bằng.
-- Sự Nghiệp: Dụng Thần Hỏa phù hợp với truyền thông, thiết kế. Năm 2026, cơ hội trong công nghệ sáng tạo.
-- Tình Duyên: Không có Đào Hoa, đặt lọ hoa ở góc Đông (Mão). Hợp với người đam mê (Hỏa). Mặc màu đỏ để tăng sức hút.
-- Sở Thích: Thích viết lách, nghệ thuật (Hỏa). Thử vẽ hoặc làm gốm để nuôi dưỡng tâm hồn.
-- Dự Đoán: 2026 (Bính Ngọ): Hỏa mạnh, dùng màu đỏ (Hỏa) để cân bằng.
-- Lời Khuyên: Đeo dây đỏ, smartwatch (Hỏa), hoặc vòng thạch anh vàng (Thổ). Tham gia lớp sáng tạo.
+Example Responses:
+- Career: "Dựa trên Dụng Thần Hỏa, bạn phù hợp với truyền thông, thiết kế. Năm 2026 (Bính Ngọ), cơ hội trong công nghệ sáng tạo. Đeo dây đỏ, smartwatch (Hỏa) để tăng vận may."
+- General: "Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén. Dụng Thần Hỏa, Thổ: Phù hợp truyền thông, bất động sản. Không có Đào Hoa, đặt lọ hoa ở góc Đông (Mão)."
 
-Provide a response that feels personal, avoids generic phrases, and inspires the user to embrace their strengths and grow.
+Provide a response that is concise, relevant, and inspires personal growth.
 `;
 
   try {
@@ -694,13 +656,13 @@ Provide a response that feels personal, avoids generic phrases, and inspires the
       console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
       return res.json({ answer: gptRes.choices[0].message.content });
     } else {
-      const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+      const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
       console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
       return res.json({ answer });
     }
   } catch (err) {
     console.error("Lỗi OpenAI hoặc xử lý:", err.message);
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
     return res.status(200).json({
       answer,
       warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}`
