@@ -1,118 +1,271 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-require("dotenv").config();
+const express = require('express');
+const rateLimit = require('express-rate-limit');
+const winston = require('winston');
+const cors = require('cors');
+const helmet = require('helmet');
+const NodeCache = require('node-cache');
+const axios = require('axios');
+const dotenv = require('dotenv');
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+const PORT = process.env.PORT || 3000;
 
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+// Initialize cache (TTL: 1 hour)
+const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+
+// Logger configuration
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.Console({ format: winston.format.simple() })
+  ]
 });
 
-const canChiNguHanhInfo = `
-Ngũ hành 10 Thiên Can:
-- Giáp, Ất: Mộc
-- Bính, Đinh: Hỏa
-- Mậu, Kỷ: Thổ
-- Canh, Tân: Kim
-- Nhâm, Quý: Thủy
-Ngũ hành 12 Địa Chi:
-- Tý, Hợi: Thủy
-- Sửu, Thìn, Mùi, Tuất: Thổ
-- Dần, Mão: Mộc
-- Tỵ, Ngọ: Hỏa
-- Thân, Dậu: Kim
-`;
+// Middleware
+app.use(helmet()); // Security headers
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true }));
 
-const heavenlyStemsMap = {
-  en: { Jia: "Giáp", Yi: "Ất", Bing: "Bính", Ding: "Đinh", Wu: "Mậu", Ji: "Kỷ", Geng: "Canh", Xin: "Tân", Ren: "Nhâm", Gui: "Quý" },
-  vi: { Giáp: "Giáp", Ất: "Ất", Bính: "Bính", Đinh: "Đinh", Mậu: "Mậu", Kỷ: "Kỷ", Canh: "Canh", Tân: "Tân", Nhâm: "Nhâm", Quý: "Quý" }
+// Rate limiting: 100 requests per 15 minutes per IP
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    error: {
+      vi: 'Quá nhiều yêu cầu, vui lòng thử lại sau 15 phút.',
+      en: 'Too many requests, please try again after 15 minutes.'
+    }
+  }
+});
+app.use('/api', limiter);
+
+// Hoa Giáp table (60 Can Chi combinations)
+const hoaGiap = [
+  'Giáp Tý', 'Ất Sửu', 'Bính Dần', 'Đinh Mão', 'Mậu Thìn', 'Kỷ Tỵ', 'Canh Ngọ', 'Tân Mùi', 'Nhâm Thân', 'Quý Dậu',
+  'Giáp Tuất', 'Ất Hợi', 'Bính Tý', 'Đinh Sửu', 'Mậu Dần', 'Kỷ Mão', 'Canh Thìn', 'Tân Tỵ', 'Nhâm Ngọ', 'Quý Mùi',
+  'Giáp Thân', 'Ất Dậu', 'Bính Tuất', 'Đinh Hợi', 'Mậu Tý', 'Kỷ Sửu', 'Canh Dần', 'Tân Mão', 'Nhâm Thìn', 'Quý Tỵ',
+  'Giáp Ngọ', 'Ất Mùi', 'Bính Thân', 'Đinh Dậu', 'Mậu Tuất', 'Kỷ Hợi', 'Canh Tý', 'Tân Sửu', 'Nhâm Dần', 'Quý Mão',
+  'Giáp Thìn', 'Ất Tỵ', 'Bính Ngọ', 'Đinh Mùi', 'Mậu Thân', 'Kỷ Dậu', 'Canh Tuất', 'Tân Hợi', 'Nhâm Tý', 'Quý Sửu',
+  'Giáp Dần', 'Ất Mão', 'Bính Thìn', 'Đing Tỵ', 'Mậu Ngọ', 'Kỷ Mùi', 'Canh Thân', 'Tân Dậu', 'Nhâm Tuất', 'Quý Hợi'
+];
+
+// Valid Can Chi pairs
+const validHeavenlyStems = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+const validEarthlyBranches = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+const validCanChi = [];
+validHeavenlyStems.forEach(stem => {
+  validEarthlyBranches.forEach(branch => {
+    validCanChi.push(`${stem} ${branch}`);
+  });
+});
+
+// Ngũ Hành mapping
+const canNguHanh = {
+  Giáp: 'Mộc', Ất: 'Mộc', Bính: 'Hỏa', Đinh: 'Hỏa', Mậu: 'Thổ',
+  Kỷ: 'Thổ', Canh: 'Kim', Tân: 'Kim', Nhâm: 'Thủy', Quý: 'Thủy'
+};
+const chiNguHanh = {
+  Tý: 'Thủy', Hợi: 'Thủy', Sửu: 'Thổ', Thìn: 'Thổ', Mùi: 'Thổ', Tuất: 'Thổ',
+  Dần: 'Mộc', Mão: 'Mộc', Tỵ: 'Hỏa', Ngọ: 'Hỏa', Thân: 'Kim', Dậu: 'Kim'
 };
 
-const earthlyBranchesMap = {
-  en: { Rat: "Tý", Ox: "Sửu", Tiger: "Dần", Rabbit: "Mão", Dragon: "Thìn", Snake: "Tỵ", Horse: "Ngọ", Goat: "Mùi", Monkey: "Thân", Rooster: "Dậu", Dog: "Tuất", Pig: "Hợi" },
-  vi: { Tý: "Tý", Sửu: "Sửu", Dần: "Dần", Mão: "Mão", Thìn: "Thìn", Tỵ: "Tỵ", Ngọ: "Ngọ", Mùi: "Mùi", Thân: "Thân", Dậu: "Dậu", Tuất: "Tuất", Hợi: "Hợi" }
+// Hidden elements in branches
+const hiddenElements = {
+  Tý: ['Quý'], Sửu: ['Kỷ', 'Tân', 'Quý'], Dần: ['Giáp', 'Bính', 'Mậu'], Mão: ['Ất'],
+  Thìn: ['Mậu', 'Ất', 'Quý'], Tỵ: ['Bính', 'Canh', 'Mậu'], Ngọ: ['Đinh', 'Kỷ'],
+  Mùi: ['Kỷ', 'Đinh', 'Ất'], Thân: ['Canh', 'Nhâm', 'Mậu'], Dậu: ['Tân'],
+  Tuất: ['Mậu', 'Đinh', 'Tân'], Hợi: ['Nhâm', 'Giáp']
 };
 
-const normalizeCanChi = (input) => {
-  if (!input || typeof input !== "string") return null;
-  const parts = input.trim().split(" ");
-  if (parts.length !== 2) return null;
-  const can = Object.keys(heavenlyStemsMap.vi).find(k => k.toLowerCase() === parts[0].toLowerCase());
-  const chi = Object.keys(earthlyBranchesMap.vi).find(k => k.toLowerCase() === parts[1].toLowerCase());
-  if (!can || !chi) return null;
-  return `${can} ${chi}`;
-};
-
-const parseEnglishTuTru = (input) => {
-  try {
-    const parts = input.match(/(\w+\s+\w+)\s*(?:hour|day|month|year)/gi)?.map(part => part.trim().split(" "));
-    if (!parts || parts.length !== 4) return null;
-    return {
-      gio: `${heavenlyStemsMap.en[parts[0][0]] || parts[0][0]} ${earthlyBranchesMap.en[parts[0][1]] || parts[0][1]}`,
-      ngay: `${heavenlyStemsMap.en[parts[1][0]] || parts[1][0]} ${earthlyBranchesMap.en[parts[1][1]] || parts[1][1]}`,
-      thang: `${heavenlyStemsMap.en[parts[2][0]] || parts[2][0]} ${earthlyBranchesMap.en[parts[2][1]] || parts[2][1]}`,
-      nam: `${heavenlyStemsMap.en[parts[3][0]] || parts[3][0]} ${earthlyBranchesMap.en[parts[3][1]] || parts[3][1]}`
-    };
-  } catch (e) {
-    console.error("Lỗi parseEnglishTuTru:", e.message);
-    return null;
+// Thập Thần mapping
+const thapThanMap = {
+  Kim: {
+    Kim: ['Tỷ Kiên', 'Kiếp Tài'], Thủy: ['Thực Thần', 'Thương Quan'], Mộc: ['Chính Tài', 'Thiên Tài'],
+    Hỏa: ['Chính Quan', 'Thất Sát'], Thổ: ['Chính Ấn', 'Thiên Ấn']
+  },
+  Mộc: {
+    Mộc: ['Tỷ Kiên', 'Kiếp Tài'], Hỏa: ['Thực Thần', 'Thương Quan'], Thổ: ['Chính Tài', 'Thiên Tài'],
+    Kim: ['Chính Quan', 'Thất Sát'], Thủy: ['Chính Ấn', 'Thiên Ấn']
+  },
+  Hỏa: {
+    Hỏa: ['Tỷ Kiên', 'Kiếp Tài'], Thổ: ['Thực Thần', 'Thương Quan'], Kim: ['Chính Tài', 'Thiên Tài'],
+    Thủy: ['Chính Quan', 'Thất Sát'], Mộc: ['Chính Ấn', 'Thiên Ấn']
+  },
+  Thổ: {
+    Thổ: ['Tỷ Kiên', 'Kiếp Tài'], Kim: ['Thực Thần', 'Thương Quan'], Thủy: ['Chính Tài', 'Thiên Tài'],
+    Mộc: ['Chính Quan', 'Thất Sát'], Hỏa: ['Chính Ấn', 'Thiên Ấn']
+  },
+  Thủy: {
+    Thủy: ['Tỷ Kiên', 'Kiếp Tài'], Mộc: ['Thực Thần', 'Thương Quan'], Hỏa: ['Chính Tài', 'Thiên Tài'],
+    Thổ: ['Chính Quan', 'Thất Sát'], Kim: ['Chính Ấn', 'Thiên Ấn']
   }
 };
 
-const hoaGiap = [
-  "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu",
-  "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
-  "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
-  "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi",
-  "Giáp Tý", "Ất Sửu", "Bính Dần", "Đinh Mão", "Mậu Thìn", "Kỷ Tỵ", "Canh Ngọ", "Tân Mùi", "Nhâm Thân", "Quý Dậu"
-];
+// Thần Sát mapping (excluding Không Vong)
+const thienAtQuyNhan = {
+  Giáp: ['Sửu', 'Mùi'], Ất: ['Tý', 'Hợi'], Bính: ['Dần', 'Mão'], Đinh: ['Sửu', 'Hợi'],
+  Mậu: ['Tỵ', 'Ngọ'], Kỷ: ['Thìn', 'Tuất'], Canh: ['Thân', 'Dậu'], Tân: ['Thân', 'Dậu'],
+  Nhâm: ['Hợi', 'Tý'], Quý: ['Tý', 'Hợi']
+};
+const daoHoaTamHop = {
+  'Thân': 'Hợi', 'Tý': 'Hợi', 'Thìn': 'Hợi', // Thân-Tý-Thìn (Water)
+  'Hợi': 'Ngọ', 'Mão': 'Ngọ', 'Mùi': 'Ngọ', // Hợi-Mão-Mùi (Wood)
+  'Dần': 'Mão', 'Ngọ': 'Mão', 'Tuất': 'Mão', // Dần-Ngọ-Tuất (Fire)
+  'Tỵ': 'Tý', 'Dậu': 'Tý', 'Sửu': 'Tý' // Tỵ-Dậu-Sửu (Metal)
+};
+const vanXuong = {
+  Giáp: ['Tỵ'], Ất: ['Ngọ'], Bính: ['Thân'], Đinh: ['Dậu'], Mậu: ['Hợi'],
+  Kỷ: ['Tý'], Canh: ['Dần'], Tân: ['Mão'], Nhâm: ['Tỵ'], Quý: ['Ngọ']
+};
+const thaiCucQuyNhan = {
+  Giáp: ['Tý'], Ất: ['Tý'], Bính: ['Dần'], Đinh: ['Dần'], Mậu: ['Thìn'],
+  Kỷ: ['Thìn'], Canh: ['Ngọ'], Tân: ['Ngọ'], Nhâm: ['Thân'], Quý: ['Thân']
+};
+const hongLoan = {
+  Tý: 'Dậu', Sửu: 'Thân', Dần: 'Mùi', Mão: 'Ngọ', Thìn: 'Tỵ', Tỵ: 'Thìn',
+  Ngọ: 'Mão', Mùi: 'Dần', Thân: 'Sửu', Dậu: 'Tý', Tuất: 'Hợi', Hợi: 'Tuất'
+};
+const thienDuc = {
+  Giáp: ['Hợi'], Ất: ['Tý'], Bính: ['Dần'], Đinh: ['Mão'], Mậu: ['Tỵ'],
+  Kỷ: ['Ngọ'], Canh: ['Thân'], Tân: ['Dậu'], Nhâm: ['Hợi'], Quý: ['Tý']
+};
+const nguyetDuc = {
+  Giáp: ['Dần'], Ất: ['Mão'], Bính: ['Tỵ'], Đinh: ['Ngọ'], Mậu: ['Thân'],
+  Kỷ: ['Dậu'], Canh: ['Hợi'], Tân: ['Tý'], Nhâm: ['Dần'], Quý: ['Mão']
+};
+const tuongTinh = {
+  Giáp: ['Mão'], Ất: ['Tý'], Bính: ['Tỵ'], Đinh: ['Ngọ'], Mậu: ['Dần'],
+  Kỷ: ['Hợi'], Canh: ['Thân'], Tân: ['Dậu'], Nhâm: ['Tý'], Quý: ['Hợi']
+};
+const dichMa = {
+  Dần: ['Tỵ'], Mão: ['Tỵ'], Thìn: ['Tỵ'], Tỵ: ['Dần'], Ngọ: ['Dần'], Mùi: ['Dần'],
+  Thân: ['Hợi'], Dậu: ['Hợi'], Tuất: ['Hợi'], Hợi: ['Thân'], Tý: ['Thân'], Sửu: ['Thân']
+};
+const coThanQuaTu = {
+  Giáp: ['Thân', 'Thìn'], Ất: ['Dậu', 'Tỵ'], Bính: ['Hợi', 'Mùi'], Đinh: ['Tý', 'Thân'],
+  Mậu: ['Dần', 'Tuất'], Kỷ: ['Mão', 'Hợi'], Canh: ['Tỵ', 'Sửu'], Tân: ['Ngọ', 'Dần'],
+  Nhâm: ['Thân', 'Thìn'], Quý: ['Dậu', 'Tỵ']
+};
+const kiepSat = {
+  Giáp: ['Thân'], Ất: ['Dậu'], Bính: ['Hợi'], Đinh: ['Tý'], Mậu: ['Dần'],
+  Kỷ: ['Mão'], Canh: ['Tỵ'], Tân: ['Ngọ'], Nhâm: ['Thân'], Quý: ['Dậu']
+};
 
-const getCanChiForYear = (year) => {
-  if (!Number.isInteger(year) || year < 1900 || year > 2100) return null;
+// Dụng Thần recommendations
+const dungThanRecommendations = {
+  Thủy: {
+    colors: ['Xanh dương', 'Đen'],
+    careers: ['Truyền thông', 'Nghệ thuật', 'Công nghệ', 'Du lịch', 'Hải sản'],
+    advice: {
+      vi: 'Tập trung vào sáng tạo và linh hoạt để phát triển sự nghiệp và cuộc sống.',
+      en: 'Focus on creativity and adaptability for career and life growth.'
+    },
+    phongThuy: {
+      vi: 'Sử dụng vật phẩm như hình ảnh biển cả, hồ nước để tăng năng lượng tích cực.',
+      en: 'Use items like ocean or lake imagery to enhance positive energy.'
+    }
+  },
+  Kim: {
+    colors: ['Trắng', 'Vàng kim'],
+    careers: ['Kỹ thuật', 'Quản lý', 'Tài chính', 'Xây dựng'],
+    advice: {
+      vi: 'Phát huy sự chính xác và kỷ luật trong công việc để đạt thành công.',
+      en: 'Leverage precision and discipline in work for success.'
+    },
+    phongThuy: {
+      vi: 'Sử dụng trang sức kim loại hoặc vật phẩm màu trắng để tăng may mắn.',
+      en: 'Use metal jewelry or white items to boost luck.'
+    }
+  },
+  Mộc: {
+    colors: ['Xanh lá', 'Nâu'],
+    careers: ['Giáo dục', 'Nghệ thuật', 'Thiết kế', 'Văn học'],
+    advice: {
+      vi: 'Khuyến khích sự sáng tạo và linh hoạt trong mọi lĩnh vực.',
+      en: 'Encourage creativity and adaptability in all areas.'
+    },
+    phongThuy: {
+      vi: 'Sử dụng cây xanh hoặc vật phẩm gỗ để cân bằng năng lượng.',
+      en: 'Use green plants or wooden items to balance energy.'
+    }
+  },
+  Hỏa: {
+    colors: ['Đỏ', 'Cam'],
+    careers: ['Marketing', 'PR', 'Giải trí', 'Ẩm thực'],
+    advice: {
+      vi: 'Tận dụng năng lượng nhiệt huyết và giao tiếp để thành công.',
+      en: 'Leverage passion and communication skills for success.'
+    },
+    phongThuy: {
+      vi: 'Sử dụng vật phẩm màu đỏ hoặc ánh sáng mạnh để kích hoạt năng lượng.',
+      en: 'Use red items or bright lighting to activate energy.'
+    }
+  },
+  Thổ: {
+    colors: ['Vàng', 'Nâu đất'],
+    careers: ['Bất động sản', 'Nông nghiệp', 'Xây dựng', 'Quản lý'],
+    advice: {
+      vi: 'Tập trung vào sự ổn định và kiên nhẫn để xây dựng nền tảng vững chắc.',
+      en: 'Focus on stability and patience to build a strong foundation.'
+    },
+    phongThuy: {
+      vi: 'Sử dụng vật phẩm đá hoặc đất để tăng cường sự ổn định.',
+      en: 'Use stone or earth items to enhance stability.'
+    }
+  }
+};
+
+// Utility function to validate Can Chi
+function validateCanChi({ gio, ngay, thang, nam }) {
+  const inputs = [gio, ngay, thang, nam];
+  for (const input of inputs) {
+    if (!input || !validCanChi.includes(input)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Tính Can Chi cho năm
+function getCanChiForYear(year) {
+  if (!Number.isInteger(year) || year < 1900 || year > 2100) {
+    logger.error('Invalid year', { year });
+    return null;
+  }
   const baseYear = 1984;
   const index = (year - baseYear) % 60;
   const adjustedIndex = index < 0 ? index + 60 : index;
-  if (year === 2026 && hoaGiap[adjustedIndex] !== "Bính Ngọ") {
-    throw new Error("Sai Can Chi cho năm 2026, phải là Bính Ngọ");
-  }
   return hoaGiap[adjustedIndex] || null;
-};
+}
 
-const analyzeNguHanh = (tuTru) => {
+// Phân tích Ngũ Hành từ Tứ Trụ
+function analyzeNguHanh(tuTru) {
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
-  };
-  const chiNguHanh = {
-    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
-  };
-  const hiddenElements = {
-    Tý: ["Quý"], Sửu: ["Kỷ", "Tân", "Quý"], Dần: ["Giáp", "Bính", "Mậu"], Mão: ["Ất"],
-    Thìn: ["Mậu", "Ất", "Quý"], Tỵ: ["Bính", "Canh", "Mậu"], Ngọ: ["Đinh", "Kỷ"],
-    Mùi: ["Kỷ", "Đinh", "Ất"], Thân: ["Canh", "Nhâm", "Mậu"], Dậu: ["Tân"],
-    Tuất: ["Mậu", "Đinh", "Tân"], Hợi: ["Nhâm", "Giáp"]
-  };
-
   try {
     const elements = [
-      tuTru.nam ? tuTru.nam.split(" ") : [],
-      tuTru.thang ? tuTru.thang.split(" ") : [],
-      tuTru.ngay ? tuTru.ngay.split(" ") : [],
-      tuTru.gio ? tuTru.gio.split(" ") : []
+      tuTru.nam ? tuTru.nam.split(' ') : [],
+      tuTru.thang ? tuTru.thang.split(' ') : [],
+      tuTru.ngay ? tuTru.ngay.split(' ') : [],
+      tuTru.gio ? tuTru.gio.split(' ') : []
     ].flat().filter(Boolean);
     const branches = [
-      tuTru.nam?.split(" ")[1], tuTru.thang?.split(" ")[1],
-      tuTru.ngay?.split(" ")[1], tuTru.gio?.split(" ")[1]
+      tuTru.nam?.split(' ')[1], tuTru.thang?.split(' ')[1],
+      tuTru.ngay?.split(' ')[1], tuTru.gio?.split(' ')[1]
     ].filter(Boolean);
 
     if (elements.length < 4 || branches.length < 4) {
-      throw new Error("Tứ Trụ không đầy đủ");
+      throw new Error('Tứ Trụ không đầy đủ hoặc không hợp lệ');
     }
 
     for (const elem of elements) {
@@ -127,82 +280,41 @@ const analyzeNguHanh = (tuTru) => {
     }
 
     const total = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
-    if (total === 0) throw new Error("Không tìm thấy ngũ hành hợp lệ");
+    if (total === 0) throw new Error('Không tìm thấy ngũ hành hợp lệ');
     return nguHanhCount;
   } catch (e) {
-    console.error("Lỗi phân tích ngũ hành:", e.message);
-    throw new Error(`Phân tích ngũ hành thất bại: ${e.message}`);
+    logger.error('Lỗi phân tích ngũ hành', { error: e.message });
+    throw new Error('Không thể phân tích ngũ hành do dữ liệu Tứ Trụ không hợp lệ');
   }
-};
+}
 
-const determineThanVuongNhac = (nguHanhCount, nhatChu) => {
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
-  };
-  const nhatChuHanh = canNguHanh[nhatChu];
-  const total = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
-  const nhatChuStrength = nguHanhCount[nhatChuHanh] / total;
-  return nhatChuStrength > 0.35 ? "Vượng" : nhatChuStrength < 0.25 ? "Nhược" : "Bình hòa";
-};
-
-const tinhThapThan = (nhatChu, tuTru) => {
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
-  };
-  const chiNguHanh = {
-    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
-  };
-  const thapThanMap = {
-    Kim: {
-      Kim: ["Tỷ Kiên", "Kiếp Tài"], Thủy: ["Thực Thần", "Thương Quan"], Mộc: ["Chính Tài", "Thiên Tài"],
-      Hỏa: ["Chính Quan", "Thất Sát"], Thổ: ["Chính Ấn", "Thiên Ấn"]
-    },
-    Mộc: {
-      Mộc: ["Tỷ Kiên", "Kiếp Tài"], Hỏa: ["Thực Thần", "Thương Quan"], Thổ: ["Chính Tài", "Thiên Tài"],
-      Kim: ["Chính Quan", "Thất Sát"], Thủy: ["Chính Ấn", "Thiên Ấn"]
-    },
-    Hỏa: {
-      Hỏa: ["Tỷ Kiên", "Kiếp Tài"], Thổ: ["Thực Thần", "Thương Quan"], Kim: ["Chính Tài", "Thiên Tài"],
-      Thủy: ["Chính Quan", "Thất Sát"], Mộc: ["Chính Ấn", "Thiên Ấn"]
-    },
-    Thổ: {
-      Thổ: ["Tỷ Kiên", "Kiếp Tài"], Kim: ["Thực Thần", "Thương Quan"], Thủy: ["Chính Tài", "Thiên Tài"],
-      Mộc: ["Chính Quan", "Thất Sát"], Hỏa: ["Chính Ấn", "Thiên Ấn"]
-    },
-    Thủy: {
-      Thủy: ["Tỷ Kiên", "Kiếp Tài"], Mộc: ["Thực Thần", "Thương Quan"], Hỏa: ["Chính Tài", "Thiên Tài"],
-      Thổ: ["Chính Quan", "Thất Sát"], Kim: ["Chính Ấn", "Thiên Ấn"]
-    }
-  };
-
+// Tính Thập Thần
+function tinhThapThan(nhatChu, tuTru) {
   if (!nhatChu || !canNguHanh[nhatChu]) {
-    throw new Error("Nhật Chủ không hợp lệ");
+    throw new Error('Nhật Chủ không hợp lệ');
   }
 
-  const isYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(nhatChu);
+  const isYang = ['Giáp', 'Bính', 'Mậu', 'Canh', 'Nhâm'].includes(nhatChu);
   const thapThanResults = {};
 
   try {
     const elements = [
-      tuTru.gio?.split(" ")[0], tuTru.thang?.split(" ")[0], tuTru.nam?.split(" ")[0]
+      tuTru.gio?.split(' ')[0], tuTru.thang?.split(' ')[0], tuTru.nam?.split(' ')[0]
     ].filter(Boolean);
     const branches = [
-      tuTru.gio?.split(" ")[1], tuTru.ngay?.split(" ")[1],
-      tuTru.thang?.split(" ")[1], tuTru.nam?.split(" ")[1]
+      tuTru.gio?.split(' ')[1], tuTru.ngay?.split(' ')[1],
+      tuTru.thang?.split(' ')[1], tuTru.nam?.split(' ')[1]
     ].filter(Boolean);
 
     if (elements.length < 3 || branches.length < 4) {
-      throw new Error("Tứ Trụ không đầy đủ");
+      throw new Error('Tứ Trụ không đầy đủ để tính Thập Thần');
     }
 
     for (const can of elements) {
       if (can === nhatChu) continue;
       const nguHanh = canNguHanh[can];
       if (!nguHanh) continue;
-      const isCanYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(can);
+      const isCanYang = ['Giáp', 'Bính', 'Mậu', 'Canh', 'Nhâm'].includes(can);
       const index = (isYang === isCanYang) ? 0 : 1;
       thapThanResults[can] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
@@ -210,519 +322,472 @@ const tinhThapThan = (nhatChu, tuTru) => {
     for (const chi of branches) {
       const nguHanh = chiNguHanh[chi];
       if (!nguHanh) continue;
-      const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
+      const isChiYang = ['Tý', 'Dần', 'Thìn', 'Ngọ', 'Thân', 'Tuất'].includes(chi);
       const index = (isYang === isChiYang) ? 0 : 1;
       thapThanResults[chi] = thapThanMap[canNguHanh[nhatChu]][nguHanh][index];
     }
 
     return thapThanResults;
   } catch (e) {
-    console.error("Lỗi tính Thập Thần:", e.message);
-    return { error: `Không thể tính Thập Thần: ${e.message}` };
+    logger.error('Lỗi tính Thập Thần', { error: e.message });
+    throw new Error('Không thể tính Thập Thần do dữ liệu Tứ Trụ không hợp lệ');
   }
-};
+}
 
-const tinhThanSat = (tuTru, language = "vi") => {
-  const thienAtQuyNhan = {
-    Giáp: ["Sửu", "Mùi"], Ất: ["Tý", "Hợi"], Bính: ["Dần", "Mão"], Đinh: ["Sửu", "Hợi"],
-    Mậu: ["Tỵ", "Ngọ"], Kỷ: ["Thìn", "Tuất"], Canh: ["Thân", "Dậu"], Tân: ["Thân", "Dậu"],
-    Nhâm: ["Hợi", "Tý"], Quý: ["Tý", "Hợi"]
-  };
-  const daoHoa = {
-    Thân: "Dậu", Tý: "Dậu", Thìn: "Dậu",
-    Hợi: "Tý", Mão: "Tý", Mùi: "Tý",
-    Dần: "Mão", Ngọ: "Mão", Tuất: "Mão",
-    Tỵ: "Ngọ", Dậu: "Ngọ", Sửu: "Ngọ"
-  };
-  const hongLoan = {
-    Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
-    Ngọ: "Mão", Mùi: "Dần", Thân: "Sửu", Dậu: "Tý", Tuất: "Hợi", Hợi: "Tuất"
-  };
-
-  const nhatChu = tuTru.ngay?.split(" ")[0];
-  const chiNgay = tuTru.ngay?.split(" ")[1];
+// Tính Thần Sát (corrected Đào Hoa, no Không Vong)
+function tinhThanSat(tuTru) {
+  const nhatChu = tuTru.ngay?.split(' ')[0];
   const branches = [
-    tuTru.nam?.split(" ")[1], tuTru.thang?.split(" ")[1],
-    tuTru.ngay?.split(" ")[1], tuTru.gio?.split(" ")[1]
+    tuTru.nam?.split(' ')[1], tuTru.thang?.split(' ')[1],
+    tuTru.ngay?.split(' ')[1], tuTru.gio?.split(' ')[1]
   ].filter(Boolean);
 
   if (!nhatChu || !branches.length) {
-    throw new Error("Invalid nhatChu or branches");
+    logger.error('Invalid nhatChu or branches', { nhatChu, branches });
+    throw new Error('Invalid nhatChu or branches');
   }
+
+  const dayBranch = tuTru.ngay?.split(' ')[1];
+  const yearBranch = tuTru.nam?.split(' ')[1];
+  const daoHoaBranch = daoHoaTamHop[dayBranch] || daoHoaTamHop[yearBranch];
 
   return {
-    "Thiên Ất Quý Nhân": { 
-      vi: "Thiên Ất Quý Nhân", 
-      en: "Nobleman Star", 
-      value: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [] 
+    'Thiên Ất Quý Nhân': {
+      vi: 'Thiên Ất Quý Nhân', en: 'Nobleman Star',
+      value: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Mang lại sự hỗ trợ từ người khác, hóa giải khó khăn, phù hợp với sự nghiệp và quan hệ xã hội.',
+        en: 'Brings support from others, resolves difficulties, ideal for career and social relations.'
+      }
     },
-    "Đào Hoa": { 
-      vi: "Đào Hoa", 
-      en: "Peach Blossom", 
-      value: branches.includes(daoHoa[chiNgay]) ? [daoHoa[chiNgay]] : [] 
+    'Đào Hoa': {
+      vi: 'Đào Hoa', en: 'Peach Blossom',
+      value: daoHoaBranch && branches.includes(daoHoaBranch) ? [daoHoaBranch] : [],
+      description: {
+        vi: 'Mang lại sức hút và duyên dáng, nhưng cần cẩn trọng để tránh rắc rối tình cảm.',
+        en: 'Brings charm and charisma, but caution is needed to avoid emotional complications.'
+      }
     },
-    "Hồng Loan": { 
-      vi: "Hồng Loan", 
-      en: "Red Phoenix", 
-      value: branches.includes(hongLoan[chiNgay]) ? [hongLoan[chiNgay]] : [] 
+    'Văn Xương': {
+      vi: 'Văn Xương', en: 'Literary Star',
+      value: vanXuong[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Biểu thị sự thông minh, thành công học thuật và kỹ năng giao tiếp.',
+        en: 'Signifies intelligence, academic success, and communication skills.'
+      }
+    },
+    'Thái Cực Quý Nhân': {
+      vi: 'Thái Cực Quý Nhân', en: 'Grand Ultimate Noble',
+      value: thaiCucQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Hỗ trợ sự nghiệp và mang lại sự bảo vệ trong khó khăn.',
+        en: 'Supports career and provides protection in difficulties.'
+      }
+    },
+    'Hồng Loan': {
+      vi: 'Hồng Loan', en: 'Red Phoenix',
+      value: branches.includes(hongLoan[dayBranch]) ? [hongLoan[dayBranch]] : [],
+      description: {
+        vi: 'Mang lại cơ hội tình cảm và hôn nhân, nhưng cần sự chân thành.',
+        en: 'Brings opportunities for romance and marriage, but requires sincerity.'
+      }
+    },
+    'Thiên Đức': {
+      vi: 'Thiên Đức', en: 'Heavenly Virtue',
+      value: thienDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Mang lại sự may mắn và bảo vệ từ thiên nhiên.',
+        en: 'Brings luck and protection from nature.'
+      }
+    },
+    'Nguyệt Đức': {
+      vi: 'Nguyệt Đức', en: 'Lunar Virtue',
+      value: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Hỗ trợ sự ổn định và bình an trong cuộc sống.',
+        en: 'Supports stability and peace in life.'
+      }
+    },
+    'Tướng Tinh': {
+      vi: 'Tướng Tinh', en: 'General Star',
+      value: tuongTinh[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Hỗ trợ khởi nghiệp, thăng tiến và thi cử.',
+        en: 'Supports startups, promotions, and exams.'
+      }
+    },
+    'Dịch Mã': {
+      vi: 'Dịch Mã', en: 'Traveling Horse',
+      value: dichMa[dayBranch]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Biểu thị sự di chuyển và cơ hội ở nước ngoài.',
+        en: 'Indicates movement and overseas opportunities.'
+      }
+    },
+    'Cô Thần Quả Tú': {
+      vi: 'Cô Thần Quả Tú', en: 'Solitary Widow',
+      value: coThanQuaTu[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Gây khó khăn trong hôn nhân, biểu thị sự cô đơn.',
+        en: 'Causes marital challenges and loneliness.'
+      }
+    },
+    'Kiếp Sát': {
+      vi: 'Kiếp Sát', en: 'Robbery Sha',
+      value: kiepSat[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Biểu thị thách thức, nguy cơ mất tiền hoặc tiểu nhân.',
+        en: 'Indicates challenges, financial loss, or adversaries.'
+      }
     }
   };
-};
+}
 
-const dayMasterDescriptions = {
-  Mộc: {
-    vi: "Như cây xanh vươn cao, bạn tràn đầy sức sống, sáng tạo, linh hoạt, nhưng cần ổn định cảm xúc.",
-    en: "Like a tree reaching for sunlight, you are vibrant, creative, adaptable, but need emotional grounding."
-  },
-  Hỏa: {
-    vi: "Như ngọn lửa rực rỡ, bạn bừng cháy đam mê, nhiệt huyết, dễ truyền cảm hứng nhưng cần kiểm soát bốc đồng.",
-    en: "Like a blazing fire, you burn with passion, enthusiasm, inspiring others but need to manage impulsiveness."
-  },
-  Thổ: {
-    vi: "Như ngọn núi vững chãi, bạn đáng tin cậy, kiên định, thực tế, nhưng cần mở lòng với thay đổi.",
-    en: "Like a steadfast mountain, you are reliable, resolute, practical, but need to embrace change."
-  },
-  Kim: {
-    vi: "Như thanh kiếm sắc bén, bạn tinh tế, quyết tâm, chính trực, nhưng cần cân bằng lý trí và cảm xúc.",
-    en: "Like a gleaming sword, you are refined, determined, upright, but need balance between logic and emotion."
-  },
-  Thủy: {
-    vi: "Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, sâu sắc, nhưng cần kiểm soát cảm xúc mạnh mẽ.",
-    en: "Like a deep river, you are wise, perceptive, profound, but need to manage intense emotions."
-  }
-};
-
-const thapThanEffects = {
-  "Tỷ Kiên": { vi: "Tự lập, mạnh mẽ, lãnh đạo, nhưng cần tránh cố chấp.", en: "Independent, strong, leadership qualities, but avoid stubbornness." },
-  "Kiếp Tài": { vi: "Quyết đoán, mạo hiểm, tài năng, dễ bốc đồng.", en: "Decisive, daring, talented, prone to impulsiveness." },
-  "Thực Thần": { vi: "Sáng tạo, nghệ thuật, yêu tự do, gu thẩm mỹ tinh tế.", en: "Creative, artistic, freedom-loving, refined aesthetic taste." },
-  "Thương Quan": { vi: "Tư duy sắc bén, dũng cảm, giỏi diễn đạt, phù hợp sáng tạo.", en: "Sharp-minded, courageous, expressive, suited for creative fields." },
-  "Chính Tài": { vi: "Giỏi quản lý tài chính, thận trọng, tích lũy tài sản.", en: "Skilled in financial management, cautious, good at accumulating wealth." },
-  "Thiên Tài": { vi: "Nhạy bén, sáng tạo, linh hoạt, giỏi kiếm tiền từ ý tưởng.", en: "Perceptive, creative, flexible, skilled at earning from ideas." },
-  "Chính Quan": { vi: "Trách nhiệm, uy tín, đáng tin cậy, phù hợp lãnh đạo.", en: "Responsible, reputable, trustworthy, suited for leadership." },
-  "Thất Sát": { vi: "Dũng cảm, quyết liệt, kiên cường, cần kiểm soát bốc đồng.", en: "Courageous, assertive, resilient, needs to control impulsiveness." },
-  "Chính Ấn": { vi: "Trí tuệ, học vấn, tư duy logic, thích nghiên cứu.", en: "Wise, scholarly, logical, enjoys research." },
-  "Thiên Ấn": { vi: "Sáng tạo, tư duy độc đáo, trực giác mạnh, phù hợp nghệ thuật.", en: "Creative, unique thinking, strong intuition, suited for arts." }
-};
-
-const determineQuestionType = (userInput, language) => {
-  const normalizedInput = typeof userInput === "string" ? userInput.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-  const keywords = {
-    isMoney: {
-      vi: ["tien bac", "tai chinh", "tai loc", "lam giau", "kinh doanh", "dau tu"],
-      en: ["money", "finance", "wealth", "investment", "business", "income"],
-      not: ["tai nan", "accident"]
-    },
-    isCareer: {
-      vi: ["nghe", "cong viec", "su nghiep", "viec lam", "chuc vu", "nghe nghiep"],
-      en: ["career", "job", "work", "profession", "employment", "occupation"]
-    },
-    isFame: {
-      vi: ["cong danh", "danh tieng", "ten tuoi", "uy tin", "thanh tuu"],
-      en: ["fame", "reputation", "prestige", "success", "achievement"]
-    },
-    isHealth: {
-      vi: ["suc khoe", "benh tat", "sang khoe", "the luc", "tri benh"],
-      en: ["health", "illness", "wellness", "sickness", "recovery"]
-    },
-    isLove: {
-      vi: ["tinh duyen", "tinh yeu", "hon nhan", "vo chong", "tinh cam"],
-      en: ["love", "marriage", "romance", "relationship", "partner"]
-    },
-    isFamily: {
-      vi: ["gia dao", "gia dinh", "ho gia", "than nhan", "gia can"],
-      en: ["family", "household", "kin", "relatives", "parents"]
-    },
-    isChildren: {
-      vi: ["con cai", "con", "tre con", "con nho", "nuoi day"],
-      en: ["children", "kids", "offspring", "son", "daughter"]
-    },
-    isProperty: {
-      vi: ["tai san", "dat dai", "nha cua", "bat dong san", "so huu"],
-      en: ["property", "real estate", "land", "house", "asset"]
-    },
-    isDanger: {
-      vi: ["tai nan", "nguy hiem", "rui ro", "an toan", "tai hoa"],
-      en: ["accident", "danger", "risk", "safety", "hazard"]
-    },
-    isYear: {
-      vi: ["nam", "sang nam", "tuong lai", "nam toi", "nam sau"],
-      en: ["year", "next year", "future", "coming year", "forecast"]
-    },
-    isComplex: {
-      vi: ["du doan", "tuong lai", "van menh", "dai van", "toan bo"],
-      en: ["predict", "future", "destiny", "life path", "overall"]
-    },
-    isThapThan: {
-      vi: ["thap than", "mười than", "than tai", "ty kien"],
-      en: ["ten gods", "ten deities", "shoulder", "wealth"]
-    },
-    isThanSat: {
-      vi: ["than sat", "sao", "thien at", "dao hoa", "hong loan"],
-      en: ["auspicious stars", "stars", "nobleman", "peach blossom"]
-    }
-  };
-
-  const types = {};
-  for (const [type, { vi, en, not = [] }] of Object.entries(keywords)) {
-    const viMatch = vi.some(keyword => normalizedInput.includes(keyword));
-    const enMatch = en.some(keyword => normalizedInput.includes(keyword));
-    const notMatch = not.some(keyword => normalizedInput.includes(keyword));
-    types[type] = (viMatch || enMatch) && !notMatch;
-  }
-  types.isGeneral = !Object.values(types).some(v => v && v !== types.isYear);
-  console.log("Question Type:", types);
-  return types;
-};
-
-const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
-  const canChi = getCanChiForYear(year);
-  if (!canChi) return { vi: "Năm không hợp lệ", en: "Invalid year" };
-  if (year === 2026 && canChi !== "Bính Ngọ") {
-    throw new Error("Sai Can Chi cho năm 2026, phải là Bính Ngọ");
-  }
-  const [can, chi] = canChi.split(" ");
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
-  };
-  const chiNguHanh = {
-    Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
-  };
-  const nhatChu = tuTru.ngay.split(" ")[0];
-  const thapThanMap = {
-    Kim: { Kim: ["Tỷ Kiên", "Kiếp Tài"], Thủy: ["Thực Thần", "Thương Quan"], Mộc: ["Chính Tài", "Thiên Tài"], Hỏa: ["Chính Quan", "Thất Sát"], Thổ: ["Chính Ấn", "Thiên Ấn"] },
-    Mộc: { Mộc: ["Tỷ Kiên", "Kiếp Tài"], Hỏa: ["Thực Thần", "Thương Quan"], Thổ: ["Chính Tài", "Thiên Tài"], Kim: ["Chính Quan", "Thất Sát"], Thủy: ["Chính Ấn", "Thiên Ấn"] },
-    Hỏa: { Hỏa: ["Tỷ Kiên", "Kiếp Tài"], Thổ: ["Thực Thần", "Thương Quan"], Kim: ["Chính Tài", "Thiên Tài"], Thủy: ["Chính Quan", "Thất Sát"], Mộc: ["Chính Ấn", "Thiên Ấn"] },
-    Thổ: { Thổ: ["Tỷ Kiên", "Kiếp Tài"], Kim: ["Thực Thần", "Thương Quan"], Thủy: ["Chính Tài", "Thiên Tài"], Mộc: ["Chính Quan", "Thất Sát"], Hỏa: ["Chính Ấn", "Thiên Ấn"] },
-    Thủy: { Thủy: ["Tỷ Kiên", "Kiếp Tài"], Mộc: ["Thực Thần", "Thương Quan"], Hỏa: ["Chính Tài", "Thiên Tài"], Thổ: ["Chính Quan", "Thất Sát"], Kim: ["Chính Ấn", "Thiên Ấn"] }
-  };
-  const isYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(nhatChu);
-  const isCanYang = ["Giáp", "Bính", "Mậu", "Canh", "Nhâm"].includes(can);
-  const isChiYang = ["Tý", "Dần", "Thìn", "Ngọ", "Thân", "Tuất"].includes(chi);
-  const canThapThan = thapThanMap[canNguHanh[nhatChu]][canNguHanh[can]][(isYang === isCanYang) ? 0 : 1];
-  const chiThapThan = thapThanMap[canNguHanh[nhatChu]][chiNguHanh[chi]][(isYang === isChiYang) ? 0 : 1];
-  const nguHanhYear = { can: canNguHanh[can], chi: chiNguHanh[chi] };
-  const isFavorable = dungThan.includes(nguHanhYear.can) || dungThan.includes(nguHanhYear.chi);
-  return {
-    vi: `Năm ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Hỗ trợ Dụng Thần ${dungThan.join(", ")}, mang cơ hội.` : `Cân bằng ${dungThan.join(", ")} để tận dụng cơ hội.`}`,
-    en: `Year ${year} (${can} ${chi}): ${nguHanhYear.can} (${canThapThan}), ${nguHanhYear.chi} (${chiThapThan}). ${isFavorable ? `Supports Useful God ${dungThan.join(", ")}, bringing opportunities.` : `Balance ${dungThan.join(", ")} to seize opportunities.`}`
-  };
-};
-
-const estimateTokens = (text) => {
-  if (!text || typeof text !== "string") return 0;
-  return Math.ceil(text.length / 3.2); // Tinh chỉnh cho tiếng Việt
-};
-
-const truncatePrompt = (text, maxTokens = 3000) => {
-  if (estimateTokens(text) <= maxTokens) return text;
-  const maxLength = Math.floor(maxTokens * 3.2);
-  return text.substring(0, maxLength) + "... [Đã rút gọn để đảm bảo token limit]";
-};
-
-const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
+// Generate response based on user input
+function generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userInput, language = 'vi') {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
-    Object.entries(nguHanhCount).map(([k, v]) => [k, k === "Hỏa" ? "Hỏa" : k, v.toFixed(1)])
+    Object.entries(nguHanhCount).map(([k, v]) => [k, `${((v / totalElements) * 100).toFixed(2)}%`])
   );
-  const nhatChu = tuTru.ngay.split(" ")[0];
-  const chiNgay = tuTru.ngay.split(" ")[1];
-  const canNguHanh = {
-    Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ",
-    Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy"
+  const nhatChu = tuTru.ngay.split(' ')[0];
+  const userInputLower = userInput.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const thanSat = tinhThanSat(tuTru);
+
+  const isMoney = /tien bac|tai chinh|money|finance/i.test(userInputLower);
+  const isCareer = /nghe|cong viec|su nghiep|career|job/i.test(userInputLower);
+  const isHealth = /suc khoe|benh tat|health/i.test(userInputLower);
+  const isLove = /tinh duyen|tinh yeu|love|hon nhan|marriage/i.test(userInputLower);
+  const isChildren = /con cai|children/i.test(userInputLower);
+  const isComplex = /du doan|tuong lai|future|dai van/i.test(userInputLower);
+  const isThapThan = /thap than|ten gods/i.test(userInputLower);
+  const isThanSat = /than sat|auspicious stars|sao/i.test(userInputLower);
+  const isGeneral = !isMoney && !isCareer && !isHealth && !isLove && !isChildren && !isComplex && !isThapThan && !isThanSat;
+
+  const response = {
+    nguHanh: tyLeNguHanh,
+    thapThan: thapThanResults,
+    thanSat,
+    dungThan,
+    cachCuc: 'Thân Nhược' // From logs
   };
 
-  if (!dungThan || !dungThan.length || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    throw new Error(language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God");
-  }
-
-  const { isGeneral, isMoney, isCareer, isFame, isHealth, isLove, isFamily, isChildren, isProperty, isDanger, isYear, isComplex, isThapThan, isThanSat } = determineQuestionType(userInput, language);
-
-  let response = `${language === "vi" ? "Luận giải Bát Tự:\n" : "Bazi Interpretation:\n"}`;
-
-  if (isComplex) {
-    return `${language === "vi" ? "Vui lòng gửi câu hỏi qua app.aihuyenhoc@gmail.com" : "Please send questions to app.aihuyenhoc@gmail.com"}`;
-  }
-
-  if (isCareer) {
-    response += `
-${language === "vi" ? `Sự Nghiệp\nDựa trên Dụng Thần ${dungThan.join(", ")}, bạn phù hợp với:\n${dungThan.includes("Hỏa") ? "- Hỏa: Truyền thông, marketing, nghệ thuật.\n" : ""}${dungThan.includes("Thổ") ? "- Thổ: Bất động sản, kiến trúc.\n" : ""}Năm 2026 (Bính Ngọ, Hỏa vượng) mang cơ hội trong ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "dự án liên quan"}.\n**Lời Khuyên**\n- Phát triển kỹ năng sáng tạo hoặc nghiên cứu bất động sản.\n- Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** hoặc vòng **thạch anh vàng**.` : `Career\nBased on Useful Gods ${dungThan.join(", ")}, you are suited for:\n${dungThan.includes("Hỏa") ? "- Fire: Media, marketing, arts.\n" : ""}${dungThan.includes("Thổ") ? "- Earth: Real estate, architecture.\n" : ""}2026 (Bing Wu, strong Fire) brings opportunities in ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "related projects"}.\n**Advice**\n- Develop creative skills or research real estate.\n- Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** or **citrine** ring.`}
-`;
-    return response.trim().substring(0, 5000);
-  }
-
-  if (isLove) {
-    const daoHoa = thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa";
-    const daoHoaDirection = { "Tý": "Bắc", "Ngọ": "Nam", "Mão": "Đông", "Dậu": "Tây" }[thanSatResults["Đào Hoa"].value[0]] || "Đông";
-    response += `
-${language === "vi" ? `Tình Duyên\n${daoHoa}. Có Hồng Loan tại Mùi. Hợp với người ${dungThan.includes("Hỏa") ? "nồng nhiệt" : dungThan.includes("Thổ") ? "thực tế" : "tinh tế"}. Nếu chưa có người yêu, đặt **lọ hoa ở góc ${daoHoaDirection}**. Năm 2026, tham gia sự kiện sáng tạo.\n**Lời Khuyên**\n- Mặc màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** hoặc vòng **thạch anh vàng**.` : `Love\n${daoHoa}. Red Phoenix at Goat. Compatible with ${dungThan.includes("Hỏa") ? "passionate" : dungThan.includes("Thổ") ? "practical" : "refined"} partners. If single, place a **vase in the ${daoHoaDirection} corner**. In 2026, attend creative events.\n**Advice**\n- Wear **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** or **citrine** ring.`}
-`;
-    return response.trim().substring(0, 5000);
-  }
-
-  if (isYear) {
-    const yearMatch = userInput.match(/\d{4}/);
-    const year = yearMatch ? parseInt(yearMatch[0]) : null;
-    if (year) {
-      const yearAnalysis = analyzeYear(year, tuTru, nguHanhCount, thapThanResults, dungThan);
-      response += `
-${language === "vi" ? `Năm ${year}:\n${yearAnalysis[language]}\n**Lời Khuyên**: Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.` : `Year ${year}:\n${yearAnalysis[language]}\n**Advice**: Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.`}
-`;
-      return response.trim().substring(0, 5000);
-    }
-  }
-
   if (isGeneral) {
-    response += `
-${language === "vi" ? `**Lá số**: Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}.\n**Dụng Thần**: ${dungThan.join(", ")}.\n**Ngũ Hành**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}.\n**Thần Sát**: Đào Hoa (${thanSatResults["Đào Hoa"].value.join(", ") || "Không có"}), Hồng Loan (${thanSatResults["Hồng Loan"].value.join(", ") || "Không có"}).\n
-## 1. Tính Cách\n**Nhâm (Thủy)**: ${dayMasterDescriptions["Thủy"].vi}\n
-## 2. Sự Nghiệp\nDựa trên Dụng Thần ${dungThan.join(", ")}, bạn phù hợp với:\n${dungThan.includes("Hỏa") ? "- Hỏa: Truyền thông, marketing, nghệ thuật.\n" : ""}${dungThan.includes("Thổ") ? "- Thổ: Bất động sản, kiến trúc.\n" : ""}Năm 2026 (Bính Ngọ, Hỏa vượng) mang cơ hội trong ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "dự án liên quan"}.\n
-## 3. Tình Duyên\n${thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa"}. Có Hồng Loan tại Mùi. Hợp với người ${dungThan.includes("Hỏa") ? "nồng nhiệt" : dungThan.includes("Thổ") ? "thực tế" : "tinh tế"}. Đặt **lọ hoa ở góc Đông (Mão)** nếu chưa có người yêu.\n
-## 4. Lời Khuyên\n- Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** hoặc vòng **thạch anh vàng**.` : `**Four Pillars**: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}.\n**Useful Gods**: ${dungThan.join(", ")}.\n**Five Elements**: ${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}`).join(", ")}.\n**Auspicious Stars**: Peach Blossom (${thanSatResults["Đào Hoa"].value.join(", ") || "None"}), Red Phoenix (${thanSatResults["Hồng Loan"].value.join(", ") || "None"}).\n
-## 1. Personality\n**Ren (Water)**: ${dayMasterDescriptions["Thủy"].en}\n
-## 2. Career\nBased on Useful Gods ${dungThan.join(", ")}, you are suited for:\n${dungThan.includes("Hỏa") ? "- Fire: Media, marketing, arts.\n" : ""}${dungThan.includes("Thổ") ? "- Earth: Real estate, architecture.\n" : ""}2026 (Bing Wu, strong Fire) brings opportunities in ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "related projects"}.\n
-## 3. Love\n${thanSatResults["Đào Hoa"].value.length ? `Peach Blossom at ${thanSatResults["Đào Hoa"].value[0]}` : "No Peach Blossom"}. Red Phoenix at Goat. Compatible with ${dungThan.includes("Hỏa") ? "passionate" : dungThan.includes("Thổ") ? "practical" : "refined"} partners. Place a **vase in the East (Rabbit)** if single.\n
-## 4. Advice\n- Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** or **citrine** ring.`}
-`;
-    return response.trim().substring(0, 5000);
-  }
-
-  return response.trim().substring(0, 5000);
-};
-
-const checkOpenAIStatus = async () => {
-  try {
-    const response = await axios.get("https://status.openai.com/api/v2/status.json", { timeout: 10000 });
-    return response.data.status.indicator === "none";
-  } catch (err) {
-    console.error("Lỗi kiểm tra OpenAI status:", err.message);
-    return false;
-  }
-};
-
-const checkOpenAIKey = async () => {
-  try {
-    const response = await axios.get("https://api.openai.com/v1/models", {
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      timeout: 10000
-    });
-    return response.data.data.some(m => m.id.includes("gpt-3.5-turbo") || m.id.includes("gpt-4"));
-  } catch (err) {
-    console.error("Lỗi kiểm tra API key:", err.message);
-    return false;
-  }
-};
-
-const callOpenAI = async (payload, retries = 3, delay = 5000) => {
-  console.log(`Bắt đầu OpenAI: ${new Date().toISOString()}`);
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Missing OpenAI API key");
-  }
-  if (!payload || !payload.model || !payload.messages || !Array.isArray(payload.messages) || payload.messages.length === 0) {
-    console.error("Invalid payload:", JSON.stringify(payload, null, 2));
-    throw new Error("Invalid payload: Missing or malformed model/messages");
-  }
-
-  const validModels = ["gpt-3.5-turbo", "gpt-4"];
-  if (!validModels.includes(payload.model)) {
-    console.error("Invalid model:", payload.model);
-    throw new Error(`Invalid model: ${payload.model}. Must be one of ${validModels.join(", ")}`);
-  }
-
-  const promptText = payload.messages.map(m => m.content || "").join(" ");
-  const estimatedTokens = estimateTokens(promptText);
-  if (estimatedTokens > 3000) {
-    console.warn("Prompt quá dài, đang rút gọn:", estimatedTokens, "tokens");
-    payload.messages = [{ role: "user", content: truncatePrompt(promptText, 3000) }];
-  }
-
-  const isKeyValid = await checkOpenAIKey();
-  if (!isKeyValid) {
-    throw new Error("Invalid API key");
-  }
-
-  const isServerUp = await checkOpenAIStatus();
-  if (!isServerUp) {
-    throw new Error("OpenAI server down");
-  }
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      console.log(`Thử ${attempt}, Payload:`, JSON.stringify(payload, null, 2));
-      const response = await axios.post(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          ...payload,
-          max_tokens: Math.min(payload.max_tokens || 1000, 4096 - estimatedTokens)
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          timeout: 120000
-        }
-      );
-      console.log(`Hoàn thành OpenAI: ${new Date().toISOString()}`);
-      return response.data;
-    } catch (err) {
-      console.error(`Thử ${attempt} thất bại: ${err.message}`);
-      if (err.response) {
-        console.error("HTTP Status:", err.response.status);
-        console.error("Chi tiết lỗi:", JSON.stringify(err.response.data, null, 2));
-      }
-      if (err.code === "ECONNREFUSED") {
-        throw new Error("Không thể kết nối đến OpenAI: Kiểm tra mạng hoặc tường lửa");
-      }
-      if (err.code === "ETIMEDOUT") {
-        throw new Error("Hết thời gian kết nối đến OpenAI: Kiểm tra mạng hoặc thử lại");
-      }
-      if (err.response?.status === 400) {
-        throw new Error(`Bad Request: ${err.response?.data?.error?.message || "Invalid payload"}`);
-      }
-      if (err.response?.status === 429) {
-        throw new Error("Quota exceeded");
-      }
-      if (err.response?.status === 401) {
-        throw new Error("Invalid API key");
-      }
-      if (attempt === retries) {
-        throw new Error(`Failed after ${retries} retries: ${err.message}`);
-      }
-      await new Promise(resolve => setTimeout(resolve, delay * attempt));
-    }
-  }
-};
-
-app.post("/api/luan-giai-bazi", async (req, res) => {
-  const startTime = Date.now();
-  const { messages, tuTruInfo, dungThan, language = "vi" } = req.body;
-
-  console.log("Received payload:", JSON.stringify(req.body, null, 2));
-
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    console.error("Missing messages:", messages);
-    return res.status(400).json({ error: language === "vi" ? "Thiếu messages" : "Missing messages" });
-  }
-  if (!tuTruInfo || typeof tuTruInfo !== "string") {
-    console.error("Missing or invalid tuTruInfo:", tuTruInfo);
-    return res.status(400).json({ error: language === "vi" ? "Thiếu hoặc không hợp lệ tuTruInfo" : "Missing or invalid tuTruInfo" });
-  }
-  if (!dungThan || !Array.isArray(dungThan) || !dungThan.length || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    console.error("Invalid dungThan:", dungThan);
-    return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God" });
-  }
-
-  const payloadSize = Buffer.byteLength(JSON.stringify(req.body), "utf8");
-  if (payloadSize > 10 * 1024 * 1024) {
-    console.error(`Payload quá lớn: ${payloadSize} bytes`);
-    return res.status(413).json({ error: language === "vi" ? "Yêu cầu quá lớn" : "Request entity too large" });
-  }
-
-  let tuTru;
-  try {
-    tuTru = JSON.parse(tuTruInfo);
-    tuTru = {
-      gio: normalizeCanChi(tuTru.gio),
-      ngay: normalizeCanChi(tuTru.ngay),
-      thang: normalizeCanChi(tuTru.thang),
-      nam: normalizeCanChi(tuTru.nam)
+    response.message = {
+      vi: `Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}): Bạn có tính cách sáng tạo, linh hoạt, nhưng cần kiểm soát cảm xúc. Dụng Thần ${dungThan.join(' và ')} khuyên bạn nên ${dungThanRecommendations[dungThan[0]].advice.vi}`,
+      en: `Day Master ${nhatChu} (${canNguHanh[nhatChu]}): You are creative and adaptable, but need to manage emotions. Useful Gods ${dungThan.join(' and ')} suggest you ${dungThanRecommendations[dungThan[0]].advice.en}`
     };
-    if (!tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
-      throw new Error("Tứ Trụ không đầy đủ");
+  } else if (isCareer) {
+    response.message = {
+      vi: `Sự nghiệp phù hợp: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'Tướng Tinh hỗ trợ thăng tiến.' : ''}`,
+      en: `Suitable careers: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'General Star supports promotions.' : ''}`
+    };
+  } else if (isMoney) {
+    response.message = {
+      vi: `Tài vận chịu ảnh hưởng từ ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'không rõ'}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận tiểu nhân hoặc mất tiền.' : ''}`,
+      en: `Financial luck influenced by ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'unknown'}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of adversaries or financial loss.' : ''}`
+    };
+  } else if (isHealth) {
+    response.message = {
+      vi: `Sức khỏe cần chú ý cân bằng ngũ hành ${dungThan.join(' và ')}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận bệnh tật hoặc tai nạn nhỏ.' : ''}`,
+      en: `Health requires balancing elements ${dungThan.join(' and ')}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of illness or minor accidents.' : ''}`
+    };
+  } else if (isLove) {
+    response.message = {
+      vi: `${thanSat['Đào Hoa'].value.length ? 'Đào Hoa tăng sức hút, nhưng cần chân thành.' : 'Không có Đào Hoa, cần chủ động trong tình cảm.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn trong hôn nhân.' : ''}`,
+      en: `${thanSat['Đào Hoa'].value.length ? 'Peach Blossom enhances charm, but sincerity is needed.' : 'No Peach Blossom, be proactive in relationships.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause marital challenges.' : ''}`
+    };
+  } else if (isChildren) {
+    response.message = {
+      vi: `Vận con cái chịu ảnh hưởng từ ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'không rõ'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn.' : ''}`,
+      en: `Children luck influenced by ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'unknown'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause challenges.' : ''}`
+    };
+  } else if (isComplex) {
+    response.message = {
+      vi: `Tương lai phụ thuộc vào Dụng Thần ${dungThan.join(' và ')}. Hãy tập trung vào ${dungThanRecommendations[dungThan[0]].advice.vi}`,
+      en: `Future depends on Useful Gods ${dungThan.join(' and ')}. Focus on ${dungThanRecommendations[dungThan[0]].advice.en}`
+    };
+  } else if (isThapThan) {
+    response.message = {
+      vi: `Thập Thần: ${JSON.stringify(thapThanResults, null, 2)}`,
+      en: `Ten Gods: ${JSON.stringify(thapThanResults, null, 2)}`
+    };
+  } else if (isThanSat) {
+    response.message = {
+      vi: `Thần Sát: ${JSON.stringify(thanSat, null, 2)}`,
+      en: `Auspicious Stars: ${JSON.stringify(thanSat, null, 2)}`
+    };
+  }
+
+  return response;
+}
+
+// Retry logic for external API calls
+async function callExternalBaziAPI(data, retries = 3, delay = 1000) {
+  try {
+    const response = await axios.post(
+      process.env.XAI_BAZI_API || 'https://x.ai/api/bazi',
+      data,
+      {
+        headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` },
+        timeout: 10000
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (retries > 0 && error.code !== 'ECONNABORTED') {
+      logger.warn('Retrying API call', { retriesLeft: retries, error: error.message });
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return callExternalBaziAPI(data, retries - 1, delay * 2);
     }
-  } catch (e) {
-    console.error("Lỗi parse tuTruInfo:", e.message);
-    return res.status(400).json({ error: language === "vi" ? `Tứ Trụ không hợp lệ: ${e.message}` : `Invalid Four Pillars: ${e.message}` });
+    throw error;
   }
+}
 
-  let nguHanh;
+// Main Bát Tự endpoint
+app.post('/api/bazi', async (req, res) => {
   try {
-    nguHanh = analyzeNguHanh(tuTru);
-  } catch (err) {
-    console.error("Lỗi phân tích Ngũ Hành:", err.message);
-    return res.status(400).json({ error: language === "vi" ? `Lỗi Ngũ Hành: ${err.message}` : `Five Elements error: ${err.message}` });
-  }
+    const { gio, ngay, thang, nam, userInput = '', language = 'vi' } = req.body;
 
-  let thapThanResults = {};
-  try {
-    thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
-  } catch (err) {
-    console.error("Lỗi tính Thập Thần:", err.message);
-    thapThanResults = { warning: `Không thể tính Thập Thần: ${err.message}` };
-  }
-
-  let thanSatResults = {};
-  try {
-    thanSatResults = tinhThanSat(tuTru, language);
-  } catch (err) {
-    console.error("Lỗi tính Thần Sát:", err.message);
-    thanSatResults = { warning: `Không thể tính Thần Sát: ${err.message}` };
-  }
-
-  const useOpenAI = process.env.USE_OPENAI !== "false";
-  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
-  if (!userInput) {
-    console.error("No user input found in messages:", messages);
-    return res.status(400).json({ error: language === "vi" ? "Không tìm thấy câu hỏi người dùng" : "No user question found" });
-  }
-
-  console.log("Input:", { userInput, dungThan, questionType: determineQuestionType(userInput, language) });
-
-  const prompt = `
-You are a Bazi expert. Respond in ${language === "vi" ? "Vietnamese" : "English"} to the user's question, using Useful Gods (${dungThan.join(", ")}) for advice. Be concise, empathetic, and focus ONLY on the requested aspect (e.g., career, love). Avoid unrelated sections unless a general analysis is requested. Provide actionable advice tied to Useful Gods. Limit response to 300 words.
-
-Bazi: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}
-Useful Gods: ${dungThan.join(", ")}
-Question: ${userInput}
-`;
-
-  try {
-    if (useOpenAI) {
-      const gptRes = await callOpenAI({
-        model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-        messages: [{ role: "user", content: truncatePrompt(prompt, 3000) }],
-        temperature: 0.4,
-        max_tokens: 1000
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
       });
-      const answer = gptRes.choices[0].message.content.substring(0, 5000);
-      console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
-      console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-      return res.json({ answer });
-    } else {
-      const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
-      console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
-      console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-      return res.json({ answer });
     }
-  } catch (err) {
-    console.error("Lỗi OpenAI hoặc xử lý:", err.message);
-    const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
-    console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
-    return res.status(200).json({
-      answer,
-      warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}`
+
+    logger.info('Processing Bát Tự request', { gio, ngay, thang, nam, userInput, language });
+
+    const cacheKey = `${gio}:${ngay}:${thang}:${nam}:${userInput}:${language}`;
+    const cachedResult = cache.get(cacheKey);
+    if (cachedResult) {
+      logger.info('Returning cached Bát Tự result', { cacheKey });
+      return res.json(cachedResult);
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy']; // From logs
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userInput, language);
+
+    cache.set(cacheKey, response);
+    res.json(response);
+  } catch (error) {
+    logger.error('Bát Tự endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi tính toán Bát Tự, vui lòng thử lại sau.',
+        en: 'Bát Tự calculation error, please try again later.'
+      }
     });
   }
 });
 
-app.use((err, req, res, next) => {
-  console.error("Lỗi hệ thống:", err.stack);
-  if (err.status === 413 || err.type === "entity.too.large") {
-    return res.status(413).json({ error: req.body.language === "vi" ? "Yêu cầu quá lớn" : "Request entity too large" });
+// Career analysis endpoint
+app.post('/api/bazi/career', async (req, res) => {
+  try {
+    const { gio, ngay, thang, nam, language = 'vi' } = req.body;
+
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input for career', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
+      });
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy'];
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, 'career', language);
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Career endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi phân tích sự nghiệp, vui lòng thử lại sau.',
+        en: 'Career analysis error, please try again later.'
+      }
+    });
   }
-  return res.status(500).json({ error: req.body.language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
 });
 
-const port = process.env.PORT || 10000;
-const server = app.listen(port, async () => {
-  console.log(`Server running on port ${port}`);
+// Marriage analysis endpoint
+app.post('/api/bazi/marriage', async (req, res) => {
   try {
-    const isKeyValid = await checkOpenAIKey();
-    console.log(`OpenAI API key valid: ${isKeyValid}`);
-  } catch (err) {
-    console.error("Lỗi kiểm tra OpenAI API key:", err.message);
+    const { gio, ngay, thang, nam, language = 'vi' } = req.body;
+
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input for marriage', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
+      });
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy'];
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, 'love', language);
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Marriage endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi phân tích hôn nhân, vui lòng thử lại sau.',
+        en: 'Marriage analysis error, please try again later.'
+      }
+    });
   }
+});
+
+// Yearly prediction endpoint
+app.post('/api/bazi/yearly', async (req, res) => {
+  try {
+    const { gio, ngay, thang, nam, targetYear, language = 'vi' } = req.body;
+
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input for yearly', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
+      });
+    }
+
+    if (!targetYear || isNaN(targetYear)) {
+      logger.warn('Invalid target year', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Năm dự đoán không hợp lệ.',
+          en: 'Invalid target year.'
+        }
+      });
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy'];
+    const yearlyCanChi = getCanChiForYear(targetYear);
+    const yearlyElement = canNguHanh[yearlyCanChi?.split(' ')[0]] || 'Unknown';
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, `future ${yearlyElement}`, language);
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Yearly prediction endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi dự đoán năm, vui lòng thử lại sau.',
+        en: 'Yearly prediction error, please try again later.'
+      }
+    });
+  }
+});
+
+// Health analysis endpoint
+app.post('/api/bazi/health', async (req, res) => {
+  try {
+    const { gio, ngay, thang, nam, language = 'vi' } = req.body;
+
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input for health', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
+      });
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy'];
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, 'health', language);
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Health endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi phân tích sức khỏe, vui lòng thử lại sau.',
+        en: 'Health analysis error, please try again later.'
+      }
+    });
+  }
+});
+
+// Children analysis endpoint
+app.post('/api/bazi/children', async (req, res) => {
+  try {
+    const { gio, ngay, thang, nam, language = 'vi' } = req.body;
+
+    if (!validateCanChi({ gio, ngay, thang, nam })) {
+      logger.warn('Invalid Can Chi input for children', { body: req.body });
+      return res.status(400).json({
+        error: {
+          vi: 'Dữ liệu Can Chi không hợp lệ.',
+          en: 'Invalid Can Chi data.'
+        }
+      });
+    }
+
+    const tuTru = { gio, ngay, thang, nam };
+    const nhatChu = ngay.split(' ')[0];
+    const nguHanhCount = await analyzeNguHanh(tuTru);
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const dungThan = ['Kim', 'Thủy'];
+    const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, 'children', language);
+
+    res.json(response);
+  } catch (error) {
+    logger.error('Children endpoint error', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      error: {
+        vi: 'Lỗi phân tích con cái, vui lòng thử lại sau.',
+        en: 'Children analysis error, please try again later.'
+      }
+    });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: {
+      vi: 'Máy chủ đang hoạt động.',
+      en: 'Server is running.'
+    },
+    uptime: process.uptime(),
+    cacheStats: cache.getStats()
+  });
+});
+
+// Error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  process.exit(1);
+});
+
+// Start server
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
 });
