@@ -153,7 +153,7 @@ const tinhThapThan = (nhatChu, tuTru) => {
   };
   const chiNguHanh = {
     Tý: "Thủy", Hợi: "Thủy", Sửu: "Thổ", Thìn: "Thổ", Mùi: "Thổ", Tuất: "Thổ",
-    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Schultz: "Kim"
+    Dần: "Mộc", Mão: "Mộc", Tỵ: "Hỏa", Ngọ: "Hỏa", Thân: "Kim", Dậu: "Kim"
   };
   const thapThanMap = {
     Kim: {
@@ -411,6 +411,11 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
   };
 };
 
+const estimateTokens = (text) => {
+  // Ước lượng token: trung bình 1 token ~ 4 ký tự trong tiếng Anh, tiếng Việt có thể ít hơn
+  return Math.ceil(text.length / 3);
+};
+
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
@@ -501,7 +506,7 @@ const checkOpenAIKey = async () => {
       headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       timeout: 10000
     });
-    return response.data.data.some(m => m.id.includes("gpt-3.5-turbo"));
+    return response.data.data.some(m => m.id.includes("gpt-3.5-turbo") || m.id.includes("gpt-4"));
   } catch (err) {
     console.error("Lỗi kiểm tra API key:", err.message);
     return false;
@@ -511,7 +516,16 @@ const checkOpenAIKey = async () => {
 const callOpenAI = async (payload, retries = 3, delay = 5000) => {
   console.log(`Bắt đầu OpenAI: ${new Date().toISOString()}`);
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OpenAI API key");
-  if (!payload.model || !payload.messages) throw new Error("Invalid payload");
+  if (!payload.model || !payload.messages || !Array.isArray(payload.messages) || payload.messages.length === 0) {
+    throw new Error("Invalid payload: Missing model or messages");
+  }
+
+  // Kiểm tra số token ước lượng
+  const promptText = payload.messages.map(m => m.content).join(" ");
+  const estimatedTokens = estimateTokens(promptText);
+  if (estimatedTokens > 3500) { // Giới hạn an toàn cho gpt-3.5-turbo
+    throw new Error(`Prompt quá dài: ${estimatedTokens} tokens`);
+  }
 
   const isKeyValid = await checkOpenAIKey();
   if (!isKeyValid) throw new Error("Invalid API key");
@@ -524,9 +538,15 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
       console.log(`Thử ${attempt}`);
       const response = await axios.post(
         "https://api.openai.com/v1/chat/completions",
-        payload,
         {
-          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+          ...payload,
+          max_tokens: Math.min(payload.max_tokens || 2000, 4096 - estimatedTokens)
+        },
+        {
+          headers: { 
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 
+            "Content-Type": "application/json" 
+          },
           timeout: 60000
         }
       );
@@ -534,6 +554,9 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
       return response.data;
     } catch (err) {
       console.error(`Thử ${attempt} thất bại: ${err.message}`);
+      if (err.response?.status === 400) {
+        throw new Error(`Bad Request: ${err.response?.data?.error?.message || "Invalid payload"}`);
+      }
       if (err.response?.status === 429) throw new Error("Quota exceeded");
       if (err.response?.status === 401) throw new Error("Invalid API key");
       if (attempt === retries) throw new Error(`Failed after ${retries} retries: ${err.message}`);
@@ -617,41 +640,35 @@ Instructions:
 - For other specific questions, respond only to the relevant aspect, using Useful Gods for advice.
 - For general questions, provide a comprehensive analysis covering personality, career, relationships, passions, and future outlook (2026-2030).
 - For year-specific questions, analyze the Heavenly Stem and Earthly Branch of the year, linking to Useful Gods for opportunities or challenges.
+- Ensure the response is concise, under 500 words, and avoids special characters that may cause encoding issues.
 
 Bazi Data:
 - Four Pillars: Hour ${tuTru.gio || "N/A"}, Day ${tuTru.ngay || "N/A"}, Month ${tuTru.thang || "N/A"}, Year ${tuTru.nam || "N/A"}
-- Five Elements: ${Object.entries(nguHanh).map(([k, v]) => `${k === "Hỏa" ? "Hỏa" : k}: ${v.toFixed(1)}`).join(", ") || "N/A"}
-- Ten Gods: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
-- Auspicious Stars: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}
 - Useful Gods: ${dungThan.join(", ") || "N/A"}
 - User Question: ${userInput || "Provide a general Bazi analysis"}
-- Day Master Descriptions: ${JSON.stringify(dayMasterDescriptions)}
-- Ten Gods Effects: ${JSON.stringify(thapThanEffects)}
 
 Response Structure (in ${language === "vi" ? "Vietnamese" : "English"}):
 - For specific questions (e.g., career): Focus on the requested aspect with advice tied to Useful Gods.
 - For general questions:
-  1. Nhật Chủ và Tính Cách (Day Master and Personality): Insights into core traits and emotional balance.
-  2. Sự Nghiệp và Định Hướng (Career and Direction): Career paths based on Useful Gods.
-  3. Tình Duyên và Mối Quan Hệ (Love and Relationships): Insights based on Useful Gods and Auspicious Stars.
-  4. Sở Thích và Đam Mê (Passions and Interests): Hobbies tied to Useful Gods.
-  5. Dự Đoán Tương Lai (Future Outlook): 2026-2030 or specific year forecast.
-  6. Lời Khuyên (Advice): Colors, items, activities based on Useful Gods.
+  1. Nhật Chủ và Tính Cách (Day Master and Personality)
+  2. Sự Nghiệp và Định Hướng (Career and Direction)
+  3. Tình Duyên và Mối Quan Hệ (Love and Relationships)
+  4. Sở Thích và Đam Mê (Passions and Interests)
+  5. Dự Đoán Tương Lai (Future Outlook)
+  6. Lời Khuyên (Advice)
 
 Example Responses:
-- Career: "Dựa trên Dụng Thần Hỏa, bạn phù hợp với truyền thông, thiết kế. Năm 2026 (Bính Ngọ), cơ hội trong công nghệ sáng tạo. Đeo dây đỏ, smartwatch (Hỏa) để tăng vận may."
-- General: "Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén. Dụng Thần Hỏa, Thổ: Phù hợp truyền thông, bất động sản. Không có Đào Hoa, đặt lọ hoa ở góc Đông (Mão)."
-
-Provide a response that is concise, relevant, and inspires personal growth.
+- Career: "Dựa trên Dụng Thần Hỏa, bạn phù hợp với truyền thông, thiết kế. Năm 2026 (Bính Ngọ), cơ hội trong công nghệ sáng tạo. Đeo dây đỏ, smartwatch (Hỏa)."
+- General: "Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái. Dụng Thần Hỏa, Thổ: Phù hợp truyền thông, bất động sản. Không có Đào Hoa, đặt lọ hoa ở góc Đông."
 `;
 
   try {
     if (useOpenAI) {
       const gptRes = await callOpenAI({
         model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: prompt.replace(/[\u0300-\u036f]/g, "") }], // Mã hóa tiếng Việt
         temperature: 0.4,
-        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
+        max_tokens: 1500 // Giảm để đảm bảo dưới giới hạn
       });
       console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
       return res.json({ answer: gptRes.choices[0].message.content });
