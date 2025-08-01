@@ -5,7 +5,8 @@ try {
   var helmet = require('helmet');
 } catch (error) {
   console.error('Critical error: Core modules (express, express-rate-limit, cors, helmet) are missing.');
-  console.error('Please run: npm install express express-rate-limit cors helmet');
+  console.error('Ensure package.json includes these dependencies and Render runs: npm install');
+  console.error('Local fix: npm install express express-rate-limit cors helmet');
   console.error('Deployment cannot proceed without these modules.');
   process.exit(1);
 }
@@ -40,7 +41,7 @@ const cache = NodeCache ? new NodeCache({ stdTTL: 3600, checkperiod: 600 }) : {
 };
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -120,54 +121,61 @@ const thapThanMap = {
   }
 };
 
-// Thần Sát mapping (corrected Đào Hoa with Tam Hợp, no Không Vong)
-const thienAtQuyNhan = {
-  Giáp: ['Sửu', 'Mùi'], Ất: ['Tý', 'Hợi'], Bính: ['Dần', 'Mão'], Đinh: ['Sửu', 'Hợi'],
-  Mậu: ['Tỵ', 'Ngọ'], Kỷ: ['Thìn', 'Tuất'], Canh: ['Thân', 'Dậu'], Tân: ['Thân', 'Dậu'],
-  Nhâm: ['Hợi', 'Tý'], Quý: ['Tý', 'Hợi']
+// Thần Sát mapping (updated based on provided calculations, including Không Vong)
+const tuongTinh = {
+  'Thân': ['Tý'], 'Tý': ['Tý'], 'Thìn': ['Tý'],
+  'Tỵ': ['Dậu'], 'Dậu': ['Dậu'], 'Sửu': ['Dậu'],
+  'Dần': ['Ngọ'], 'Ngọ': ['Ngọ'], 'Tuất': ['Ngọ'],
+  'Hợi': ['Mão'], 'Mão': ['Mão'], 'Mùi': ['Mão']
 };
-const daoHoaTamHop = {
-  'Thân': 'Hợi', 'Tý': 'Hợi', 'Thìn': 'Hợi', // Thân-Tý-Thìn (Water)
-  'Hợi': 'Ngọ', 'Mão': 'Ngọ', 'Mùi': 'Ngọ', // Hợi-Mão-Mùi (Wood)
-  'Dần': 'Mão', 'Ngọ': 'Mão', 'Tuất': 'Mão', // Dần-Ngọ-Tuất (Fire)
-  'Tỵ': 'Tý', 'Dậu': 'Tý', 'Sửu': 'Tý' // Tỵ-Dậu-Sửu (Metal)
+const thienAtQuyNhan = {
+  Giáp: ['Sửu', 'Mùi'], Mậu: ['Sửu', 'Mùi'], Canh: ['Sửu', 'Mùi'],
+  Ất: ['Thân', 'Tý'], Kỷ: ['Thân', 'Tý'],
+  Bính: ['Dậu', 'Hợi'], Đinh: ['Dậu', 'Hợi'],
+  Tân: ['Dần', 'Ngọ'],
+  Nhâm: ['Tỵ', 'Mão'], Quý: ['Tỵ', 'Mão']
 };
 const vanXuong = {
-  Giáp: ['Tỵ'], Ất: ['Ngọ'], Bính: ['Thân'], Đinh: ['Dậu'], Mậu: ['Hợi'],
-  Kỷ: ['Tý'], Canh: ['Dần'], Tân: ['Mão'], Nhâm: ['Tỵ'], Quý: ['Ngọ']
-};
-const thaiCucQuyNhan = {
-  Giáp: ['Tý'], Ất: ['Tý'], Bính: ['Dần'], Đinh: ['Dần'], Mậu: ['Thìn'],
-  Kỷ: ['Thìn'], Canh: ['Ngọ'], Tân: ['Ngọ'], Nhâm: ['Thân'], Quý: ['Thân']
-};
-const hongLoan = {
-  Tý: 'Dậu', Sửu: 'Thân', Dần: 'Mùi', Mão: 'Ngọ', Thìn: 'Tỵ', Tỵ: 'Thìn',
-  Ngọ: 'Mão', Mùi: 'Dần', Thân: 'Sửu', Dậu: 'Tý', Tuất: 'Hợi', Hợi: 'Tuất'
-};
-const thienDuc = {
-  Giáp: ['Hợi'], Ất: ['Tý'], Bính: ['Dần'], Đinh: ['Mão'], Mậu: ['Tỵ'],
-  Kỷ: ['Ngọ'], Canh: ['Thân'], Tân: ['Dậu'], Nhâm: ['Hợi'], Quý: ['Tý']
-};
-const nguyetDuc = {
-  Giáp: ['Dần'], Ất: ['Mão'], Bính: ['Tỵ'], Đinh: ['Ngọ'], Mậu: ['Thân'],
+  Giáp: ['Tỵ'], Ất: ['Ngọ'], Bính: ['Thân'], Đinh: ['Dậu'], Mậu: ['Thân'],
   Kỷ: ['Dậu'], Canh: ['Hợi'], Tân: ['Tý'], Nhâm: ['Dần'], Quý: ['Mão']
 };
-const tuongTinh = {
-  Giáp: ['Mão'], Ất: ['Tý'], Bính: ['Tỵ'], Đinh: ['Ngọ'], Mậu: ['Dần'],
-  Kỷ: ['Hợi'], Canh: ['Thân'], Tân: ['Dậu'], Nhâm: ['Tý'], Quý: ['Hợi']
+const daoHoa = {
+  'Thân': ['Dậu'], 'Tý': ['Dậu'], 'Thìn': ['Dậu'],
+  'Tỵ': ['Ngọ'], 'Dậu': ['Ngọ'], 'Sửu': ['Ngọ'],
+  'Dần': ['Mão'], 'Ngọ': ['Mão'], 'Tuất': ['Mão'],
+  'Hợi': ['Tý'], 'Mão': ['Tý'], 'Mùi': ['Tý']
 };
 const dichMa = {
-  Dần: ['Tỵ'], Mão: ['Tỵ'], Thìn: ['Tỵ'], Tỵ: ['Dần'], Ngọ: ['Dần'], Mùi: ['Dần'],
-  Thân: ['Hợi'], Dậu: ['Hợi'], Tuất: ['Hợi'], Hợi: ['Thân'], Tý: ['Thân'], Sửu: ['Thân']
+  'Thân': ['Dần'], 'Tý': ['Dần'], 'Thìn': ['Dần'],
+  'Tỵ': ['Hợi'], 'Dậu': ['Hợi'], 'Sửu': ['Hợi'],
+  'Dần': ['Thân'], 'Ngọ': ['Thân'], 'Tuất': ['Thân'],
+  'Hợi': ['Tỵ'], 'Mão': ['Tỵ'], 'Mùi': ['Tỵ']
 };
 const coThanQuaTu = {
-  Giáp: ['Thân', 'Thìn'], Ất: ['Dậu', 'Tỵ'], Bính: ['Hợi', 'Mùi'], Đinh: ['Tý', 'Thân'],
-  Mậu: ['Dần', 'Tuất'], Kỷ: ['Mão', 'Hợi'], Canh: ['Tỵ', 'Sửu'], Tân: ['Ngọ', 'Dần'],
-  Nhâm: ['Thân', 'Thìn'], Quý: ['Dậu', 'Tỵ']
+  'Tý': ['Dần', 'Tuất'], 'Sửu': ['Dần', 'Tuất'], 'Hợi': ['Dần', 'Tuất'],
+  'Dần': ['Tỵ', 'Sửu'], 'Mão': ['Tỵ', 'Sửu'], 'Thìn': ['Tỵ', 'Sửu'],
+  'Tỵ': ['Thân', 'Thìn'], 'Ngọ': ['Thân', 'Thìn'], 'Mùi': ['Thân', 'Thìn'],
+  'Thân': ['Hợi', 'Mùi'], 'Dậu': ['Hợi', 'Mùi'], 'Tuất': ['Hợi', 'Mùi']
 };
 const kiepSat = {
-  Giáp: ['Thân'], Ất: ['Dậu'], Bính: ['Hợi'], Đinh: ['Tý'], Mậu: ['Dần'],
-  Kỷ: ['Mão'], Canh: ['Tỵ'], Tân: ['Ngọ'], Nhâm: ['Thân'], Quý: ['Dậu']
+  'Thân': ['Tỵ'], 'Tý': ['Tỵ'], 'Thìn': ['Tỵ'],
+  'Tỵ': ['Dần'], 'Dậu': ['Dần'], 'Sửu': ['Dần'],
+  'Dần': ['Hợi'], 'Ngọ': ['Hợi'], 'Tuất': ['Hợi'],
+  'Hợi': ['Thân'], 'Mão': ['Thân'], 'Mùi': ['Thân']
+};
+const khongVong = {
+  'Giáp Tý': ['Tuất', 'Hợi'], 'Ất Sửu': ['Tuất', 'Hợi'], 'Bính Dần': ['Tuất', 'Hợi'], 'Đinh Mão': ['Tuất', 'Hợi'], 'Mậu Thìn': ['Tuất', 'Hợi'],
+  'Kỷ Tỵ': ['Tuất', 'Hợi'], 'Canh Ngọ': ['Tuất', 'Hợi'], 'Tân Mùi': ['Tuất', 'Hợi'], 'Nhâm Thân': ['Tuất', 'Hợi'], 'Quý Dậu': ['Tuất', 'Hợi'],
+  'Giáp Tuất': ['Thân', 'Dậu'], 'Ất Hợi': ['Thân', 'Dậu'], 'Bính Tý': ['Thân', 'Dậu'], 'Đinh Sửu': ['Thân', 'Dậu'], 'Mậu Dần': ['Thân', 'Dậu'],
+  'Kỷ Mão': ['Thân', 'Dậu'], 'Canh Thìn': ['Thân', 'Dậu'], 'Tân Tỵ': ['Thân', 'Dậu'], 'Nhâm Ngọ': ['Thân', 'Dậu'], 'Quý Mùi': ['Thân', 'Dậu'],
+  'Giáp Thân': ['Ngọ', 'Mùi'], 'Ất Dậu': ['Ngọ', 'Mùi'], 'Bính Tuất': ['Ngọ', 'Mùi'], 'Đinh Hợi': ['Ngọ', 'Mùi'], 'Mậu Tý': ['Ngọ', 'Mùi'],
+  'Kỷ Sửu': ['Ngọ', 'Mùi'], 'Canh Dần': ['Ngọ', 'Mùi'], 'Tân Mão': ['Ngọ', 'Mùi'], 'Nhâm Thìn': ['Ngọ', 'Mùi'], 'Quý Tỵ': ['Ngọ', 'Mùi'],
+  'Giáp Ngọ': ['Thìn', 'Tỵ'], 'Ất Mùi': ['Thìn', 'Tỵ'], 'Bính Thân': ['Thìn', 'Tỵ'], 'Đinh Dậu': ['Thìn', 'Tỵ'], 'Mậu Tuất': ['Thìn', 'Tỵ'],
+  'Kỷ Hợi': ['Thìn', 'Tỵ'], 'Canh Tý': ['Thìn', 'Tỵ'], 'Tân Sửu': ['Thìn', 'Tỵ'], 'Nhâm Dần': ['Thìn', 'Tỵ'], 'Quý Mão': ['Thìn', 'Tỵ'],
+  'Giáp Thìn': ['Dần', 'Mão'], 'Ất Tỵ': ['Dần', 'Mão'], 'Bính Ngọ': ['Dần', 'Mão'], 'Đinh Mùi': ['Dần', 'Mão'], 'Mậu Thân': ['Dần', 'Mão'],
+  'Kỷ Dậu': ['Dần', 'Mão'], 'Canh Tuất': ['Dần', 'Mão'], 'Tân Hợi': ['Dần', 'Mão'], 'Nhâm Tý': ['Dần', 'Mão'], 'Quý Sửu': ['Dần', 'Mão'],
+  'Giáp Dần': ['Tý', 'Sửu'], 'Ất Mão': ['Tý', 'Sửu'], 'Bính Thìn': ['Tý', 'Sửu'], 'Đinh Tỵ': ['Tý', 'Sửu'], 'Mậu Ngọ': ['Tý', 'Sửu'],
+  'Kỷ Mùi': ['Tý', 'Sửu'], 'Canh Thân': ['Tý', 'Sửu'], 'Tân Dậu': ['Tý', 'Sửu'], 'Nhâm Tuất': ['Tý', 'Sửu'], 'Quý Hợi': ['Tý', 'Sửu']
 };
 
 // Dụng Thần recommendations
@@ -344,110 +352,85 @@ function tinhThapThan(nhatChu, tuTru) {
   }
 }
 
-// Calculate Thần Sát (corrected Đào Hoa with Tam Hợp, no Không Vong)
+// Calculate Thần Sát (updated with new mappings, including Không Vong)
 function tinhThanSat(tuTru) {
   const nhatChu = tuTru.ngay?.split(' ')[0];
+  const dayCanChi = tuTru.ngay;
   const branches = [
     tuTru.nam?.split(' ')[1], tuTru.thang?.split(' ')[1],
     tuTru.ngay?.split(' ')[1], tuTru.gio?.split(' ')[1]
   ].filter(Boolean);
 
-  if (!nhatChu || branches.length < 4) {
-    console.error('Invalid Nhật Chủ or branches:', { nhatChu, branches });
+  if (!nhatChu || !dayCanChi || branches.length < 4) {
+    console.error('Invalid Nhật Chủ or branches:', { nhatChu, dayCanChi, branches });
     throw new Error('Nhật Chủ hoặc chi không hợp lệ');
   }
 
-  const dayBranch = tuTru.ngay?.split(' ')[1];
-  const yearBranch = tuTru.nam?.split(' ')[1];
-  const daoHoaBranch = daoHoaTamHop[dayBranch] || daoHoaTamHop[yearBranch];
+  const dayBranch = tuTru.ngay.split(' ')[1];
 
   return {
+    'Tướng Tinh': {
+      vi: 'Tướng Tinh', en: 'General Star',
+      value: tuongTinh[dayBranch]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Hỗ trợ khởi nghiệp, thăng tiến, thi cử, bầu cử, và đầu tư. Biểu thị người văn võ toàn tài, thông minh, thu nhập cao và địa vị cao trong xã hội.',
+        en: 'Supports startups, promotions, exams, elections, and investments. Indicates a versatile, intelligent person with high income and social status.'
+      }
+    },
     'Thiên Ất Quý Nhân': {
       vi: 'Thiên Ất Quý Nhân', en: 'Nobleman Star',
       value: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Mang lại sự hỗ trợ từ người khác, hóa giải khó khăn, phù hợp với sự nghiệp và quan hệ xã hội.',
-        en: 'Brings support from others, resolves difficulties, ideal for career and social relations.'
-      }
-    },
-    'Đào Hoa': {
-      vi: 'Đào Hoa', en: 'Peach Blossom',
-      value: daoHoaBranch && branches.includes(daoHoaBranch) ? [daoHoaBranch] : [],
-      description: {
-        vi: 'Mang lại sức hút và duyên dáng, nhưng cần cẩn trọng để tránh rắc rối tình cảm.',
-        en: 'Brings charm and charisma, but caution is needed to avoid emotional complications.'
+        vi: 'Thần sát mạnh nhất, mang lại sự hỗ trợ từ người khác, hóa giải khó khăn, phù hợp với sự nghiệp và quan hệ xã hội. Thông minh, trí huệ, thiên tư sáng sủa.',
+        en: 'The most powerful star, brings support from others, resolves difficulties, ideal for career and social relations. Intelligent, wise, and talented.'
       }
     },
     'Văn Xương': {
       vi: 'Văn Xương', en: 'Literary Star',
       value: vanXuong[nhatChu]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Biểu thị sự thông minh, thành công học thuật và kỹ năng giao tiếp.',
-        en: 'Signifies intelligence, academic success, and communication skills.'
+        vi: 'Biểu thị sự thông minh, thành công học thuật, kỹ năng giao tiếp. Lợi về sự nghiệp, danh lợi song toàn.',
+        en: 'Signifies intelligence, academic success, and communication skills. Benefits career and fame.'
       }
     },
-    'Thái Cực Quý Nhân': {
-      vi: 'Thái Cực Quý Nhân', en: 'Grand Ultimate Noble',
-      value: thaiCucQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+    'Đào Hoa': {
+      vi: 'Đào Hoa', en: 'Peach Blossom',
+      value: daoHoa[dayBranch]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Hỗ trợ sự nghiệp và mang lại sự bảo vệ trong khó khăn.',
-        en: 'Supports career and provides protection in difficulties.'
-      }
-    },
-    'Hồng Loan': {
-      vi: 'Hồng Loan', en: 'Red Phoenix',
-      value: branches.includes(hongLoan[dayBranch]) ? [hongLoan[dayBranch]] : [],
-      description: {
-        vi: 'Mang lại cơ hội tình cảm và hôn nhân, nhưng cần sự chân thành.',
-        en: 'Brings opportunities for romance and marriage, but requires sincerity.'
-      }
-    },
-    'Thiên Đức': {
-      vi: 'Thiên Đức', en: 'Heavenly Virtue',
-      value: thienDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
-      description: {
-        vi: 'Mang lại sự may mắn và bảo vệ từ thiên nhiên.',
-        en: 'Brings luck and protection from nature.'
-      }
-    },
-    'Nguyệt Đức': {
-      vi: 'Nguyệt Đức', en: 'Lunar Virtue',
-      value: nguyetDuc[nhatChu]?.filter(chi => branches.includes(chi)) || [],
-      description: {
-        vi: 'Hỗ trợ sự ổn định và bình an trong cuộc sống.',
-        en: 'Supports stability and peace in life.'
-      }
-    },
-    'Tướng Tinh': {
-      vi: 'Tướng Tinh', en: 'General Star',
-      value: tuongTinh[nhatChu]?.filter(chi => branches.includes(chi)) || [],
-      description: {
-        vi: 'Hỗ trợ khởi nghiệp, thăng tiến và thi cử.',
-        en: 'Supports startups, promotions, and exams.'
+        vi: 'Mang lại sức hút, duyên dáng, nhưng cần cẩn trọng tránh rắc rối tình cảm. Tốt cho lĩnh vực giải trí.',
+        en: 'Brings charm and charisma, but caution is needed to avoid emotional complications. Good for entertainment.'
       }
     },
     'Dịch Mã': {
       vi: 'Dịch Mã', en: 'Traveling Horse',
       value: dichMa[dayBranch]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Biểu thị sự di chuyển và cơ hội ở nước ngoài.',
-        en: 'Indicates movement and overseas opportunities.'
+        vi: 'Biểu thị sự di chuyển, cơ hội nghề nghiệp ở nước ngoài, và thay đổi tích cực trong sự nghiệp.',
+        en: 'Indicates movement, overseas career opportunities, and positive career changes.'
       }
     },
     'Cô Thần Quả Tú': {
       vi: 'Cô Thần Quả Tú', en: 'Solitary Widow',
-      value: coThanQuaTu[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      value: coThanQuaTu[dayBranch]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Gây khó khăn trong hôn nhân, biểu thị sự cô đơn.',
-        en: 'Causes marital challenges and loneliness.'
+        vi: 'Gây khó khăn trong hôn nhân, biểu thị sự cô đơn. Có thể hỗ trợ thành công học vấn do tập trung vào công việc.',
+        en: 'Causes marital challenges and loneliness. May support academic success due to focus on work.'
       }
     },
     'Kiếp Sát': {
       vi: 'Kiếp Sát', en: 'Robbery Sha',
-      value: kiepSat[nhatChu]?.filter(chi => branches.includes(chi)) || [],
+      value: kiepSat[dayBranch]?.filter(chi => branches.includes(chi)) || [],
       description: {
-        vi: 'Biểu thị thách thức, nguy cơ mất tiền hoặc tiểu nhân.',
-        en: 'Indicates challenges, financial loss, or adversaries.'
+        vi: 'Biểu thị thách thức, nguy cơ mất tiền hoặc tiểu nhân. Người thông minh nhưng gặp nhiều thử thách.',
+        en: 'Indicates challenges, financial loss, or adversaries. Intelligent but faces many challenges.'
+      }
+    },
+    'Không Vong': {
+      vi: 'Không Vong', en: 'Void Star',
+      value: khongVong[dayCanChi]?.filter(chi => branches.includes(chi)) || [],
+      description: {
+        vi: 'Làm suy yếu ngũ hành tại Thiên Can, có thể gây khó khăn nhưng nếu gặp Lục Hợp hoặc Tam Hợp thì ảnh hưởng giảm. Ba Không Vong là cách cục tốt.',
+        en: 'Weakens the Heavenly Stem’s element, may cause difficulties but mitigated by Six Combinations or Triple Harmony. Three Void Stars form a favorable pattern.'
       }
     }
   };
@@ -488,33 +471,33 @@ function generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userIn
     };
   } else if (isCareer) {
     response.message = {
-      vi: `Sự nghiệp phù hợp: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'Tướng Tinh hỗ trợ thăng tiến.' : ''}`,
-      en: `Suitable careers: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'General Star supports promotions.' : ''}`
+      vi: `Sự nghiệp phù hợp: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'Tướng Tinh hỗ trợ thăng tiến.' : ''} ${thanSat['Dịch Mã'].value.length ? 'Dịch Mã mang lại cơ hội ở nước ngoài.' : ''}`,
+      en: `Suitable careers: ${dungThanRecommendations[dungThan[0]].careers.join(', ')}. ${thanSat['Tướng Tinh'].value.length ? 'General Star supports promotions.' : ''} ${thanSat['Dịch Mã'].value.length ? 'Traveling Horse brings overseas opportunities.' : ''}`
     };
   } else if (isMoney) {
     response.message = {
-      vi: `Tài vận chịu ảnh hưởng từ ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'không rõ'}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận tiểu nhân hoặc mất tiền.' : ''}`,
-      en: `Financial luck influenced by ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'unknown'}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of adversaries or financial loss.' : ''}`
+      vi: `Tài vận chịu ảnh hưởng từ ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'không rõ'}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận tiểu nhân hoặc mất tiền.' : ''} ${thanSat['Không Vong'].value.length ? 'Không Vong có thể ảnh hưởng tài vận, cần thận trọng.' : ''}`,
+      en: `Financial luck influenced by ${thapThanResults['Chính Tài'] || thapThanResults['Thiên Tài'] || 'unknown'}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of adversaries or financial loss.' : ''} ${thanSat['Không Vong'].value.length ? 'Void Star may affect finances, be cautious.' : ''}`
     };
   } else if (isHealth) {
     response.message = {
-      vi: `Sức khỏe cần chú ý cân bằng ngũ hành ${dungThan.join(' và ')}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận bệnh tật hoặc tai nạn nhỏ.' : ''}`,
-      en: `Health requires balancing elements ${dungThan.join(' and ')}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of illness or minor accidents.' : ''}`
+      vi: `Sức khỏe cần chú ý cân bằng ngũ hành ${dungThan.join(' và ')}. ${thanSat['Kiếp Sát'].value.length ? 'Cẩn thận bệnh tật hoặc tai nạn nhỏ.' : ''} ${thanSat['Không Vong'].value.length ? 'Không Vong có thể gây khó khăn về sức khỏe.' : ''}`,
+      en: `Health requires balancing elements ${dungThan.join(' and ')}. ${thanSat['Kiếp Sát'].value.length ? 'Beware of illness or minor accidents.' : ''} ${thanSat['Không Vong'].value.length ? 'Void Star may cause health challenges.' : ''}`
     };
   } else if (isLove) {
     response.message = {
-      vi: `${thanSat['Đào Hoa'].value.length ? 'Đào Hoa tăng sức hút, nhưng cần chân thành.' : 'Không có Đào Hoa, cần chủ động trong tình cảm.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn trong hôn nhân.' : ''}`,
-      en: `${thanSat['Đào Hoa'].value.length ? 'Peach Blossom enhances charm, but sincerity is needed.' : 'No Peach Blossom, be proactive in relationships.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause marital challenges.' : ''}`
+      vi: `${thanSat['Đào Hoa'].value.length ? 'Đào Hoa tăng sức hút, nhưng cần chân thành.' : 'Không có Đào Hoa, cần chủ động trong tình cảm.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn trong hôn nhân.' : ''} ${thanSat['Không Vong'].value.length ? 'Không Vong có thể ảnh hưởng tình duyên.' : ''}`,
+      en: `${thanSat['Đào Hoa'].value.length ? 'Peach Blossom enhances charm, but sincerity is needed.' : 'No Peach Blossom, be proactive in relationships.'} ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause marital challenges.' : ''} ${thanSat['Không Vong'].value.length ? 'Void Star may affect relationships.' : ''}`
     };
   } else if (isChildren) {
     response.message = {
-      vi: `Vận con cái chịu ảnh hưởng từ ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'không rõ'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn.' : ''}`,
-      en: `Children luck influenced by ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'unknown'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause challenges.' : ''}`
+      vi: `Vận con cái chịu ảnh hưởng từ ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'không rõ'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Cô Thần Quả Tú có thể gây khó khăn.' : ''} ${thanSat['Không Vong'].value.length ? 'Không Vong có thể ảnh hưởng đến con cái.' : ''}`,
+      en: `Children luck influenced by ${thapThanResults['Thực Thần'] || thapThanResults['Thương Quan'] || 'unknown'}. ${thanSat['Cô Thần Quả Tú'].value.length ? 'Solitary Widow may cause challenges.' : ''} ${thanSat['Không Vong'].value.length ? 'Void Star may affect children.' : ''}`
     };
   } else if (isComplex) {
     response.message = {
-      vi: `Tương lai phụ thuộc vào Dụng Thần ${dungThan.join(' và ')}. Hãy tập trung vào ${dungThanRecommendations[dungThan[0]].advice.vi}`,
-      en: `Future depends on Useful Gods ${dungThan.join(' and ')}. Focus on ${dungThanRecommendations[dungThan[0]].advice.en}`
+      vi: `Tương lai phụ thuộc vào Dụng Thần ${dungThan.join(' và ')}. Hãy tập trung vào ${dungThanRecommendations[dungThan[0]].advice.vi} ${thanSat['Không Vong'].value.length ? 'Không Vong có thể gây trở ngại, cần thận trọng.' : ''}`,
+      en: `Future depends on Useful Gods ${dungThan.join(' and ')}. Focus on ${dungThanRecommendations[dungThan[0]].advice.en} ${thanSat['Không Vong'].value.length ? 'Void Star may cause obstacles, be cautious.' : ''}`
     };
   } else if (isThapThan) {
     response.message = {
@@ -692,7 +675,7 @@ app.post('/api/bazi/yearly', async (req, res) => {
 // Health analysis endpoint
 app.post('/api/bazi/health', async (req, res) => {
   try {
-    const { gio, ngay, thang, nam, language = 'vi' } = req.body;
+    const { gio, ngày, thang, nam, language = 'vi' } = req.body;
 
     if (!validateCanChi({ gio, ngay, thang, nam })) {
       console.error('Invalid Can Chi input for health:', { body: req.body });
