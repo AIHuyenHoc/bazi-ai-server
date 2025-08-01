@@ -119,7 +119,7 @@ const tuongTinh = {
 const thienAtQuyNhan = {
   Giáp: ['Sửu', 'Mùi'], Mậu: ['Sửu', 'Mùi'], Canh: ['Sửu', 'Mùi'],
   Ất: ['Thân', 'Tý'], Kỷ: ['Thân', 'Tý'],
-  Bính: ['Dậu', 'Hợi'], Đing: ['Dậu', 'Hợi'],
+  Bính: ['Dậu', 'Hợi'], Đinh: ['Dậu', 'Hợi'],
   Tân: ['Dần', 'Ngọ'],
   Nhâm: ['Tỵ', 'Mão'], Quý: ['Tỵ', 'Mão']
 };
