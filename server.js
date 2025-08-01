@@ -682,7 +682,7 @@ Response Structure (in ${language === "vi" ? "Vietnamese" : "English"}):
 Example Response (for reference, adapt to the user's data):
 - Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thiền hoặc đi bộ gần nước giúp bạn cân bằng.
 - Sự Nghiệp: Thực Thần mạnh, phù hợp với truyền thông, thiết kế. Dụng Thần Kim khuyến khích rèn kỷ luật. Năm 2026, cơ hội trong công nghệ xanh.
-- Tình Duyên: Nếu bạn chưa có người yêu thì có thể tận dụng góc đào hoa trong phòng ngủ để kích hoạt đào hoa. Ví dụ đào hoa ở ngọ thì đặt hướng nam, ở tý thì đặt hướng bắc, ở mão thì đặt hướng đông, còn ở dậy thì đặt hướng tây
+- Tình Duyên: Nếu bạn chưa có người yêu thì có thể tận dụng góc đào hoa trong phòng ngủ để kích hoạt đào hoa. Ví dụ đào hoa ở ngọ thì đặt hướng nam, ở tý thì đặt hướng bắc, ở mão thì đặt hướng đông, còn ở dậy thì đặt hướng tây.
 - Sở Thích: Thích viết lách, nghệ thuật. Thử vẽ hoặc viết blog để nuôi dưỡng tâm hồn.
 - Dự Đoán: 2026 (Bính Ngọ): Hỏa mạnh, dùng màu trắng (Kim) để cân bằng.
 - Lời Khuyên: Đeo vòng sapphire, tham gia cộng đồng sáng tạo để phát triển.
