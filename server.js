@@ -575,17 +575,8 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   if (!tuTruInfo || typeof tuTruInfo !== "string") {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
+
   let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
-  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    try {
-      dungThanHanh = determineDungThan(analyzeNguHanh(JSON.parse(tuTruInfo)));
-    } catch (e) {
-      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
-    }
-  }
-
-  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
-
   let tuTru;
   try {
     tuTru = JSON.parse(tuTruInfo);
@@ -599,7 +590,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
       throw new Error("Tứ Trụ không đầy đủ");
     }
   } catch (e) {
-    tuTru = parseEnglishTuTru(userInput);
+    tuTru = parseEnglishTuTru(messages[messages.length - 1]?.content || "");
     if (!tuTru || !tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
       return res.status(400).json({ error: language === "vi" ? "Tứ Trụ không hợp lệ" : "Invalid Four Pillars" });
     }
@@ -612,18 +603,28 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
   }
 
+  const nhatChu = tuTru.ngay.split(" ")[0];
+  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    try {
+      dungThanHanh = determineDungThan(nguHanh, nhatChu);
+    } catch (e) {
+      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
+    }
+  }
+
+  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
   let thapThanResults = {};
   try {
-    thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
+    thapThanResults = tinhThapThan(nhatChu, tuTru);
   } catch (err) {
-    console.error("Lỗi Thập Thần:", err.message);
+    return res.status(400).json({ error: language === "vi" ? "Không thể tính Thập Thần" : "Cannot calculate Ten Gods" });
   }
 
   let thanSatResults = {};
   try {
     thanSatResults = tinhThanSat(tuTru);
   } catch (err) {
-    console.error("Lỗi Thần Sát:", err.message);
+    return res.status(400).json({ error: language === "vi" ? "Không thể tính Thần Sát" : "Cannot calculate Auspicious Stars" });
   }
 
   if (!useOpenAI) {
@@ -631,61 +632,43 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer });
   }
-  You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood. If the user question is general, focus on a holistic analysis without overlapping with specific topics like money, career, or love unless explicitly asked. For specific questions (e.g., money, love), tailor the response to the topic, avoiding unrelated sections.
-
-Instructions:
-- Personality: Describe the Day Master (Nhật Chủ) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses. Include only in general analysis or if relevant to the question.
-- Career: Use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success. Include only if the question relates to career or is general.
-- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan, Văn Xương) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and ways to improve relationships. Include only if the question relates to relationships or is general.
-- Passions: Infer hobbies or interests based on Five Elements and Ten Gods (e.g., creativity for Thực Thần, exploration for Mộc). Suggest activities to nurture their soul. Include only if the question relates to passions or is general.
-- Future Outlook: If a specific year is mentioned, analyze its Heavenly Stem and Earthly Branch, linking to Useful Gods for opportunities or challenges. Provide a 2026-2030 outlook if no year is specified and the question is general or future-focused.
-- Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth. Tailor to the specific question or include broadly for general analysis.
-
-Bazi Data:
-- Four Pillars: Hour ${tuTru.gio || "N/A"}, Day ${tuTru.ngay || "N/A"}, Month ${tuTru.thang || "N/A"}, Year ${tuTru.nam || "N/A"}
-- Five Elements: ${Object.entries(nguHanh).map(([k, v]) => `${k}: ${Math.round(v)}%`).join(", ") || "N/A"}
-- Ten Gods: ${Object.entries(thapThanResults).map(([k, v]) => `${k}: ${v}`).join(", ") || "N/A"}
-- Auspicious Stars: ${Object.entries(thanSatResults).map(([k, v]) => `${v[language]}: ${v.value.join(", ") || "N/A"}`).join("; ") || "N/A"}
-- Useful Gods: ${dungThanHanh.join(", ") || "N/A"}
-- User Question: ${userInput || "Provide a general Bazi analysis"}
-- Day Master Descriptions: ${JSON.stringify(dayMasterDescriptions)}
-- Ten Gods Effects: ${JSON.stringify(thapThanEffects)}
-
-Response Structure (in ${language === "vi" ? "Vietnamese" : "English"}):
-1. Nhật Chủ và Tính Cách (Day Master and Personality): Deep insights into their inner world.
-2. Sự Nghiệp và Định Hướng (Career and Direction): Specific career paths and advice.
-3. Tình Duyên và Mối Quan Hệ (Love and Relationships): Insights and recommendations.
-4. Sở Thích và Đam Mê (Passions and Interests): Suggested hobbies and activities.
-5. Dự Đoán Tương Lai (Future Outlook): Year-specific or general 2026-2030 forecast.
-6. Lời Khuyên (Advice): Practical tips (colors, items, activities) for balance and growth.
-
-Example Response (for reference, adapt to the user's data):
-- Nhật Chủ Nhâm (Thủy): Như dòng sông sâu thẳm, bạn thông thái, nhạy bén, nhưng cần kiểm soát cảm xúc. Thiền hoặc đi bộ gần nước giúp bạn cân bằng.
-- Sự Nghiệp: Thực Thần mạnh, phù hợp với truyền thông, thiết kế. Dụng Thần Kim khuyến khích rèn kỷ luật. Năm 2026, cơ hội trong công nghệ xanh.
-- Tình Duyên: Nếu bạn chưa có người yêu thì có thể tận dụng góc đào hoa trong phòng ngủ để kích hoạt đào hoa. Ví dụ đào hoa ở ngọ thì đặt hướng nam, ở tý thì đặt hướng bắc, ở mão thì đặt hướng đông, còn ở dậy thì đặt hướng tây.
-- Sở Thích: Thích viết lách, nghệ thuật. Thử vẽ hoặc viết blog để nuôi dưỡng tâm hồn.
-- Dự Đoán: 2026 (Bính Ngọ): Hỏa mạnh, dùng màu trắng (Kim) để cân bằng.
-- Lời Khuyên: Đeo vòng sapphire, tham gia cộng đồng sáng tạo để phát triển.
-
-Provide a response that feels personal, avoids generic phrases, and inspires the user to embrace their strengths and grow.
-`;
 
   try {
-    const gptRes = await callOpenAI({
-      model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 2000
-    });
+    const systemPrompt = `
+Bạn là chuyên gia phân tích Bát Tự, trả lời bằng ${language === "vi" ? "tiếng Việt" : "tiếng Anh"} với giọng điệu đồng cảm, sâu sắc, và cá nhân hóa, như đang nói chuyện trực tiếp với người dùng. Hãy tập trung vào phẩm chất nội tại, tính cách, cảm xúc, định hướng sự nghiệp, mối quan hệ, và đam mê của họ dựa trên lá số Bát Tự. Tránh lặp lại thông tin thô hoặc liệt kê dữ liệu mà không có ngữ cảnh. Đưa ra lời khuyên cụ thể, thiết thực dựa trên Dụng Thần, Thập Thần, và Thần Sát. Cấu trúc câu trả lời rõ ràng với các phần: tính cách, sự nghiệp, mối quan hệ, đam mê, và triển vọng tương lai (nếu có năm cụ thể). Sử dụng giọng điệu ấm áp, thấu hiểu. Nếu câu hỏi chung, tập trung vào phân tích toàn diện mà không đi sâu vào các chủ đề cụ thể như tiền bạc, tình yêu, trừ khi được yêu cầu.
+- Tính cách: Mô tả Nhật Chủ và Ngũ Hành để làm nổi bật đặc điểm cốt lõi, cảm xúc, và thách thức. Nhấn mạnh điểm mạnh và cách cân bằng điểm yếu.
+- Sự nghiệp: Sử dụng Thập Thần (Thực Thần, Thương Quan) để đề xuất ngành nghề phù hợp. Gợi ý cách Dụng Thần hỗ trợ thành công.
+- Mối quan hệ: Phân tích Thần Sát (Đào Hoa, Văn Xương) và Thập Thần (Thiên Tài, Kiếp Tài) để hiểu về tình yêu và quan hệ xã hội. Đề xuất đặc điểm đối tác phù hợp và cách cải thiện mối quan hệ.
+- Đam mê: Suy ra sở thích dựa trên Ngũ Hành và Thập Thần (ví dụ: sáng tạo với Thực Thần, khám phá với Mộc). Gợi ý hoạt động nuôi dưỡng tâm hồn.
+- Triển vọng tương lai: Nếu có năm cụ thể, phân tích Thiên Can, Địa Chi, liên kết với Dụng Thần để tìm cơ hội hoặc thách thức. Nếu không có năm, đưa ra triển vọng 2026-2030 cho câu hỏi chung hoặc liên quan đến tương lai.
+- Lời khuyên: Đưa ra gợi ý thực tế (màu sắc, vật phẩm, hoạt động) liên quan đến Dụng Thần để tăng vận may và cân bằng năng lượng. Sử dụng ngôn ngữ khuyến khích sự phát triển cá nhân.
+Tứ Trụ: ${JSON.stringify(tuTru)}
+Ngũ Hành: ${JSON.stringify(nguHanh)}
+Dụng Thần: ${dungThanHanh.join(", ")}
+Thập Thần: ${JSON.stringify(thapThanResults)}
+Thần Sát: ${JSON.stringify(thanSatResults)}
+Câu hỏi: ${userInput}
+`;
+    const payload = {
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages
+      ],
+      max_tokens: 1000,
+      temperature: 0.7
+    };
+    const openAIResponse = await callOpenAI(payload);
+    const answer = openAIResponse.choices[0].message.content;
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer: gptRes.choices[0].message.content });
+    return res.json({ answer });
   } catch (err) {
-    console.error("OpenAI error:", err.message);
+    console.error(`Lỗi OpenAI: ${err.message}`);
     const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
-    return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}` });
+    console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
+    return res.json({ answer });
   }
 });
-
 app.use((err, req, res, next) => {
   console.error("Lỗi hệ thống:", err.stack);
   res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
