@@ -220,14 +220,6 @@ const tinhThanSat = (tuTru) => {
     Tý: "Dậu", Sửu: "Thân", Dần: "Mùi", Mão: "Ngọ", Thìn: "Tỵ", Tỵ: "Thìn",
     Ngọ: "Mão", Mùi: "Dần", Thân: "Sửu", Dậu: "Tý", Tuất: "Hợi", Hợi: "Tuất"
   };
-  const vanXuong = {
-    Giáp: ["Tỵ"], Ất: ["Ngọ"], Bính: ["Thân"], Đinh: ["Dậu"], Mậu: ["Hợi"],
-    Kỷ: ["Tý"], Canh: ["Dần"], Tân: ["Mão"], Nhâm: ["Tỵ"], Quý: ["Ngọ"]
-  };
-  const hocDuong = {
-    Giáp: ["Dần"], Ất: ["Mão"], Bính: ["Tỵ"], Đinh: ["Ngọ"], Mậu: ["Thân"],
-    Kỷ: ["Dậu"], Canh: ["Hợi"], Tân: ["Tý"], Nhâm: ["Dần"], Quý: ["Mão"]
-  };
 
   const nhatChu = tuTru.ngay?.split(" ")[0];
   const branches = [
@@ -242,9 +234,7 @@ const tinhThanSat = (tuTru) => {
   return {
     "Thiên Ất Quý Nhân": { vi: "Thiên Ất Quý Nhân", en: "Nobleman Star", value: thienAtQuyNhan[nhatChu]?.filter(chi => branches.includes(chi)) || [] },
     "Đào Hoa": { vi: "Đào Hoa", en: "Peach Blossom", value: branches.includes(daoHoa[tuTru.ngay?.split(" ")[1]]) ? [daoHoa[tuTru.ngay?.split(" ")[1]]] : [] },
-    "Hồng Loan": { vi: "Hồng Loan", en: "Red Phoenix", value: branches.includes(hongLoan[tuTru.ngay?.split(" ")[1]]) ? [hongLoan[tuTru.ngay?.split(" ")[1]]] : [] },
-    "Văn Xương": { vi: "Văn Xương", en: "Literary Star", value: vanXuong[nhatChu]?.filter(chi => branches.includes(chi)) || [] },
-    "Học Đường": { vi: "Học Đường", en: "Academic Hall", value: hocDuong[nhatChu]?.filter(chi => branches.includes(chi)) || [] }
+    "Hồng Loan": { vi: "Hồng Loan", en: "Red Phoenix", value: branches.includes(hongLoan[tuTru.ngay?.split(" ")[1]]) ? [hongLoan[tuTru.ngay?.split(" ")[1]]] : [] }
   };
 };
 
@@ -255,19 +245,19 @@ const dayMasterDescriptions = {
   },
   Hỏa: {
     vi: "Như ngọn lửa rực rỡ soi sáng màn đêm, bạn bừng cháy với đam mê và nhiệt huyết, dễ truyền cảm hứng nhưng cần kiểm soát sự bốc đồng.",
-    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness."
+    en: "Like a blazing fire illuminating the night, you burn with passion and enthusiasm, inspiring others but needing to manage impulsiveness"
   },
   Thổ: {
     vi: "Như ngọn núi vững chãi giữa đất trời, bạn đáng tin cậy, kiên định và thực tế, nhưng đôi khi cần mở lòng để đón nhận thay đổi.",
-    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly."
+    en: "Like a steadfast mountain under the sky, you are reliable, resolute, and practical, yet may need to embrace change more openly"
   },
   Kim: {
     vi: "Như thanh kiếm sắc bén lấp lánh ánh kim, bạn tinh tế, quyết tâm và chính trực, nhưng cần cân bằng giữa lý trí và cảm xúc.",
-    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion."
+    en: "Like a gleaming sword shining bright, you are refined, determined, and upright, but need balance between logic and emotion"
   },
   Thủy: {
     vi: "Như dòng sông sâu thẳm chảy không ngừng, bạn thông thái, nhạy bén và sâu sắc, nhưng đôi khi cần kiểm soát dòng cảm xúc mạnh mẽ.",
-    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions."
+    en: "Like a deep river flowing endlessly, you are wise, perceptive, and profound, but may need to manage intense emotions"
   }
 };
 
@@ -388,28 +378,21 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
   return analysis;
 };
 
-const determineDungThan = (nguHanhCount, nhatChu) => {
-  const sortedElements = Object.entries(nguHanhCount).sort((a, b) => b[1] - a[1]);
-  const strongest = sortedElements[0][0];
-  const weakest = sortedElements[sortedElements.length - 1][0];
-  const canNguHanh = { Giáp: "Mộc", Ất: "Mộc", Bính: "Hỏa", Đinh: "Hỏa", Mậu: "Thổ", Kỷ: "Thổ", Canh: "Kim", Tân: "Kim", Nhâm: "Thủy", Quý: "Thủy" };
-  const nhatChuHanh = canNguHanh[nhatChu];
+const determineDungThan = (nguHanhCount) => {
+  const sortedElements = Object.entries(nguHanhCount).sort((a, b) => a[1] - b[1]);
+  const weakest = sortedElements[0][0];
+  const secondWeakest = sortedElements[1][0];
   const balanceMap = {
-    Mộc: { vượng: ["Hỏa", "Thủy"], nhược: ["Mộc", "Thủy"] },
-    Hỏa: { vượng: ["Thổ", "Mộc"], nhược: ["Hỏa", "Mộc"] },
-    Thổ: { vượng: ["Kim", "Hỏa"], nhược: ["Thổ", "Hỏa"] },
-    Kim: { vượng: ["Thủy", "Thổ"], nhược: ["Kim", "Thổ"] },
-    Thủy: { vượng: ["Mộc", "Kim"], nhược: ["Thủy", "Kim"] }
+    Mộc: ["Mộc", "Hỏa"], Hỏa: ["Hỏa", "Mộc"], Thổ: ["Thổ", "Kim"],
+    Kim: ["Kim", "Thủy"], Thủy: ["Thủy", "Mộc"]
   };
-
-  const isVượng = nguHanhCount[nhatChuHanh] >= 2.5 || (nguHanhCount[nhatChuHanh] >= 2.0 && nguHanhCount[balanceMap[nhatChuHanh].vượng[0]] >= 2.0);
-  return isVượng ? balanceMap[nhatChuHanh].vượng : balanceMap[nhatChuHanh].nhược;
+  return balanceMap[weakest] || [weakest, secondWeakest];
 };
 
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
   const totalElements = Object.values(nguHanhCount).reduce((a, b) => a + b, 0);
   const tyLeNguHanh = Object.fromEntries(
-    Object.entries(nguHanhCount).map(([k, v]) => [k, Math.round(v)])
+    Object.entries(nguHanhCount).map(([k, v]) => [k, v.toFixed(1)])
   );
   const nhatChu = tuTru.ngay.split(" ")[0];
   const canNguHanh = {
@@ -427,7 +410,7 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
 
   if (isGeneral) {
     response += `
-${language === "vi" ? `**Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}):** ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}\n**Tứ Trụ:** Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}\n**Ngũ Hành:**\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}% (${language === "vi" ? (v >= 25 ? "mạnh" : v <= 15 ? "yếu" : "trung bình") : (v >= 25 ? "strong" : v <= 15 ? "weak" : "balanced")})`).join("\n")}\n**Dụng Thần:** ${dungThan.join(", ")}\n**Đề xuất:** Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để tăng cường vận may và cân bằng năng lượng.` : `**Day Master ${nhatChu} (${canNguHanh[nhatChu]}):** ${dayMasterDescriptions[canNguHanh[nhatChu]].en}\n**Four Pillars:** Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}\n**Five Elements:**\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v}% (${language === "vi" ? (v >= 25 ? "mạnh" : v <= 15 ? "yếu" : "trung bình") : (v >= 25 ? "strong" : v <= 15 ? "weak" : "balanced")})`).join("\n")}\n**Useful God:** ${dungThan.join(", ")}\n**Recommendation:** Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck and balance energy.`}
+${language === "vi" ? `**Nhật Chủ ${nhatChu} (${canNguHanh[nhatChu]}):** ${dayMasterDescriptions[canNguHanh[nhatChu]].vi}\n**Tứ Trụ:** Giờ ${tuTru.gio}, Ngày ${tuTru.ngay}, Tháng ${tuTru.thang}, Năm ${tuTru.nam}\n**Ngũ Hành:**\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\n**Dụng Thần:** ${dungThan.join(", ")}\n**Đề xuất:** Sử dụng màu sắc ${dungThan.includes("Mộc") ? "xanh lá cây, gỗ" : dungThan.includes("Hỏa") ? "đỏ, cam" : dungThan.includes("Thổ") ? "nâu, vàng đất" : dungThan.includes("Kim") ? "trắng, bạc" : "xanh dương, đen"} và vật phẩm như ${dungThan.includes("Mộc") ? "ngọc bích, gỗ" : dungThan.includes("Hỏa") ? "thạch anh hồng, đá ruby" : dungThan.includes("Thổ") ? "đá thạch anh vàng, gốm" : dungThan.includes("Kim") ? "trang sức bạc, thép" : "thủy tinh, sapphire"} để tăng cường vận may và cân bằng năng lượng.` : `**Day Master ${nhatChu} (${canNguHanh[nhatChu]}):** ${dayMasterDescriptions[canNguHanh[nhatChu]].en}\n**Four Pillars:** Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}\n**Five Elements:**\n${Object.entries(tyLeNguHanh).map(([k, v]) => `${k}: ${v} (${language === "vi" ? (v >= 2.5 ? "mạnh" : v <= 1.5 ? "yếu" : "trung bình") : (v >= 2.5 ? "strong" : v <= 1.5 ? "weak" : "balanced")})`).join("\n")}\n**Useful God:** ${dungThan.join(", ")}\n**Recommendation:** Use colors ${dungThan.includes("Mộc") ? "green, wood" : dungThan.includes("Hỏa") ? "red, orange" : dungThan.includes("Thổ") ? "brown, earthy tones" : dungThan.includes("Kim") ? "white, silver" : "blue, black"} and items like ${dungThan.includes("Mộc") ? "jade, wooden objects" : dungThan.includes("Hỏa") ? "rose quartz, ruby" : dungThan.includes("Thổ") ? "citrine, ceramics" : dungThan.includes("Kim") ? "silver jewelry, steel" : "glass, sapphire"} to enhance luck and balance energy.`}
 `;
   }
 
@@ -517,7 +500,7 @@ ${language === "vi" ? `**Thập Thần:**\n${Object.entries(thapThanResults).map
       .filter(([_, value]) => value.value.length)
       .map(([_, value]) => `${value[language]}: ${value.value.join(", ")}`);
     response += `
-${language === "vi" ? `**Thần Sát:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `**Auspicious Stars:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"} `}
+${language === "vi" ? `**Thần Sát:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "Không có Thần Sát nổi bật"}` : `**Auspicious Stars:**\n${activeThanSat.length > 0 ? activeThanSat.join("\n") : "No prominent stars"}`}
 `;
   }
 
@@ -593,6 +576,16 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
   }
   let dungThanHanh = Array.isArray(dungThan) ? dungThan : dungThan?.hanh || [];
+  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    try {
+      dungThanHanh = determineDungThan(analyzeNguHanh(JSON.parse(tuTruInfo)));
+    } catch (e) {
+      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
+    }
+  }
+
+  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
+
   let tuTru;
   try {
     tuTru = JSON.parse(tuTruInfo);
@@ -619,20 +612,9 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     return res.status(400).json({ error: language === "vi" ? "Dữ liệu ngũ hành không hợp lệ" : "Invalid Five Elements" });
   }
 
-  const nhatChu = tuTru.ngay.split(" ")[0];
-  if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
-    try {
-      dungThanHanh = determineDungThan(nguHanh, nhatChu);
-    } catch (e) {
-      return res.status(400).json({ error: language === "vi" ? "Không thể xác định Dụng Thần" : "Cannot determine Useful God" });
-    }
-  }
-
-  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
-
   let thapThanResults = {};
   try {
-    thapThanResults = tinhThapThan(nhatChu, tuTru);
+    thapThanResults = tinhThapThan(tuTru.ngay?.split(" ")[0], tuTru);
   } catch (err) {
     console.error("Lỗi Thập Thần:", err.message);
   }
@@ -649,17 +631,15 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer });
   }
-
-  const prompt = `
-You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood.
+  You are an expert in Bazi (Chinese Four Pillars of Destiny) analysis. Respond in ${language === "vi" ? "Vietnamese" : "English"} with an empathetic, introspective, and personalized tone, as if speaking directly to the user. Focus on their inner qualities, personality, emotions, career direction, relationships, and personal passions, based on their Bazi chart. Avoid mechanical repetition of the input or listing raw data without context. Provide specific, actionable advice tied to their Useful Gods (Dụng Thần), Ten Gods (Thập Thần), and Auspicious Stars (Thần Sát). Structure the response clearly with sections for personality, career, relationships, passions, and future outlook (if a specific year is mentioned). Use a warm, humanized tone to make the user feel understood. If the user question is general, focus on a holistic analysis without overlapping with specific topics like money, career, or love unless explicitly asked. For specific questions (e.g., money, love), tailor the response to the topic, avoiding unrelated sections.
 
 Instructions:
-- Personality: Describe the Day Master (Nhật Chủ) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses.
-- Career: Use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success.
-- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan, Văn Xương) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and ways to improve relationships.
-- Passions: Infer hobbies or interests based on Five Elements and Ten Gods (e.g., creativity for Thực Thần, exploration for Mộc). Suggest activities to nurture their soul.
-- Future Outlook: If a specific year is mentioned, analyze its Heavenly Stem and Earthly Branch, linking to Useful Gods for opportunities or challenges. Provide a 2026-2030 outlook if no year is specified.
-- Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth.
+- Personality: Describe the Day Master (Nhật Chủ) and its Five Element (Ngũ Hành) to reveal the user's core traits, emotional world, and potential challenges. Highlight strengths and suggest ways to balance weaknesses. Include only in general analysis or if relevant to the question.
+- Career: Use Ten Gods (e.g., Thực Thần, Thương Quan) to recommend specific career paths that align with their talents. Suggest how Useful Gods enhance success. Include only if the question relates to career or is general.
+- Relationships: Analyze Auspicious Stars (e.g., Đào Hoa, Hồng Loan, Văn Xương) and Ten Gods (e.g., Thiên Tài, Kiếp Tài) for insights into love and social connections. Recommend compatible partner traits and ways to improve relationships. Include only if the question relates to relationships or is general.
+- Passions: Infer hobbies or interests based on Five Elements and Ten Gods (e.g., creativity for Thực Thần, exploration for Mộc). Suggest activities to nurture their soul. Include only if the question relates to passions or is general.
+- Future Outlook: If a specific year is mentioned, analyze its Heavenly Stem and Earthly Branch, linking to Useful Gods for opportunities or challenges. Provide a 2026-2030 outlook if no year is specified and the question is general or future-focused.
+- Advice: Offer practical suggestions (e.g., colors, items, activities) tied to Useful Gods to enhance luck and balance energy. Use empathetic language to encourage personal growth. Tailor to the specific question or include broadly for general analysis.
 
 Bazi Data:
 - Four Pillars: Hour ${tuTru.gio || "N/A"}, Day ${tuTru.ngay || "N/A"}, Month ${tuTru.thang || "N/A"}, Year ${tuTru.nam || "N/A"}
