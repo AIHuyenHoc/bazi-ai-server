@@ -1,11 +1,17 @@
-const express = require('express');
-const rateLimit = require('express-rate-limit');
-const winston = require('winston');
-const cors = require('cors');
-const helmet = require('helmet');
-const NodeCache = require('node-cache');
-const axios = require('axios');
-const dotenv = require('dotenv');
+try {
+  var express = require('express');
+  var rateLimit = require('express-rate-limit');
+  var winston = require('winston');
+  var cors = require('cors');
+  var helmet = require('helmet');
+  var NodeCache = require('node-cache');
+  var axios = require('axios');
+  var dotenv = require('dotenv');
+} catch (error) {
+  console.error('Error: Missing required modules. Please run:');
+  console.error('npm install express express-rate-limit winston cors helmet node-cache axios dotenv');
+  process.exit(1);
+}
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 // Initialize cache (TTL: 1 hour)
 const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
 
-// Logger configuration
+// Logger configuration (console fallback for Render)
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -25,11 +31,17 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
     new winston.transports.Console({ format: winston.format.simple() })
   ]
 });
+
+// Attempt to add file transports if writable
+try {
+  logger.add(new winston.transports.File({ filename: 'logs/error.log', level: 'error' }));
+  logger.add(new winston.transports.File({ filename: 'logs/combined.log' }));
+} catch (error) {
+  logger.warn('File logging disabled due to permissions. Using console only.', { error: error.message });
+}
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -57,7 +69,7 @@ const hoaGiap = [
   'Giáp Thân', 'Ất Dậu', 'Bính Tuất', 'Đinh Hợi', 'Mậu Tý', 'Kỷ Sửu', 'Canh Dần', 'Tân Mão', 'Nhâm Thìn', 'Quý Tỵ',
   'Giáp Ngọ', 'Ất Mùi', 'Bính Thân', 'Đinh Dậu', 'Mậu Tuất', 'Kỷ Hợi', 'Canh Tý', 'Tân Sửu', 'Nhâm Dần', 'Quý Mão',
   'Giáp Thìn', 'Ất Tỵ', 'Bính Ngọ', 'Đinh Mùi', 'Mậu Thân', 'Kỷ Dậu', 'Canh Tuất', 'Tân Hợi', 'Nhâm Tý', 'Quý Sửu',
-  'Giáp Dần', 'Ất Mão', 'Bính Thìn', 'Đing Tỵ', 'Mậu Ngọ', 'Kỷ Mùi', 'Canh Thân', 'Tân Dậu', 'Nhâm Tuất', 'Quý Hợi'
+  'Giáp Dần', 'Ất Mão', 'Bính Thìn', 'Đinh Tỵ', 'Mậu Ngọ', 'Kỷ Mùi', 'Canh Thân', 'Tân Dậu', 'Nhâm Tuất', 'Quý Hợi'
 ];
 
 // Valid Can Chi pairs
@@ -112,7 +124,7 @@ const thapThanMap = {
   }
 };
 
-// Thần Sát mapping (excluding Không Vong)
+// Thần Sát mapping (corrected Đào Hoa with Tam Hợp, no Không Vong)
 const thienAtQuyNhan = {
   Giáp: ['Sửu', 'Mùi'], Ất: ['Tý', 'Hợi'], Bính: ['Dần', 'Mão'], Đinh: ['Sửu', 'Hợi'],
   Mậu: ['Tỵ', 'Ngọ'], Kỷ: ['Thìn', 'Tuất'], Canh: ['Thân', 'Dậu'], Tân: ['Thân', 'Dậu'],
@@ -231,25 +243,26 @@ function validateCanChi({ gio, ngay, thang, nam }) {
   const inputs = [gio, ngay, thang, nam];
   for (const input of inputs) {
     if (!input || !validCanChi.includes(input)) {
+      logger.warn('Invalid Can Chi input', { input });
       return false;
     }
   }
   return true;
 }
 
-// Tính Can Chi cho năm
+// Calculate Can Chi for a given year
 function getCanChiForYear(year) {
   if (!Number.isInteger(year) || year < 1900 || year > 2100) {
-    logger.error('Invalid year', { year });
+    logger.error('Invalid year provided', { year });
     return null;
   }
-  const baseYear = 1984;
+  const baseYear = 1984; // Reference year for Giáp Tý
   const index = (year - baseYear) % 60;
   const adjustedIndex = index < 0 ? index + 60 : index;
   return hoaGiap[adjustedIndex] || null;
 }
 
-// Phân tích Ngũ Hành từ Tứ Trụ
+// Analyze Ngũ Hành from Tứ Trụ
 function analyzeNguHanh(tuTru) {
   const nguHanhCount = { Mộc: 0, Hỏa: 0, Thổ: 0, Kim: 0, Thủy: 0 };
   try {
@@ -283,14 +296,15 @@ function analyzeNguHanh(tuTru) {
     if (total === 0) throw new Error('Không tìm thấy ngũ hành hợp lệ');
     return nguHanhCount;
   } catch (e) {
-    logger.error('Lỗi phân tích ngũ hành', { error: e.message });
+    logger.error('Error analyzing Ngũ Hành', { error: e.message, tuTru });
     throw new Error('Không thể phân tích ngũ hành do dữ liệu Tứ Trụ không hợp lệ');
   }
 }
 
-// Tính Thập Thần
+// Calculate Thập Thần
 function tinhThapThan(nhatChu, tuTru) {
   if (!nhatChu || !canNguHanh[nhatChu]) {
+    logger.error('Invalid Nhật Chủ', { nhatChu });
     throw new Error('Nhật Chủ không hợp lệ');
   }
 
@@ -329,12 +343,12 @@ function tinhThapThan(nhatChu, tuTru) {
 
     return thapThanResults;
   } catch (e) {
-    logger.error('Lỗi tính Thập Thần', { error: e.message });
+    logger.error('Error calculating Thập Thần', { error: e.message, nhatChu, tuTru });
     throw new Error('Không thể tính Thập Thần do dữ liệu Tứ Trụ không hợp lệ');
   }
 }
 
-// Tính Thần Sát (corrected Đào Hoa, no Không Vong)
+// Calculate Thần Sát (corrected Đào Hoa with Tam Hợp, no Không Vong)
 function tinhThanSat(tuTru) {
   const nhatChu = tuTru.ngay?.split(' ')[0];
   const branches = [
@@ -342,9 +356,9 @@ function tinhThanSat(tuTru) {
     tuTru.ngay?.split(' ')[1], tuTru.gio?.split(' ')[1]
   ].filter(Boolean);
 
-  if (!nhatChu || !branches.length) {
-    logger.error('Invalid nhatChu or branches', { nhatChu, branches });
-    throw new Error('Invalid nhatChu or branches');
+  if (!nhatChu || branches.length < 4) {
+    logger.error('Invalid Nhật Chủ or branches', { nhatChu, branches });
+    throw new Error('Nhật Chủ hoặc chi không hợp lệ');
   }
 
   const dayBranch = tuTru.ngay?.split(' ')[1];
@@ -468,7 +482,7 @@ function generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userIn
     thapThan: thapThanResults,
     thanSat,
     dungThan,
-    cachCuc: 'Thân Nhược' // From logs
+    cachCuc: 'Thân Nhược' // From previous logs
   };
 
   if (isGeneral) {
@@ -524,8 +538,12 @@ function generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userIn
 // Retry logic for external API calls
 async function callExternalBaziAPI(data, retries = 3, delay = 1000) {
   try {
+    if (!process.env.XAI_BAZI_API || !process.env.XAI_API_KEY) {
+      logger.warn('External API not configured, using internal logic');
+      return null;
+    }
     const response = await axios.post(
-      process.env.XAI_BAZI_API || 'https://x.ai/api/bazi',
+      process.env.XAI_BAZI_API,
       data,
       {
         headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` },
@@ -539,7 +557,8 @@ async function callExternalBaziAPI(data, retries = 3, delay = 1000) {
       await new Promise(resolve => setTimeout(resolve, delay));
       return callExternalBaziAPI(data, retries - 1, delay * 2);
     }
-    throw error;
+    logger.error('External API call failed, using internal logic', { error: error.message });
+    return null;
   }
 }
 
@@ -552,8 +571,8 @@ app.post('/api/bazi', async (req, res) => {
       logger.warn('Invalid Can Chi input', { body: req.body });
       return res.status(400).json({
         error: {
-          vi: 'Dữ liệu Can Chi không hợp lệ.',
-          en: 'Invalid Can Chi data.'
+          vi: 'Dữ liệu Can Chi không hợp lệ. Vui lòng kiểm tra giờ, ngày, tháng, năm.',
+          en: 'Invalid Can Chi data. Please check hour, day, month, year.'
         }
       });
     }
@@ -571,7 +590,7 @@ app.post('/api/bazi', async (req, res) => {
     const nhatChu = ngay.split(' ')[0];
     const nguHanhCount = await analyzeNguHanh(tuTru);
     const thapThanResults = tinhThapThan(nhatChu, tuTru);
-    const dungThan = ['Kim', 'Thủy']; // From logs
+    const dungThan = ['Kim', 'Thủy']; // Based on previous logs
     const response = generateResponse(tuTru, nguHanhCount, thapThanResults, dungThan, userInput, language);
 
     cache.set(cacheKey, response);
@@ -790,4 +809,9 @@ process.on('uncaughtException', (error) => {
 // Start server
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
+  logger.info('Environment:', {
+    nodeVersion: process.version,
+    port: PORT,
+    corsOrigin: process.env.CORS_ORIGIN || '*'
+  });
 });
