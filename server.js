@@ -412,7 +412,14 @@ const analyzeYear = (year, tuTru, nguHanhCount, thapThanResults, dungThan) => {
 };
 
 const estimateTokens = (text) => {
-  return Math.ceil(text.length / 3.5); // Tinh chỉnh ước lượng cho tiếng Việt
+  if (!text || typeof text !== "string") return 0;
+  return Math.ceil(text.length / 3.2); // Tinh chỉnh cho tiếng Việt
+};
+
+const truncatePrompt = (text, maxTokens = 3000) => {
+  if (estimateTokens(text) <= maxTokens) return text;
+  const maxLength = Math.floor(maxTokens * 3.2);
+  return text.substring(0, maxLength) + "... [Đã rút gọn để đảm bảo token limit]";
 };
 
 const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, userInput, messages, language) => {
@@ -443,12 +450,12 @@ const generateResponse = (tuTru, nguHanhCount, thapThanResults, thanSatResults, 
     response += `
 ${language === "vi" ? `Sự Nghiệp\nDựa trên Dụng Thần ${dungThan.join(", ")}, bạn phù hợp với:\n${dungThan.includes("Hỏa") ? "- Hỏa: Truyền thông, marketing, nghệ thuật.\n" : ""}${dungThan.includes("Thổ") ? "- Thổ: Bất động sản, kiến trúc.\n" : ""}Năm 2026 (Bính Ngọ, Hỏa vượng) mang cơ hội trong ${dungThan.includes("Hỏa") ? "truyền thông" : dungThan.includes("Thổ") ? "bất động sản" : "dự án liên quan"}.\n**Lời Khuyên**\n- Phát triển kỹ năng sáng tạo hoặc nghiên cứu bất động sản.\n- Sử dụng màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** hoặc vòng **thạch anh vàng**.` : `Career\nBased on Useful Gods ${dungThan.join(", ")}, you are suited for:\n${dungThan.includes("Hỏa") ? "- Fire: Media, marketing, arts.\n" : ""}${dungThan.includes("Thổ") ? "- Earth: Real estate, architecture.\n" : ""}2026 (Bing Wu, strong Fire) brings opportunities in ${dungThan.includes("Hỏa") ? "media" : dungThan.includes("Thổ") ? "real estate" : "related projects"}.\n**Advice**\n- Develop creative skills or research real estate.\n- Use colors **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** or **citrine** ring.`}
 `;
-    return response.trim().substring(0, 5000); // Giới hạn kích thước
+    return response.trim().substring(0, 5000);
   }
 
   if (isLove) {
     const daoHoa = thanSatResults["Đào Hoa"].value.length ? `Có Đào Hoa tại ${thanSatResults["Đào Hoa"].value[0]}` : "Không có Đào Hoa";
-    const daoHoaDirection = { "Tý": "Bắc", "Ngọ": "Nam", "Mão": "Đông", "Dậu": "Tây" }[daoHoa[chiNgay]] || "Đông";
+    const daoHoaDirection = { "Tý": "Bắc", "Ngọ": "Nam", "Mão": "Đông", "Dậu": "Tây" }[thanSatResults["Đào Hoa"].value[0]] || "Đông";
     response += `
 ${language === "vi" ? `Tình Duyên\n${daoHoa}. Có Hồng Loan tại Mùi. Hợp với người ${dungThan.includes("Hỏa") ? "nồng nhiệt" : dungThan.includes("Thổ") ? "thực tế" : "tinh tế"}. Nếu chưa có người yêu, đặt **lọ hoa ở góc ${daoHoaDirection}**. Năm 2026, tham gia sự kiện sáng tạo.\n**Lời Khuyên**\n- Mặc màu **${dungThan.includes("Hỏa") ? "đỏ, cam" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " hoặc " : ""}${dungThan.includes("Thổ") ? "nâu, vàng đất" : ""}**.\n- Đeo dây **màu đỏ** hoặc vòng **thạch anh vàng**.` : `Love\n${daoHoa}. Red Phoenix at Goat. Compatible with ${dungThan.includes("Hỏa") ? "passionate" : dungThan.includes("Thổ") ? "practical" : "refined"} partners. If single, place a **vase in the ${daoHoaDirection} corner**. In 2026, attend creative events.\n**Advice**\n- Wear **${dungThan.includes("Hỏa") ? "red, orange" : ""}${dungThan.includes("Hỏa") && dungThan.includes("Thổ") ? " or " : ""}${dungThan.includes("Thổ") ? "brown, earthy tones" : ""}**.\n- Wear a **red cord** or **citrine** ring.`}
 `;
@@ -490,7 +497,7 @@ const checkOpenAIStatus = async () => {
     const response = await axios.get("https://status.openai.com/api/v2/status.json", { timeout: 10000 });
     return response.data.status.indicator === "none";
   } catch (err) {
-    console.error("Lỗi kiểm tra OpenAI:", err.message);
+    console.error("Lỗi kiểm tra OpenAI status:", err.message);
     return false;
   }
 };
@@ -510,27 +517,36 @@ const checkOpenAIKey = async () => {
 
 const callOpenAI = async (payload, retries = 3, delay = 5000) => {
   console.log(`Bắt đầu OpenAI: ${new Date().toISOString()}`);
-  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OpenAI API key");
-  if (!payload.model || !payload.messages || !Array.isArray(payload.messages) || payload.messages.length === 0) {
-    throw new Error("Invalid payload: Missing model or messages");
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Missing OpenAI API key");
+  }
+  if (!payload || !payload.model || !payload.messages || !Array.isArray(payload.messages) || payload.messages.length === 0) {
+    console.error("Invalid payload:", JSON.stringify(payload, null, 2));
+    throw new Error("Invalid payload: Missing or malformed model/messages");
   }
 
   const validModels = ["gpt-3.5-turbo", "gpt-4"];
   if (!validModels.includes(payload.model)) {
+    console.error("Invalid model:", payload.model);
     throw new Error(`Invalid model: ${payload.model}. Must be one of ${validModels.join(", ")}`);
   }
 
-  const promptText = payload.messages.map(m => m.content).join(" ");
+  const promptText = payload.messages.map(m => m.content || "").join(" ");
   const estimatedTokens = estimateTokens(promptText);
-  if (estimatedTokens > 3500) {
-    throw new Error(`Prompt quá dài: ${estimatedTokens} tokens. Giảm xuống dưới 3500 tokens.`);
+  if (estimatedTokens > 3000) {
+    console.warn("Prompt quá dài, đang rút gọn:", estimatedTokens, "tokens");
+    payload.messages = [{ role: "user", content: truncatePrompt(promptText, 3000) }];
   }
 
   const isKeyValid = await checkOpenAIKey();
-  if (!isKeyValid) throw new Error("Invalid API key");
+  if (!isKeyValid) {
+    throw new Error("Invalid API key");
+  }
 
   const isServerUp = await checkOpenAIStatus();
-  if (!isServerUp) throw new Error("OpenAI server down");
+  if (!isServerUp) {
+    throw new Error("OpenAI server down");
+  }
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -546,28 +562,35 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             "Content-Type": "application/json"
           },
-          timeout: 120000 // Tăng timeout lên 120 giây
+          timeout: 120000
         }
       );
       console.log(`Hoàn thành OpenAI: ${new Date().toISOString()}`);
       return response.data;
     } catch (err) {
       console.error(`Thử ${attempt} thất bại: ${err.message}`);
-      if (err.code === 'ECONNREFUSED') {
-        console.error("Lỗi kết nối mạng đến OpenAI");
+      if (err.response) {
+        console.error("HTTP Status:", err.response.status);
+        console.error("Chi tiết lỗi:", JSON.stringify(err.response.data, null, 2));
+      }
+      if (err.code === "ECONNREFUSED") {
         throw new Error("Không thể kết nối đến OpenAI: Kiểm tra mạng hoặc tường lửa");
       }
-      if (err.code === 'ETIMEDOUT') {
-        console.error("Hết thời gian kết nối đến OpenAI");
+      if (err.code === "ETIMEDOUT") {
         throw new Error("Hết thời gian kết nối đến OpenAI: Kiểm tra mạng hoặc thử lại");
       }
       if (err.response?.status === 400) {
-        console.error("Chi tiết lỗi 400:", err.response?.data?.error);
         throw new Error(`Bad Request: ${err.response?.data?.error?.message || "Invalid payload"}`);
       }
-      if (err.response?.status === 429) throw new Error("Quota exceeded");
-      if (err.response?.status === 401) throw new Error("Invalid API key");
-      if (attempt === retries) throw new Error(`Failed after ${retries} retries: ${err.message}`);
+      if (err.response?.status === 429) {
+        throw new Error("Quota exceeded");
+      }
+      if (err.response?.status === 401) {
+        throw new Error("Invalid API key");
+      }
+      if (attempt === retries) {
+        throw new Error(`Failed after ${retries} retries: ${err.message}`);
+      }
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
     }
   }
@@ -577,13 +600,18 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const startTime = Date.now();
   const { messages, tuTruInfo, dungThan, language = "vi" } = req.body;
 
+  console.log("Received payload:", JSON.stringify(req.body, null, 2));
+
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    console.error("Missing messages:", messages);
     return res.status(400).json({ error: language === "vi" ? "Thiếu messages" : "Missing messages" });
   }
   if (!tuTruInfo || typeof tuTruInfo !== "string") {
-    return res.status(400).json({ error: language === "vi" ? "Thiếu tuTruInfo" : "Missing tuTruInfo" });
+    console.error("Missing or invalid tuTruInfo:", tuTruInfo);
+    return res.status(400).json({ error: language === "vi" ? "Thiếu hoặc không hợp lệ tuTruInfo" : "Missing or invalid tuTruInfo" });
   }
   if (!dungThan || !Array.isArray(dungThan) || !dungThan.length || !dungThan.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
+    console.error("Invalid dungThan:", dungThan);
     return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ hoặc thiếu" : "Invalid or missing Useful God" });
   }
 
@@ -636,6 +664,10 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   const useOpenAI = process.env.USE_OPENAI !== "false";
   const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
+  if (!userInput) {
+    console.error("No user input found in messages:", messages);
+    return res.status(400).json({ error: language === "vi" ? "Không tìm thấy câu hỏi người dùng" : "No user question found" });
+  }
 
   console.log("Input:", { userInput, dungThan, questionType: determineQuestionType(userInput, language) });
 
@@ -644,27 +676,31 @@ You are a Bazi expert. Respond in ${language === "vi" ? "Vietnamese" : "English"
 
 Bazi: Hour ${tuTru.gio}, Day ${tuTru.ngay}, Month ${tuTru.thang}, Year ${tuTru.nam}
 Useful Gods: ${dungThan.join(", ")}
-Question: ${userInput || "Provide a general Bazi analysis"}
+Question: ${userInput}
 `;
 
   try {
     if (useOpenAI) {
       const gptRes = await callOpenAI({
         model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content: truncatePrompt(prompt, 3000) }],
         temperature: 0.4,
         max_tokens: 1000
       });
+      const answer = gptRes.choices[0].message.content.substring(0, 5000);
+      console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
       console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-      return res.json({ answer: gptRes.choices[0].message.content.substring(0, 5000) });
+      return res.json({ answer });
     } else {
       const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
+      console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
       console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
       return res.json({ answer });
     }
   } catch (err) {
     console.error("Lỗi OpenAI hoặc xử lý:", err.message);
     const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThan, userInput, messages, language);
+    console.log("Response size:", Buffer.byteLength(answer, "utf8"), "bytes");
     return res.status(200).json({
       answer,
       warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}`
@@ -680,7 +716,7 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ error: req.body.language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 10000;
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
   try {
