@@ -25,7 +25,7 @@ app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
-const canChiNguHanhInfo = `
+const canChiNguHanhInfo = "
 Ngũ hành 10 Thiên Can:
 - Giáp, Ất: Mộc
 - Bính, Đinh: Hỏa
@@ -38,7 +38,7 @@ Ngũ hành 12 Địa Chi:
 - Dần, Mão: Mộc
 - Tỵ, Ngọ: Hỏa
 - Thân, Dậu: Kim
-`;
+";
 
 const heavenlyStemsMap = {
   en: { Jia: "Giáp", Yi: "Ất", Bing: "Bính", Ding: "Đinh", Wu: "Mậu", Ji: "Kỷ", Geng: "Canh", Xin: "Tân", Ren: "Nhâm", Gui: "Quý" },
