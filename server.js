@@ -2,12 +2,24 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const NodeCache = require("node-cache");
 const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
+const cache = new NodeCache({ stdTTL: 600 });
+
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+  })
+);
 
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
@@ -563,6 +575,13 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const useOpenAI = process.env.USE_OPENAI !== "false";
   const language = messages?.some(m => /[\u00C0-\u1EF9]/.test(m.content)) ? "vi" : "en";
 
+  const cacheKey = `${tuTruInfo}-${userInput}-${language}`;
+  const cachedResponse = cache.get(cacheKey);
+  if (cachedResponse) {
+    console.log(`Cache hit: ${cacheKey}`);
+    return res.json({ answer: cachedResponse });
+  }
+
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: language === "vi" ? "Thiếu messages" : "Missing messages" });
   }
@@ -619,6 +638,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
   if (!useOpenAI) {
     const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+    cache.set(cacheKey, answer);
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
     return res.json({ answer });
   }
@@ -644,11 +664,14 @@ Câu hỏi: ${userInput || "N/A"}
       temperature: 0.4,
       max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500
     });
+    const answer = gptRes.choices[0].message.content;
+    cache.set(cacheKey, answer);
     console.log(`Tổng thời gian xử lý: ${Date.now() - startTime}ms`);
-    return res.json({ answer: gptRes.choices[0].message.content });
+    return res.json({ answer });
   } catch (err) {
     console.error("OpenAI error:", err.message);
     const answer = generateResponse(tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, userInput, messages, language);
+    cache.set(cacheKey, answer);
     return res.json({ answer, warning: language === "vi" ? `Không thể kết nối với OpenAI: ${err.message}` : `Failed to connect with OpenAI: ${err.message}` });
   }
 });
