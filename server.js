@@ -1,3 +1,4 @@
+```javascript
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -66,7 +67,7 @@ const hoaGiap = [
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tý", "Quý Hợi"
 ];
 
 const getCanChiForYear = (year) => {
@@ -279,7 +280,7 @@ const tinhThanSat = (tuTru) => {
     "Nhâm Thìn": ["Ngọ", "Mùi"], "Quý Tỵ": ["Ngọ", "Mùi"],
     "Giáp Ngọ": ["Thìn", "Tỵ"], "Ất Mùi": ["Thìn", "Tỵ"], "Bính Thân": ["Thìn", "Tỵ"], "Đinh Dậu": ["Thìn", "Tỵ"],
     "Mậu Tuất": ["Thìn", "Tỵ"], "Kỷ Hợi": ["Thìn", "Tỵ"], "Canh Tý": ["Thìn", "Tỵ"], "Tân Sửu": ["Thìn", "Tỵ"],
-    "Nhâm Dần": ["Thìn", "Tỵ"], "Quý Mão": ["Thìn", "Tỵ"],
+    "Nhâm Dần": ["Thìn", "Tỵ"], "Quý Mão": ["Thìn", "TỴ"],
     "Giáp Thìn": ["Dần", "Mão"], "Ất Tỵ": ["Dần", "Mão"], "Bính Ngọ": ["Dần", "Mão"], "Đinh Mùi": ["Dần", "Mão"],
     "Mậu Thân": ["Dần", "Mão"], "Kỷ Dậu": ["Dần", "Mão"], "Canh Tuất": ["Dần", "Mão"], "Tân Hợi": ["Dần", "Mão"],
     "Nhâm Tý": ["Dần", "Mão"], "Quý Sửu": ["Dần", "Mão"],
@@ -653,7 +654,7 @@ Câu hỏi: ${userInput || "N/A"}
 
 app.use((err, req, res, next) => {
   console.error("Lỗi hệ thống:", err.stack);
-  res.status(500).json({ error: language === "vi" ? "Lỗi hệ thống xảy ra" : "System error occurred" });
+  res.status(500).json({ error: "System error occurred" });
 });
 
 const port = process.env.PORT || 5000;
@@ -667,3 +668,4 @@ const server = app.listen(port, async () => {
   }
 });
 server.setTimeout(300000);
+```
