@@ -575,6 +575,7 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   const useOpenAI = process.env.USE_OPENAI !== "false";
   const language = messages?.some(m => /[\u00C0-\u1EF9]/.test(m.content)) ? "vi" : "en";
 
+  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
   const cacheKey = `${tuTruInfo}-${userInput}-${language}`;
   const cachedResponse = cache.get(cacheKey);
   if (cachedResponse) {
@@ -592,8 +593,6 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
   if (!dungThanHanh.every(d => ["Mộc", "Hỏa", "Thổ", "Kim", "Thủy"].includes(d))) {
     return res.status(400).json({ error: language === "vi" ? "Dụng Thần không hợp lệ" : "Invalid Useful God" });
   }
-
-  const userInput = messages?.slice().reverse().find(m => m.role === "user")?.content || "";
 
   let tuTru;
   try {
