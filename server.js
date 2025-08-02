@@ -16,8 +16,8 @@ app.use(cors());
 app.use(express.json());
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000, // 15 phút
+    max: 100, // Giới hạn 100 yêu cầu mỗi IP trong 15 phút
   })
 );
 
