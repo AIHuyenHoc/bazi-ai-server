@@ -250,7 +250,7 @@ const tinhThanSat = (tuTru) => {
   const dichMa = {
     Thân: ["Dần"], Tý: ["Dần"], Thìn: ["Dần"],
     Tỵ: ["Hợi"], Dậu: ["Hợi"], Sửu: ["Hợi"],
-    Dần: ["Thân"], Ngọ: ["Thân"], Tuất: ["Thân"],
+    Dần: ["	thân"], Ngọ: ["Thân"], Tuất: ["Thân"],
     Hợi: ["Tỵ"], Mão: ["Tỵ"], Mùi: ["Tỵ"]
   };
 
@@ -530,7 +530,7 @@ Tập trung vào các cơ hội đầu tư liên quan đến ${dungThan.includes
 ### Wealth
 Direct/Indirect Wealth (${chinhTai}): You excel in financial management, especially in creative or investment fields. Strong ${dungThan[0]} boosts wealth. 2026 brings opportunities via ${dungThan[0]}-related projects.
 ### Advice
-Focus on investments in ${dungThan.includes("Mộc") ? "education, green tech" : dungThan.includes("Hỏa") ? "arts, media" : dungThan.includes("Thổ") ? "real estate, agriculture" : dungThan.includes("Kim") ? "tech, finance" : "trade, transport"}; use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"}.
+Focus on investments in ${dungThan.includes("Mộc") ? "education, green tech" : dungThan.includes("Hỏa") ? "media, arts" : dungThan.includes("Thổ") ? "real estate, agriculture" : dungThan.includes("Kim") ? "tech, finance" : "trade, transport"}; use ${dungThan.includes("Mộc") ? "green" : dungThan.includes("Hỏa") ? "red" : dungThan.includes("Thổ") ? "brown" : dungThan.includes("Kim") ? "white" : "blue"}.
 `}
 `;
   }
@@ -779,8 +779,90 @@ const callOpenAI = async (payload, retries = 3, delay = 5000) => {
     }
   }
 };
-
 app.post("/api/luan-giai-bazi", async (req, res) => {
   const startTime = Date.now();
   const { messages, tuTruInfo, dungThan, language = "vi" } = req.body;
-  const useOpenAI = process.env.USE
+
+  // Kiểm tra đầu vào
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ 
+      error: language === "vi" ? "Thiếu messages" : "Missing messages" 
+    });
+  }
+
+  if (!tuTruInfo || !tuTruInfo.ngay || !tuTruInfo.thang || !tuTruInfo.nam || !tuTruInfo.gio) {
+    return res.status(400).json({ 
+      error: language === "vi" ? "Thiếu thông tin Tứ Trụ" : "Missing Four Pillars info" 
+    });
+  }
+
+  // Chuẩn hóa Tứ Trụ
+  let tuTru = {
+    gio: normalizeCanChi(tuTruInfo.gio),
+    ngay: normalizeCanChi(tuTruInfo.ngay),
+    thang: normalizeCanChi(tuTruInfo.thang),
+    nam: normalizeCanChi(tuTruInfo.nam)
+  };
+
+  // Xử lý trường hợp Tứ Trụ không hợp lệ
+  if (!tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) {
+    const parsedTuTru = parseEnglishTuTru(messages[messages.length - 1]?.content || "");
+    if (parsedTuTru) {
+      tuTru = parsedTuTru;
+    } else {
+      return res.status(400).json({ 
+        error: language === "vi" ? "Thông tin Tứ Trụ không hợp lệ" : "Invalid Four Pillars info" 
+      });
+    }
+  }
+
+  try {
+    // Phân tích ngũ hành, thập thần, thần sát
+    const nguHanhCount = analyzeNguHanh(tuTru);
+    const nhatChu = tuTru.ngay.split(" ")[0];
+    const thapThanResults = tinhThapThan(nhatChu, tuTru);
+    const thanSatResults = tinhThanSat(tuTru);
+    const resolvedDungThan = dungThan && Array.isArray(dungThan) && dungThan.length > 0
+      ? dungThan
+      : determineDungThan(nguHanhCount, nhatChu);
+
+    // Tạo phản hồi
+    const response = generateResponse(
+      tuTru,
+      nguHanhCount,
+      thapThanResults,
+      thanSatResults,
+      resolvedDungThan,
+      messages[messages.length - 1]?.content || "",
+      messages,
+      language
+    );
+
+    // Ghi log thời gian xử lý
+    console.log(`Thời gian xử lý: ${Date.now() - startTime}ms`);
+
+    // Trả về phản hồi
+    res.status(200).json({
+      success: true,
+      data: {
+        tuTru,
+        nguHanh: nguHanhCount,
+        thapThan: thapThanResults,
+        thanSat: thanSatResults,
+        dungThan: resolvedDungThan,
+        response
+      }
+    });
+  } catch (error) {
+    console.error("Lỗi xử lý luận giải Bát Tự:", error.message);
+    res.status(500).json({
+      error: language === "vi" ? `Lỗi: ${error.message}` : `Error: ${error.message}`
+    });
+  }
+});
+
+// Khởi động server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server đang chạy trên cổng ${PORT}`);
+});
