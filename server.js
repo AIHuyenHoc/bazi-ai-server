@@ -67,7 +67,7 @@ const hoaGiap = [
   "Giáp Tuất", "Ất Hợi", "Bính Tý", "Đinh Sửu", "Mậu Dần", "Kỷ Mão", "Canh Thìn", "Tân Tỵ", "Nhâm Ngọ", "Quý Mùi",
   "Giáp Thân", "Ất Dậu", "Bính Tuất", "Đinh Hợi", "Mậu Tý", "Kỷ Sửu", "Canh Dần", "Tân Mão", "Nhâm Thìn", "Quý Tỵ",
   "Giáp Ngọ", "Ất Mùi", "Bính Ngọ", "Đinh Mùi", "Mậu Thân", "Kỷ Dậu", "Canh Tuất", "Tân Hợi", "Nhâm Tý", "Quý Sửu",
-  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tý", "Quý Hợi"
+  "Giáp Dần", "Ất Mão", "Bính Thìn", "Đinh Tỵ", "Mậu Ngọ", "Kỷ Mùi", "Canh Thân", "Tân Dậu", "Nhâm Tuất", "Quý Hợi"
 ];
 
 const getCanChiForYear = (year) => {
@@ -280,7 +280,7 @@ const tinhThanSat = (tuTru) => {
     "Nhâm Thìn": ["Ngọ", "Mùi"], "Quý Tỵ": ["Ngọ", "Mùi"],
     "Giáp Ngọ": ["Thìn", "Tỵ"], "Ất Mùi": ["Thìn", "Tỵ"], "Bính Thân": ["Thìn", "Tỵ"], "Đinh Dậu": ["Thìn", "Tỵ"],
     "Mậu Tuất": ["Thìn", "Tỵ"], "Kỷ Hợi": ["Thìn", "Tỵ"], "Canh Tý": ["Thìn", "Tỵ"], "Tân Sửu": ["Thìn", "Tỵ"],
-    "Nhâm Dần": ["Thìn", "Tỵ"], "Quý Mão": ["Thìn", "TỴ"],
+    "Nhâm Dần": ["Thìn", "Tỵ"], "Quý Mão": ["Thìn", "Tỵ"],
     "Giáp Thìn": ["Dần", "Mão"], "Ất Tỵ": ["Dần", "Mão"], "Bính Ngọ": ["Dần", "Mão"], "Đinh Mùi": ["Dần", "Mão"],
     "Mậu Thân": ["Dần", "Mão"], "Kỷ Dậu": ["Dần", "Mão"], "Canh Tuất": ["Dần", "Mão"], "Tân Hợi": ["Dần", "Mão"],
     "Nhâm Tý": ["Dần", "Mão"], "Quý Sửu": ["Dần", "Mão"],
