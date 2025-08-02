@@ -2,6 +2,7 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
@@ -653,11 +654,12 @@ Câu hỏi: ${userInput || "N/A"}
 });
 
 app.use((err, req, res, next) => {
+  fs.appendFileSync('error.log', `${new Date().toISOString()} - Lỗi hệ thống: ${err.stack}\n`);
   console.error("Lỗi hệ thống:", err.stack);
   res.status(500).json({ error: "System error occurred" });
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 10000;
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
   try {
