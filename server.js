@@ -1,4 +1,3 @@
-```javascript
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -692,4 +691,3 @@ const server = app.listen(port, async () => {
   }
 });
 server.setTimeout(300000);
-```
