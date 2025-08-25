@@ -659,7 +659,7 @@ Câu hỏi: ${userInput || "N/A"}
     const gptRes = await callOpenAI({
       model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
       messages: [{ role: "user", content: prompt }],
-      temperature: 1,
+      temperature: 0.5,
       max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS) || 1500
     });
     const answer = gptRes.choices[0].message.content;
