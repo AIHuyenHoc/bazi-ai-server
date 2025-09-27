@@ -10,28 +10,31 @@ require("dotenv").config();
 
 const app = express();
 
-// ===== CORS (allowlist bằng ENV: CORS_ORIGINS="https://a.com,https://b.com")
-const allowlist = (process.env.CORS_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+/* ===== CORS (ENV: CORS_ORIGINS="https://a.com,https://b.com"; để trống = cho phép tất cả) */
+const allowlist = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!allowlist.length || !origin) return cb(null, true);
-    return allowlist.includes(origin) ? cb(null, true) : cb(new Error("Not allowed by CORS"));
+    return allowlist.includes(origin) ? cb(null, true) : cb(new Error("CORS_BLOCKED"));
   },
   credentials: true
 }));
 
-// ===== Security & Limits
 app.use(helmet());
 app.use(express.json({ limit: "1mb" }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false }));
 
-// ===== Caching
-const cache = new NodeCache({ stdTTL: 3600 }); // 1h cho analysis, 10m cho câu trả lời
-const replyCache = new NodeCache({ stdTTL: 600 });
+/* ===== Cache */
+const analysisCache = new NodeCache({ stdTTL: 3600 }); // 1h
+const replyCache = new NodeCache({ stdTTL: 600 });     // 10m
 
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
-// ================== BẢN ĐỒ CAN–CHI ==================
+/* ================== BẢN ĐỒ CAN–CHI, CHUẨN HÓA ================== */
 const heavenlyStemsMap = {
   en: { Jia: "Giáp", Yi: "Ất", Bing: "Bính", Ding: "Đinh", Wu: "Mậu", Ji: "Kỷ", Geng: "Canh", Xin: "Tân", Ren: "Nhâm", Gui: "Quý" },
   vi: { Giáp: "Giáp", Ất: "Ất", Bính: "Bính", Đinh: "Đinh", Mậu: "Mậu", Kỷ: "Kỷ", Canh: "Canh", Tân: "Tân", Nhâm: "Nhâm", Quý: "Quý" }
@@ -41,8 +44,6 @@ const earthlyBranchesMap = {
   vi: { Tý: "Tý", Sửu: "Sửu", Dần: "Dần", Mão: "Mão", Thìn: "Thìn", Tỵ: "Tỵ", Ngọ: "Ngọ", Mùi: "Mùi", Thân: "Thân", Dậu: "Dậu", Tuất: "Tuất", Hợi: "Hợi" }
 };
 const rmDiacritics = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-// ================== CHUẨN HÓA CAN CHI ==================
 const normalizeCanChi = (input) => {
   if (!input || typeof input !== "string") return null;
   const [rawCan, rawChi] = input.trim().split(/\s+/);
@@ -59,12 +60,9 @@ const normalizeCanChi = (input) => {
   if (enCanKey && enChiKey) return `${heavenlyStemsMap.en[enCanKey]} ${earthlyBranchesMap.en[enChiKey]}`;
   return null;
 };
-
-// ================== PARSER TIẾNG ANH ==================
 const parseEnglishTuTru = (input) => {
   try {
     if (!input) return null;
-    // Ví dụ: "Jia Zi hour, Ji Hai day, Yi You month, Gui Mao year"
     const re = /([A-Za-z]+)\s+([A-Za-z]+)\s*(hour|day|month|year)/gi;
     const out = {};
     for (const m of input.matchAll(re)) {
@@ -81,20 +79,7 @@ const parseEnglishTuTru = (input) => {
   } catch { return null; }
 };
 
-// ================== 60 HOA GIÁP (tạo tự động) ==================
-const heavenlyStemsVI = ["Giáp","Ất","Bính","Đinh","Mậu","Kỷ","Canh","Tân","Nhâm","Quý"];
-const earthlyBranchesVI = ["Tý","Sửu","Dần","Mão","Thìn","Tỵ","Ngọ","Mùi","Thân","Dậu","Tuất","Hợi"];
-const hoaGiap = Array.from({ length: 60 }, (_, i) => `${heavenlyStemsVI[i % 10]} ${earthlyBranchesVI[i % 12]}`);
-
-const getCanChiForYear = (year) => {
-  if (!Number.isInteger(year) || year < 1900 || year > 2100) return null;
-  const baseYear = 1984; // Giáp Tý
-  let idx = (year - baseYear) % 60;
-  if (idx < 0) idx += 60;
-  return hoaGiap[idx] || null;
-};
-
-// ================== NGŨ HÀNH / THẬP THẦN / THẦN SÁT ==================
+/* ================== NGŨ HÀNH / THẬP THẦN / THẦN SÁT ================== */
 const canNguHanh = { Giáp:"Mộc", Ất:"Mộc", Bính:"Hỏa", Đinh:"Hỏa", Mậu:"Thổ", Kỷ:"Thổ", Canh:"Kim", Tân:"Kim", Nhâm:"Thủy", Quý:"Thủy" };
 const chiNguHanh = { Tý:"Thủy", Hợi:"Thủy", Sửu:"Thổ", Thìn:"Thổ", Mùi:"Thổ", Tuất:"Thổ", Dần:"Mộc", Mão:"Mộc", Tỵ:"Hỏa", Ngọ:"Hỏa", Thân:"Kim", Dậu:"Kim" };
 
@@ -156,7 +141,6 @@ const tinhThapThan = (nhatChu, tuTru) => {
   return out;
 };
 
-// — Thần sát rút gọn (như bản trước, đủ dùng) —
 const tinhThanSat = (tuTru) => {
   const nhatChu = tuTru.ngay?.split(" ")[0];
   const ngayChi = tuTru.ngay?.split(" ")[1];
@@ -204,7 +188,7 @@ const tinhThanSat = (tuTru) => {
   };
 };
 
-// ================== NGÔN NGỮ & RENDER ==================
+/* ================== RENDER ================== */
 const personalityDescriptions = {
   Mộc: { vi: "sáng tạo, linh hoạt, thông minh", en: "creative, adaptable, intelligent" },
   Hỏa: { vi: "nhiệt huyết, chủ động", en: "passionate, proactive" },
@@ -215,12 +199,14 @@ const personalityDescriptions = {
 const elementMeta = {
   "Mộc": { vi: { color: "xanh lá", jobs: "giáo dục/thiết kế/sáng tạo nội dung, cố vấn" }, en: { color: "green", jobs: "education/design/content, advisory" } },
   "Hỏa": { vi: { color: "đỏ/cam", jobs: "truyền thông, trình diễn, năng lượng" }, en: { color: "red/orange", jobs: "media, performance, energy" } },
-  "Thổ": { vi: { color: "vàng/đất", jobs: "bất động sản, quản trị, vận hành" }, en: { color: "yellow/earth", jobs: "real estate, ops, management" } },
+  "Thổ": { vi: { color: "vàng/đất", jobs: "bđs, quản trị, vận hành" }, en: { color: "yellow/earth", jobs: "real estate, ops, management" } },
   "Kim": { vi: { color: "trắng/ánh kim", jobs: "tài chính, kỹ thuật, pháp chế" }, en: { color: "white/metallic", jobs: "finance, engineering, compliance" } },
-  "Thủy": { vi: { color: "xanh dương/đen", jobs: "CNTT – dữ liệu, logistics, nghiên cứu" }, en: { color: "blue/black", jobs: "IT/data, logistics, research" } },
+  "Thủy": { vi: { color: "xanh dương/đen", jobs: "CNTT–dữ liệu, logistics, research" }, en: { color: "blue/black", jobs: "IT/data, logistics, research" } },
 };
-const guessLanguage = (messages) => {
-  const txt = (messages || []).map(m => m.content || "").join(" ");
+const guessLanguage = (messagesOrText) => {
+  const txt = Array.isArray(messagesOrText)
+    ? (messagesOrText || []).map(m => m.content || "").join(" ")
+    : (messagesOrText || "");
   const looksVI = /ngay|thang|nam|gio|giap|at|binh|dinh|mau|ky|canh|tan|nham|quy|ty|suu|dan|mao|thin|ty|ngo|mui|than|dau|tuat|hoi/i.test(rmDiacritics(txt));
   return looksVI ? "vi" : "en";
 };
@@ -292,14 +278,12 @@ const renderGeneral = (tuTru, nguHanhCount, thapThanResults, thanSatResults, dun
 };
 
 const renderIntent = (intent, tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, language) => {
-  // Renderer ngắn gọn cho các câu hỏi hẹp (không gọi LLM)
   const bullets = [];
   const dm = tuTru.ngay.split(" ")[0];
   const dmHanh = canNguHanh[dm];
-  const has = (name) => Object.values(thanSatResults[name]?.value || []).length > 0;
-
+  const has = (name) => (thanSatResults[name]?.value || []).length > 0;
   const verdict = (txt) => language === "vi" ? `Kết luận: ${txt}` : `Verdict: ${txt}`;
-  const advise = (txt) => language === "vi" ? `• ${txt}` : `• ${txt}`;
+  const advise = (txt) => `• ${txt}`;
 
   switch (intent) {
     case "love": {
@@ -307,49 +291,38 @@ const renderIntent = (intent, tuTru, nguHanhCount, thapThanResults, thanSatResul
       const noble = has("Thiên Ất Quý Nhân");
       bullets.push(verdict(peach ? "Đường tình cảm có duyên, dễ gặp người hợp." : "Tình cảm thiên về ổn định, cần chủ động nuôi dưỡng."));
       if (noble) bullets.push(advise(language==="vi"?"Có Quý Nhân hỗ trợ kết nối.":"Nobleman star supports connections."));
-      bullets.push(advise(language==="vi"?"Ưu tiên giao tiếp chân thành, chia sẻ cảm xúc đều.":"Prioritize honest communication."));
-      bullets.push(advise(language==="vi"?"Bổ sung Dụng Thần: " + (dungThan[0]||dmHanh) :"Add Useful Element: " + (dungThan[0]||dmHanh)));
+      bullets.push(advise(language==="vi"?"Ưu tiên giao tiếp chân thành.":"Prioritize honest communication."));
+      bullets.push(advise((language==="vi"?"Bổ sung Dụng Thần: ":"Add Useful Element: ") + (dungThan[0]||dmHanh)));
       break;
     }
-    case "money": {
-      const hasSeal = Object.values(thapThanResults).includes("Chính Ấn");
-      bullets.push(verdict(language==="vi"?"Tài vận ở mức trung bình–khá, tích lũy tốt khi kỷ luật.":"Wealth: fair to good with disciplined saving."));
-      if (hasSeal) bullets.push(advise(language==="vi"?"Thiên/Chính Ấn trợ học hành – nâng bậc thu nhập qua kỹ năng.":"Seal favors study → upskill for higher income."));
-      bullets.push(advise(language==="vi"?"Đổi 1 phần sang tài sản ổn định (quỹ/bđs) thay vì lướt sóng.":"Allocate to stable assets over speculation."));
+    case "money":
+      bullets.push(verdict(language==="vi"?"Tài vận trung bình–khá; tích lũy tốt khi kỷ luật.":"Wealth fair–good with discipline."));
+      bullets.push(advise(language==="vi"?"Ưu tiên tài sản ổn định; hạn chế lướt sóng.":"Prefer stable assets; avoid speculation."));
       break;
-    }
-    case "career": {
-      bullets.push(verdict(language==="vi"?"Hợp môi trường cần sáng tạo/giao tiếp, có cơ hội thăng tiến.":"Fit for creative/communication roles; growth potential."));
-      bullets.push(advise(language==="vi"?"Tập trung vào 1 kỹ năng mũi nhọn, đo kết quả theo quý.":"Focus on one spike skill; review quarterly."));
+    case "career":
+      bullets.push(verdict(language==="vi"?"Hợp môi trường sáng tạo/giao tiếp; có cơ hội thăng tiến.":"Fit for creative/communication roles; growth potential."));
+      bullets.push(advise(language==="vi"?"Tập trung một kỹ năng mũi nhọn.":"Focus on one spike skill."));
       break;
-    }
-    case "health": {
-      bullets.push(verdict(language==="vi"?"Cần cân bằng cảm xúc/giấc ngủ; tránh làm quá sức.":"Balance sleep/emotions; avoid overwork."));
-      bullets.push(advise(language==="vi"?"Thêm vận động nhẹ, thiền 10–15 phút/ngày.":"Light exercise, 10–15min meditation."));
+    case "health":
+      bullets.push(verdict(language==="vi"?"Cần cân bằng giấc ngủ/cảm xúc; tránh làm quá sức.":"Balance sleep/emotions; avoid overwork."));
+      bullets.push(advise(language==="vi"?"Thiền/đi bộ 10–15 phút mỗi ngày.":"Meditate/walk 10–15 mins daily."));
       break;
-    }
-    case "family": {
-      bullets.push(verdict(language==="vi"?"Gia đạo thiên ổn, cần lắng nghe để tránh hiểu nhầm.":"Family: mostly steady; practice active listening."));
-      bullets.push(advise(language==="vi"?"Duy trì bữa cơm chung/tuần.":"Keep one weekly family meal."));
+    case "family":
+      bullets.push(verdict(language==="vi"?"Gia đạo thiên ổn; nên lắng nghe để tránh hiểu nhầm.":"Family steady; practice active listening."));
       break;
-    }
-    case "children": {
+    case "children":
       bullets.push(verdict(language==="vi"?"Con cái thiên hướng sáng tạo, cần khích lệ tự lập.":"Children show creativity; encourage autonomy."));
-      bullets.push(advise(language==="vi"?"Đầu tư kỹ năng mềm và thể thao.":"Invest in soft skills & sports."));
       break;
-    }
-    case "property": {
-      bullets.push(verdict(language==="vi"?"Nên tích lũy tài sản cố định theo kế hoạch, tránh FOMO.":"Build fixed assets via plan; avoid FOMO."));
-      bullets.push(advise(language==="vi"?"Giữ tỉ lệ tiền mặt dự phòng 6 tháng chi tiêu.":"Keep 6-month expense cash buffer."));
+    case "property":
+      bullets.push(verdict(language==="vi"?"Nên tích lũy tài sản cố định theo kế hoạch.":"Build fixed assets via plan."));
       break;
-    }
     default:
       return renderGeneral(tuTru, nguHanhCount, thapThanResults, thanSatResults, dungThan, language);
   }
   return bullets.join("\n");
 };
 
-// ================== OPENAI (tuỳ chọn để 'polish') ==================
+/* ================== OPENAI (tuỳ chọn) ================== */
 const checkOpenAIKey = async () => {
   if (!process.env.OPENAI_API_KEY) return false;
   try {
@@ -361,18 +334,16 @@ const checkOpenAIKey = async () => {
     return true;
   } catch (err) {
     if (err.response?.status === 401) return false;
-    return true;
+    return true; // coi như endpoint nghẽn nhưng key hợp lệ
   }
 };
-
 const callOpenAI = async (payload, retries = 2, delay = 1200) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const { data } = await axios.post(
-        "https://api.openai.com/v1/chat/completions",
-        payload,
-        { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" }, timeout: 30000 }
-      );
+      const { data } = await axios.post("https://api.openai.com/v1/chat/completions", payload, {
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        timeout: 30000
+      });
       return data;
     } catch (err) {
       const status = err.response?.status;
@@ -383,114 +354,143 @@ const callOpenAI = async (payload, retries = 2, delay = 1200) => {
   }
 };
 
-// ================== ENDPOINT 1: PHÂN TÍCH (một lần) ==================
-app.post("/api/phan-tich", (req, res) => {
-  const { sessionId, tuTruInfo, dungThan } = req.body;
-  if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
-  if (!tuTruInfo || typeof tuTruInfo !== "string") return res.status(400).json({ error: "Missing tuTruInfo" });
-
+/* ================== HELPERS (KHÔNG GỌI ROUTER NỘI BỘ) ================== */
+const buildAnalysis = (tuTruInfo, dungThan) => {
   const dungThanHanh = Array.isArray(dungThan) ? dungThan : (dungThan?.hanh || []);
   if (!dungThanHanh.every(d => ["Mộc","Hỏa","Thổ","Kim","Thủy"].includes(d))) {
-    return res.status(400).json({ error: "Invalid Useful God" });
+    throw new Error("Invalid Useful God");
   }
 
   let tuTru;
   try {
-    tuTru = JSON.parse(tuTruInfo);
-    tuTru = { gio: normalizeCanChi(tuTru.gio), ngay: normalizeCanChi(tuTru.ngay), thang: normalizeCanChi(tuTru.thang), nam: normalizeCanChi(tuTru.nam) };
-    if (!tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) throw new Error("invalid");
+    const raw = JSON.parse(tuTruInfo);
+    tuTru = {
+      gio: normalizeCanChi(raw.gio),
+      ngay: normalizeCanChi(raw.ngay),
+      thang: normalizeCanChi(raw.thang),
+      nam: normalizeCanChi(raw.nam)
+    };
+    if (!tuTru.gio || !tuTru.ngay || !tuTru.thang || !tuTru.nam) throw new Error("Invalid Four Pillars");
   } catch {
-    return res.status(400).json({ error: "Invalid Four Pillars" });
+    throw new Error("Invalid Four Pillars");
   }
 
+  const nguHanh = analyzeNguHanh(tuTru);
+  const thapThanResults = tinhThapThan(tuTru.ngay.split(" ")[0], tuTru);
+  const thanSatResults = tinhThanSat(tuTru);
+  return { tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh };
+};
+
+const answerIntent = (analysis, question, language) => {
+  const types = determineQuestionType(question);
+  const intent =
+    types.isLove ? "love" :
+    types.isMoney ? "money" :
+    types.isCareer ? "career" :
+    types.isFame ? "fame" :
+    types.isHealth ? "health" :
+    types.isFamily ? "family" :
+    types.isChildren ? "children" :
+    types.isProperty ? "property" : "general";
+
+  const text = renderIntent(
+    intent,
+    analysis.tuTru,
+    analysis.nguHanh,
+    analysis.thapThanResults,
+    analysis.thanSatResults,
+    analysis.dungThanHanh,
+    language || "vi"
+  );
+  return { intent, text };
+};
+
+/* ================== ENDPOINTS ================== */
+app.post("/api/phan-tich", (req, res) => {
   try {
-    const nguHanh = analyzeNguHanh(tuTru);
-    const thapThanResults = tinhThapThan(tuTru.ngay.split(" ")[0], tuTru);
-    const thanSatResults = tinhThanSat(tuTru);
-    const analysis = { tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh };
-    cache.set(`analysis:${sessionId}`, analysis, 60 * 60);
+    const { sessionId, tuTruInfo, dungThan } = req.body || {};
+    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    if (!tuTruInfo || typeof tuTruInfo !== "string") return res.status(400).json({ error: "Missing tuTruInfo" });
+
+    const analysis = buildAnalysis(tuTruInfo, dungThan);
+    analysisCache.set(`analysis:${sessionId}`, analysis);
     return res.json({ ok: true, analysis });
   } catch (e) {
-    console.error("Analyze error:", e.message);
     return res.status(400).json({ error: e.message || "Analyze failed" });
   }
 });
 
-// ================== ENDPOINT 2: HỎI GÌ TRẢ NẤY (tránh lặp) ==================
 app.post("/api/hoi", async (req, res) => {
-  const { sessionId, question, language: lang } = req.body;
-  const language = lang || "vi";
-  const analysis = cache.get(`analysis:${sessionId}`);
-  if (!analysis) return res.status(400).json({ error: "Chưa có phân tích. Hãy gọi /api/phan-tich trước." });
+  try {
+    const { sessionId, question, language } = req.body || {};
+    if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });
+    const analysis = analysisCache.get(`analysis:${sessionId}`);
+    if (!analysis) return res.status(400).json({ error: "Chưa có phân tích. Gọi /api/phan-tich trước." });
 
-  const { tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh } = analysis;
-  const t = determineQuestionType(question);
-  const INTENT = t.isLove ? "love" : t.isMoney ? "money" : t.isCareer ? "career" : t.isFame ? "fame"
-              : t.isHealth ? "health" : t.isFamily ? "family" : t.isChildren ? "children"
-              : t.isProperty ? "property" : "general";
+    const cacheKey = `reply:${sessionId}:${rmDiacritics((question||"")).slice(0,120)}`;
+    const cached = replyCache.get(cacheKey);
+    if (cached) return res.json({ answer: cached.answer, intent: cached.intent, cached: true });
 
-  const cacheKey = `reply:${sessionId}:${INTENT}:${rmDiacritics(question).slice(0,80)}`;
-  const cached = replyCache.get(cacheKey);
-  if (cached) return res.json({ answer: cached, intent: INTENT, cached: true });
+    const { intent, text } = answerIntent(analysis, question, language);
 
-  // Không dùng GPT cho intent hẹp -> nhanh & không lan man
-  let base = renderIntent(INTENT, tuTru, nguHanh, thapThanResults, thanSatResults, dungThanHanh, language);
-
-  // Optional polish bằng GPT nếu bật USE_OPENAI và intent=general
-  if (process.env.USE_OPENAI !== "false" && INTENT === "general") {
-    try {
-      const keyOk = await checkOpenAIKey();
-      if (keyOk) {
-        const sys = language === "vi"
-          ? "Bạn là chuyên gia Bát Tự. Trả lời ngắn gọn, thân thiện. Không liệt kê dông dài."
-          : "You are a BaZi expert. Be concise and friendly.";
-        const { choices } = await callOpenAI({
-          model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
-          messages: [{ role: "system", content: sys }, { role: "user", content: base }],
-          temperature: 0.3, max_tokens: 600
-        });
-        base = choices?.[0]?.message?.content?.trim() || base;
-      }
-    } catch (e) {
-      console.warn("Polish skipped:", e.message);
+    // chỉ polish bằng GPT nếu intent = general và USE_OPENAI != "false"
+    let finalText = text;
+    if (intent === "general" && process.env.USE_OPENAI !== "false") {
+      try {
+        const keyOk = await checkOpenAIKey();
+        if (keyOk) {
+          const sys = (language || "vi") === "vi"
+            ? "Bạn là chuyên gia Bát Tự, trả lời ngắn gọn, không lặp, không đoán mò mốc thời gian."
+            : "You are a BaZi expert. Be concise, no repetition, no made-up dates.";
+          const data = await callOpenAI({
+            model: process.env.OPENAI_MODEL || "gpt-3.5-turbo",
+            messages: [{ role: "system", content: sys }, { role: "user", content: text }],
+            temperature: 0.3, max_tokens: 600
+          });
+          finalText = data?.choices?.[0]?.message?.content?.trim() || text;
+        }
+      } catch (e) { /* bỏ qua, dùng text gốc */ }
     }
-  }
 
-  replyCache.set(cacheKey, base);
-  return res.json({ answer: base, intent: INTENT });
+    replyCache.set(cacheKey, { answer: finalText, intent });
+    return res.json({ answer: finalText, intent });
+  } catch (e) {
+    return res.status(500).json({ error: "Internal error", detail: e.message });
+  }
 });
 
-// ================== BACKWARD COMPAT: endpoint cũ ==================
-app.post("/api/luan-giai-bazi", async (req, res) => {
-  const { messages, tuTruInfo, dungThan, sessionId = "legacy" } = req.body;
-  // 1) phân tích khi chưa có
-  if (!cache.get(`analysis:${sessionId}`)) {
-    const r = await new Promise(resolve => {
-      const req2 = { body: { sessionId, tuTruInfo, dungThan } };
-      const res2 = { status: (c)=>({ json: (o)=>resolve({ code:c, body:o }) }), json: (o)=>resolve({ code:200, body:o }) };
-      app._router.handle({ ...req2, method:"POST", url:"/api/phan-tich" }, res2, ()=>{});
-    });
-    if (r.code !== 200) return res.status(r.code).json(r.body);
+/* Backward-compatible endpoint: KHÔNG gọi router nội bộ nữa */
+app.post("/api/luan-giai-bazi", (req, res) => {
+  try {
+    const { messages, tuTruInfo, dungThan } = req.body || {};
+    if (!Array.isArray(messages) || !messages.length) {
+      return res.status(400).json({ error: "Missing messages" });
+    }
+    if (!tuTruInfo || typeof tuTruInfo !== "string") {
+      return res.status(400).json({ error: "Missing tuTruInfo" });
+    }
+    const question = (messages || []).slice().reverse().find(m => m.role === "user")?.content || "";
+    const language = guessLanguage(messages);
+
+    const analysis = buildAnalysis(tuTruInfo, dungThan);
+    const { text } = answerIntent(analysis, question, language);
+    return res.json({ answer: text });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || "Request invalid" });
   }
-  // 2) trả lời theo câu hỏi cuối cùng
-  const language = guessLanguage(messages);
-  const question = (messages || []).slice().reverse().find(m=>m.role==="user")?.content || "";
-  const r2 = await new Promise(resolve => {
-    const req3 = { body: { sessionId, question, language } };
-    const res3 = { status: (c)=>({ json: (o)=>resolve({ code:c, body:o }) }), json: (o)=>resolve({ code:200, body:o }) };
-    app._router.handle({ ...req3, method:"POST", url:"/api/hoi" }, res3, ()=>{});
-  });
-  return res.status(r2.code).json({ answer: r2.body.answer, intent: r2.body.intent });
 });
 
-// ================== ERROR HANDLER ==================
+/* ================== ERROR HANDLER (CORS riêng) ================== */
 app.use((err, req, res, next) => {
+  if (err && err.message === "CORS_BLOCKED") {
+    return res.status(403).json({ error: "CORS blocked. Add your origin to CORS_ORIGINS." });
+  }
   try { fs.appendFileSync("error.log", `${new Date().toISOString()} - ${err.stack}\n`); } catch {}
   console.error("Lỗi hệ thống:", err.stack);
   res.status(500).json({ error: "System error occurred" });
 });
 
-// ================== SERVER ==================
+/* ================== SERVER ================== */
 const port = process.env.PORT || 10000;
 const server = app.listen(port, async () => {
   console.log(`Server running on port ${port}`);
