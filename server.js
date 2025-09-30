@@ -1,4 +1,4 @@
-// server.js — Bát Tự + GPT-3.5 polish, can-chi guard, year guard 2026–2033
+// server.js — Bát Tự + GPT polish, can-chi guard, year guard 2026–2033 (patched)
 
 const express = require("express");
 const axios = require("axios");
@@ -29,6 +29,7 @@ app.get("/health", (req, res) => res.status(200).send("OK"));
 
 /* ────────────────── helpers & maps ────────────────── */
 const rm = (s) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const lc = (s) => rm(String(s || "")).toLowerCase();
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 const heavenlyStemsMap = {
@@ -57,6 +58,7 @@ const heavenlyStemsMap = {
     Quý: "Quý",
   },
 };
+
 const earthlyBranchesMap = {
   en: {
     Rat: "Tý",
@@ -87,6 +89,14 @@ const earthlyBranchesMap = {
     Hợi: "Hợi",
   },
 };
+
+// lowercase alias for English keys (jia, zi, etc.)
+const enCanLower = Object.fromEntries(
+  Object.entries(heavenlyStemsMap.en).map(([k, v]) => [k.toLowerCase(), v])
+);
+const enChiLower = Object.fromEntries(
+  Object.entries(earthlyBranchesMap.en).map(([k, v]) => [k.toLowerCase(), v])
+);
 
 const canNguHanh = {
   Giáp: "Mộc",
@@ -143,19 +153,23 @@ const guessLang = (messages = []) => {
 /* ───────────── normalize can-chi & parse English input ───────────── */
 const normalizeCanChi = (s) => {
   if (!s || typeof s !== "string") return null;
-  const [c1, c2] = s.trim().split(/\s+/);
-  if (!c1 || !c2) return null;
+  const [c1Raw, c2Raw] = s.trim().split(/\s+/);
+  if (!c1Raw || !c2Raw) return null;
+  const c1 = lc(c1Raw);
+  const c2 = lc(c2Raw);
 
+  // VI (không dấu)
   const viCan = Object.keys(heavenlyStemsMap.vi).find(
-    (k) => rm(k).toLowerCase() === rm(c1).toLowerCase()
+    (k) => lc(k) === c1
   );
   const viChi = Object.keys(earthlyBranchesMap.vi).find(
-    (k) => rm(k).toLowerCase() === rm(c2).toLowerCase()
+    (k) => lc(k) === c2
   );
   if (viCan && viChi) return `${viCan} ${viChi}`;
 
-  const enCan = heavenlyStemsMap.en[c1];
-  const enChi = earthlyBranchesMap.en[c2];
+  // EN (case-insensitive)
+  const enCan = enCanLower[c1];
+  const enChi = enChiLower[c2];
   if (enCan && enChi) return `${enCan} ${enChi}`;
 
   return null;
@@ -167,8 +181,8 @@ const parseEnglishTuTru = (input) => {
   const re = /([A-Za-z]+)\s+([A-Za-z]+)\s*(hour|day|month|year)/gi;
   const out = {};
   for (const m of input.matchAll(re)) {
-    const stem = heavenlyStemsMap.en[m[1]] || m[1];
-    const br = earthlyBranchesMap.en[m[2]] || m[2];
+    const stem = heavenlyStemsMap.en[cap(m[1].toLowerCase())] || enCanLower[m[1].toLowerCase()] || m[1];
+    const br = earthlyBranchesMap.en[cap(m[2].toLowerCase())] || enChiLower[m[2].toLowerCase()] || m[2];
     const pair = `${stem} ${br}`;
     const slot = m[3].toLowerCase();
     if (slot === "hour") out.gio = pair;
@@ -321,7 +335,7 @@ const classify = (txt) => {
     children: /(con cai|nuoi day|tre em|con trai|con gai)/i.test(t),
     color: /(mau|ao|mac|phong cach|style|fashion)/i.test(t),
     timeLuck:
-      /(may man|thoi diem|gio tot|ngay may|thang nao tot|nam nao tot|nam nao may man|nhung nam tot)/i.test(
+      /(may man|thoi diem|gio tot|ngay may|thang nao tot|nam nao tot|nam nao may man|nhung nam tot|year)/i.test(
         t
       ),
   };
@@ -427,26 +441,37 @@ const fixElementMistakes = (text) => {
   return text;
 };
 
+// Context-aware year sanitizer — only affects "năm/nam/year ..." phrases
 const sanitizeYears = (text, dungThan) => {
   if (!text) return text;
 
-  // 1) Loại các can-chi không nằm trong whitelist 2026–2033
-  const rePair =
-    /\b(Giáp|Ất|Bính|Đinh|Mậu|Kỷ|Canh|Tân|Nhâm|Quý)\s+(Tý|Sửu|Dần|Mão|Thìn|Tỵ|Ngọ|Mùi|Thân|Dậu|Tuất|Hợi)\b/g;
-  text = text.replace(rePair, (m) =>
-    ALLOWED_YEAR_LABELS.includes(m) ? m : ""
-  );
+  // 0) Bảo vệ dòng mở đầu Tứ Trụ (để không xoá "Ngày Nhâm Dần"…)
+  const lines = text.split("\n");
+  const head = lines[0] || "";
+  const rest = lines.slice(1).join("\n");
 
-  // 2) Loại các năm số không thuộc 2026–2033
-  text = text.replace(/\b(20\d{2})\b/g, (m) =>
-    ALLOWED_YEAR_DIGITS.has(Number(m)) ? m : ""
-  );
+  const CAN = "(Giáp|Ất|Bính|Đinh|Mậu|Kỷ|Canh|Tân|Nhâm|Quý)";
+  const CHI = "(Tý|Sửu|Dần|Mão|Thìn|Tỵ|Ngọ|Mùi|Thân|Dậu|Tuất|Hợi)";
 
-  // 3) Nếu text không còn năm nào mà câu hỏi có “năm nào”, gợi ý theo Dụng Thần
+  // 1) Chỉ can thiệp cặp can-chi khi có chữ 'năm/nam/year' ngay trước
+  const reYearPairCtx = new RegExp(`\\b(?:năm|nam|year)\\s+${CAN}\\s+${CHI}\\b`, "gi");
+  let filtered = rest.replace(reYearPairCtx, (m) => {
+    const pair = m.replace(/^(?:năm|nam|year)\s+/i, "");
+    return ALLOWED_YEAR_LABELS.includes(pair) ? m : "";
+  });
+
+  // 2) Chỉ lọc số năm 20xx khi có 'năm/nam/year' kề trước
+  filtered = filtered.replace(/\b(20\d{2})\b/g, (m, _y, offset, s) => {
+    const before = s.slice(Math.max(0, offset - 8), offset);
+    if (!/(năm|nam|year)\s*$/i.test(before)) return m; // giữ nguyên nếu không có tiền tố
+    return ALLOWED_YEAR_DIGITS.has(Number(m)) ? m : "";
+  });
+
+  // 3) Nếu nội dung có hỏi năm nhưng sau lọc không còn năm, gợi ý theo Dụng Thần
   const hasAnyAllowed =
-    ALLOWED_YEAR_LABELS.some((label) => text.includes(label)) ||
-    YEARS_26_33.some((y) => text.includes(String(y.year)));
-  const needYears = /năm|nam nao|year/i.test(text);
+    ALLOWED_YEAR_LABELS.some((label) => filtered.includes(label)) ||
+    YEARS_26_33.some((y) => filtered.includes(String(y.year)));
+  const needYears = /(năm|nam|year)/i.test(filtered);
 
   if (!hasAnyAllowed && needYears) {
     const prefer = Array.isArray(dungThan) ? dungThan : [];
@@ -461,10 +486,10 @@ const sanitizeYears = (text, dungThan) => {
       .slice(0, 3)
       .map((y) => `${y.year} ${y.label} (${y.elements.join(" & ")})`)
       .join("; ");
-    text += `\n\nGợi ý năm thuận lợi (chỉ trong 2026–2033): ${ranked}.`;
+    filtered += `\n\nGợi ý năm thuận lợi (chỉ trong 2026–2033): ${ranked}.`;
   }
 
-  return text;
+  return [head, filtered].filter(Boolean).join("\n");
 };
 
 const postProcess = (text, { hasChoice, yearPair, dungThan }) => {
@@ -498,7 +523,7 @@ const postProcess = (text, { hasChoice, yearPair, dungThan }) => {
   // sửa sai hành
   out = fixElementMistakes(out);
 
-  // chặn năm bịa, chỉ cho 2026–2033
+  // chặn năm bịa, chỉ cho 2026–2033 (context-aware, không xoá “Ngày ...”)
   out = sanitizeYears(out, dungThan);
 
   return out;
@@ -540,9 +565,13 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
 
     const nhatChu = tuTru.ngay.split(" ")[0];
     const nhatHanh = canNguHanh[nhatChu];
+
+    // Dụng Thần fallback: nếu thiếu, dùng hành của Nhật Chủ
     const dungThanHanh = Array.isArray(dungThan)
       ? dungThan
-      : dungThan?.hanh || [];
+      : (dungThan && Array.isArray(dungThan.hanh) ? dungThan.hanh : []);
+    if (!dungThanHanh.length && nhatHanh) dungThanHanh.push(nhatHanh);
+
     if (!dungThanHanh.every((d) => VN_ELEMS.includes(d))) {
       return res
         .status(400)
@@ -578,57 +607,45 @@ app.post("/api/luan-giai-bazi", async (req, res) => {
       sections.push(
         lang === "vi"
           ? "Tài vận: gắn Dụng Thần vào cách kiếm/giữ tiền; tận dụng bạn bè có ngày sinh hoặc tuổi Quý Nhân nếu có; không nói chung chung."
-          : "Wealth: tie Useful God to ways of earning/saving;leverage friends whose birth date or zodiac aligns with Nobleman if available; avoid being vague."
+          : "Wealth: tie Useful God to ways of earning/saving; leverage friends whose birth date or zodiac aligns with Nobleman if available; avoid being vague."
       );
     if (intents.career)
       sections.push(
-        llang === "vi"
-      ? "Sự nghiệp: gợi ý ngành/kiểu làm việc hợp Dụng Thần; tận dụng bạn bè hoặc đối tác có ngày sinh hoặc tuổi Quý Nhân; tránh lan man."
-      : "Career: suggest industries/work styles aligned with Useful God; leverage friends or partners whose birth date or zodiac matches Nobleman; avoid digression."
-  );
-if (intents.love)
-  sections.push(
-    lang === "vi"
-      ? "Tình cảm: dùng Đào Hoa/Quý Nhân (nếu có) + Dụng Thần để gợi ý phong cách giao tiếp/hẹn hò; Các năm phạm sao Đào Hoa sẽ dễ có được tình yêu hoặc tình yêu thăng hoa theo nhiều cách khác nhau"
-      : "Love: use Peach Blossom/Nobleman (if present) + Useful God for communication/dating style; years with Peach Blossom influence bring love opportunities or relationship growth."
-  );
-if (intents.health)
-  sections.push(
-    lang === "vi"
-      ? "Sức khỏe: liên hệ hành yếu/vượng tới ngủ/thở/vận động; 1 thói quen 10–15 phút. Nếu có quá nhiều ngũ hành nào đó hoặc thiếu ngũ hành bất kỳ thì dễ bị bệnh liên quan. Ví dụ như ngũ hành kim là liên quan đến phổi, ngũ hành thủy là liên quan đến thận - tiết niệu, ngũ hành mộc là liên quan đến gan - chấn thương tay chân, ngũ hành hỏa là tim - thần - kinh - máu huyết, ngũ hành thổ là liên quan đến bao tử - tiêu hóa"
-      : "Health: link weak/strong elements to sleep/breath/movement; suggest one 10–15 min habit. Excess or lack of any element may relate to illness: Metal→lungs, Water→kidneys/urinary, Wood→liver/limbs, Fire→heart/nerves/blood, Earth→stomach/digestion."
-  );
-if (intents.family)
-  sections.push(
-    lang === "vi"
-      ? "Gia đạo: một hành động cụ thể để tăng hòa khí dựa trên Dụng Thần. Nếu có sự xung khắc giữa các địa chi thì gia đình hay bất hòa, nên tìm cách để hòa hợp vì gia đình là điều quan trọng nhất trong đời. Cẩn thận các năm hoặc đại vận xung trực tiếp với trụ tháng và trụ năm, ví dụ như Thìn xung với Tuất (hoặc ngược lại), Sửu xung với Mùi (hoặc ngược lại), Dần xung với Thân (hoặc ngược lại), Tỵ xung với Hợi (hoặc ngược lại), Tý xung với Ngọ (hoặc ngược lại), Mão xung với Dậu (hoặc ngược lại)."
-      : "Family: one concrete action for harmony based on Useful God. Beware clashes between earthly branches that cause discord; major years or luck cycles directly clashing with year/month pillars (e.g., Dragon vs Dog, Ox vs Goat, Tiger vs Monkey, Snake vs Pig, Rat vs Horse, Rabbit vs Rooster) often trigger conflicts."
-  );
-if (intents.children)
-  sections.push(
-    lang === "vi"
-      ? "Con cái: định hướng học tập/nuôi dạy khớp Dụng Thần."
-      : "Children: guide study/parenting in line with Useful God."
-  );
-if (intents.color)
-  sections.push(
-    lang === "vi"
-      ? "Màu sắc/phong cách: chỉ trả lời khi được hỏi; quy palette theo Dụng Thần."
-      : "Color/style: answer only when asked; map palette to Useful God."
+        lang === "vi"
+          ? "Sự nghiệp: gợi ý ngành/kiểu làm việc hợp Dụng Thần; tận dụng bạn bè hoặc đối tác có ngày sinh hoặc tuổi Quý Nhân; tránh lan man."
+          : "Career: suggest industries/work styles aligned with Useful God; leverage friends or partners whose birth date or zodiac matches Nobleman; avoid digression."
       );
+    if (intents.love)
+      sections.push(
+        lang === "vi"
+          ? "Tình cảm: dùng Đào Hoa/Quý Nhân (nếu có) + Dụng Thần để gợi ý phong cách giao tiếp/hẹn hò; Các năm phạm sao Đào Hoa sẽ dễ có được tình yêu hoặc tình yêu thăng hoa theo nhiều cách khác nhau"
+          : "Love: use Peach Blossom/Nobleman (if present) + Useful God for communication/dating style; years with Peach Blossom influence bring love opportunities or relationship growth."
+      );
+    if (intents.health)
+      sections.push(
+        lang === "vi"
+          ? "Sức khỏe: liên hệ hành yếu/vượng tới ngủ/thở/vận động; 1 thói quen 10–15 phút. Excess/thiếu hành liên hệ: Kim→phổi; Thủy→thận/tiết niệu; Mộc→gan/tứ chi; Hỏa→tim/thần kinh/máu; Thổ→bao tử/tiêu hoá."
+          : "Health: link weak/strong elements to sleep/breath/movement; suggest one 10–15 min habit. Metal→lungs; Water→kidneys/urinary; Wood→liver/limbs; Fire→heart/nerves/blood; Earth→stomach/digestion."
+      );
+    if (intents.family)
+      sections.push(
+        lang === "vi"
+          ? "Gia đạo: một hành động cụ thể để tăng hòa khí dựa trên Dụng Thần. Cẩn thận các năm hoặc đại vận xung trực tiếp với trụ tháng/năm: Thìn↔Tuất, Sửu↔Mùi, Dần↔Thân, Tỵ↔Hợi, Tý↔Ngọ, Mão↔Dậu."
+          : "Family: one concrete action for harmony based on Useful God. Beware years/luck cycles clashing year/month pillars: Dragon↔Dog, Ox↔Goat, Tiger↔Monkey, Snake↔Pig, Rat↔Horse, Rabbit↔Rooster."
+      );
+    if (intents.children)
+      sections.push(lang === "vi" ? "Con cái: định hướng học tập/nuôi dạy khớp Dụng Thần." : "Children: guide study/parenting in line with Useful God.");
+    if (intents.color)
+      sections.push(lang === "vi" ? "Màu sắc/phong cách: chỉ trả lời khi được hỏi; quy palette theo Dụng Thần." : "Color/style: answer only when asked; map palette to Useful God.");
     if (intents.timeLuck)
       sections.push(
         lang === "vi"
-          ? `Thời điểm may mắn: Các thời gian gần nhất trong khoảng từ năm 2026–2033 sau:
-${YEARS_26_33.map(
-  (y) => `- ${y.year} ${y.label} (${y.elements.join(" & ")})`
-).join("\n")}
-Tuyệt đối không nêu tổ hợp can-chi khác. Ưu tiên năm có hành trùng Dụng Thần, hoặc giúp cân bằng % Ngũ Hành.`
+          ? `Thời điểm may mắn: Chỉ cân nhắc trong 2026–2033:
+${YEARS_26_33.map((y) => `- ${y.year} ${y.label} (${y.elements.join(" & ")})`).join("\n")}
+Ưu tiên năm trùng Dụng Thần hoặc cân bằng biểu đồ.`
           : `Lucky years: ONLY choose among 2026–2033:
-${YEARS_26_33.map(
-  (y) => `- ${y.year} ${y.label} (${y.elements.join(" & ")})`
-).join("\n")}
-Never invent other sexagenary pairs. Prefer years matching Useful God or balancing the chart.`
+${YEARS_26_33.map((y) => `- ${y.year} ${y.label} (${y.elements.join(" & ")})`).join("\n")}
+Prefer years matching Useful God or balancing the chart.`
       );
 
     const system =
@@ -682,15 +699,31 @@ Never invent other sexagenary pairs. Prefer years matching Useful God or balanci
       ],
     };
 
+    // cache key bao gồm intents để tránh “cache nhầm”
+    const cacheKey = `${JSON.stringify(tuTru)}|${lc(lastUser)}|${dungThanHanh.join(",")}|${lang}|${Object.keys(intents).filter(k=>intents[k]).join(",")}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({ answer: cached, meta: { ms: Date.now() - started, cached: true } });
+    }
+
     let answer;
     try {
       const gpt = await callOpenAI(payload);
       answer = gpt?.choices?.[0]?.message?.content?.trim();
     } catch (e) {
       // fallback ngắn gọn (vẫn có skeleton)
-      answer = core + (lang === "vi"
-        ? `\n\nGợi ý: ưu tiên hành ${dungThanHanh[0] || nhatHanh} trong lựa chọn hằng ngày.`
-        : `\n\nTip: favour ${dungThanHanh[0] || nhatHanh} element in daily choices.`);
+      answer =
+        core +
+        (lang === "vi"
+          ? `\n\nGợi ý: ưu tiên hành ${dungThanHanh[0] || nhatHanh} trong lựa chọn hằng ngày.`
+          : `\n\nTip: favour ${dungThanHanh[0] || nhatHanh} element in daily choices.`);
+      // log lỗi chi tiết
+      try {
+        fs.appendFileSync(
+          "error.log",
+          `${new Date().toISOString()} | /api/luan-giai-bazi | OpenAI error: ${e.stack || e.message}\n`
+        );
+      } catch {}
     }
 
     answer = postProcess(answer, {
@@ -699,9 +732,6 @@ Never invent other sexagenary pairs. Prefer years matching Useful God or balanci
       dungThan: dungThanHanh,
     });
 
-    const cacheKey = `${JSON.stringify(tuTru)}|${rm(lastUser)}|${dungThanHanh.join(
-      ","
-    )}|${lang}`;
     cache.set(cacheKey, answer);
 
     return res.json({ answer, meta: { ms: Date.now() - started } });
@@ -709,7 +739,7 @@ Never invent other sexagenary pairs. Prefer years matching Useful God or balanci
     try {
       fs.appendFileSync(
         "error.log",
-        `${new Date().toISOString()} ${err.stack || err.message}\n`
+        `${new Date().toISOString()} | ${req.method} ${req.url} | ${err.stack || err.message}\n`
       );
     } catch {}
     return res.status(500).json({ error: "Internal error" });
@@ -729,7 +759,7 @@ app.use((err, req, res, next) => {
 
 /* ────────────────── start ────────────────── */
 const port = process.env.PORT || 10000;
-const server = app.listen(port, () => console.log(`Server listening on ${port}`));
+const server = app.listen(port, () =>
+  console.log(`Server listening on http://localhost:${port}`)
+);
 server.setTimeout(300000);
-
-
